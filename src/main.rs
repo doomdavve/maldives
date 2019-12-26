@@ -1,3 +1,4 @@
+use std::fs;
 use std::str::from_utf8_unchecked;
 
 fn eat_digits<'a>(s: &'a [u8]) -> (&[u8], &'a [u8]) {
@@ -11,6 +12,25 @@ fn eat_digits<'a>(s: &'a [u8]) -> (&[u8], &'a [u8]) {
 fn eat_whitespace<'a>(s: &'a [u8]) -> (&[u8], &'a [u8]) {
     let mut i = 0;
     while i < s.len() && (b' ' == s[i] || b'\t' == s[i] || b'\n' == s[i] || b'\r' == s[i]) {
+        i += 1;
+    }
+    (&s[..i], &s[i..])
+}
+
+fn is_alphabetic(c: u8) -> bool {
+    (b'a' <= c && c <= b'z') || (b'A' <= c && c <= b'Z') || b'_' == c || b'-' == c
+}
+
+fn is_numeric(c: u8) -> bool {
+    b'0' <= c && c <= b'9'
+}
+
+fn eat_symbol<'a>(s: &'a [u8]) -> (&[u8], &'a [u8]) {
+    let mut i = 0;
+    if i < s.len() && is_alphabetic(s[i]) {
+        i += 1;
+    }
+    while i < s.len() && (is_alphabetic(s[i]) || is_numeric(s[i])) {
         i += 1;
     }
     (&s[..i], &s[i..])
@@ -50,9 +70,40 @@ impl<'a> Lexer<'a> {
             (None, trailing)
         }
     }
+
+    fn tokenize_symbol(&self) -> (Option<Token>, &'a [u8]) {
+        let (symbol, trailing) = eat_symbol(self.cur);
+        if !symbol.is_empty() {
+            unsafe {
+                let symbol2 = from_utf8_unchecked(symbol);
+                (Some(Token::symbol(symbol2)), trailing)
+            }
+        } else {
+            (None, trailing)
+        }
+    }
+
+    fn tokenize_keyword(&self) -> (Option<Token>, &'a [u8]) {
+        if self.cur.len() >= 1 && self.cur[0] == b'{' {
+            (Some(Token::keyword(Keyword::BraceLeft)), &self.cur[1..])
+        } else if self.cur.len() >= 1 && self.cur[0] == b'}' {
+            (Some(Token::keyword(Keyword::BraceRight)), &self.cur[1..])
+        } else if self.cur.len() >= 1 && self.cur[0] == b'(' {
+            (Some(Token::keyword(Keyword::ParanLeft)), &self.cur[1..])
+        } else if self.cur.len() >= 1 && self.cur[0] == b')' {
+            (Some(Token::keyword(Keyword::ParanRight)), &self.cur[1..])
+        } else if self.cur.len() >= 1 && self.cur[0] == b',' {
+            (Some(Token::keyword(Keyword::Comma)), &self.cur[1..])
+        } else if self.cur.len() >= 2 && self.cur[0] == b'f' && self.cur[1] == b'n' {
+            (Some(Token::keyword(Keyword::Function)), &self.cur[2..])
+        } else {
+            (None, &self.cur)
+        }
+    }
+
 }
 
-macro_rules! tokenize {
+macro_rules! return_if_match {
     ($self:ident, $func:expr) => {{
         let (token, _rest) = $func;
         $self.cur = _rest;
@@ -65,23 +116,44 @@ macro_rules! tokenize {
 impl<'a> Iterator for Lexer<'a> {
     type Item = Token;
     fn next(&mut self) -> Option<Token> {
-        // Attempt to parse as number first.
-        tokenize!(self, self.tokenize_number());
-        tokenize!(self, self.tokenize_whitespace());
-        None
+        return_if_match!(self, self.tokenize_number());
+        return_if_match!(self, self.tokenize_whitespace());
+        return_if_match!(self, self.tokenize_keyword());
+        return_if_match!(self, self.tokenize_symbol());
+
+        match self.cur.is_empty() {
+            true => None,
+            false => Some(Token::error())
+        }
     }
 }
 
 #[derive(Debug)]
+#[derive(PartialEq)]
 enum TokenType {
     Integer,
     Whitespace,
+    Symbol,
+    Keyword,
+    Error
+}
+
+#[derive(Debug)]
+enum Keyword {
+    Function,
+    BraceLeft,
+    BraceRight,
+    ParanLeft,
+    ParanRight,
+    Comma
 }
 
 #[derive(Debug)]
 struct Token {
     token_type: TokenType,
     integer_value: i32,
+    symbol: Option<String>,
+    keyword: Option<Keyword>
 }
 
 impl Token {
@@ -89,20 +161,53 @@ impl Token {
         Token {
             token_type: TokenType::Integer,
             integer_value: integer,
+            symbol: None,
+            keyword: None
         }
     }
     fn whitespace() -> Token {
         Token {
             token_type: TokenType::Whitespace,
             integer_value: 0,
+            symbol: None,
+            keyword: None
+        }
+    }
+    fn symbol(sym: &str) -> Token {
+        Token {
+            token_type: TokenType::Symbol,
+            integer_value: 0,
+            symbol: Some(sym.to_string()),
+            keyword: None
+        }
+    }
+    fn keyword(keyword: Keyword) -> Token {
+        Token {
+            token_type: TokenType::Keyword,
+            integer_value: 0,
+            symbol: None,
+            keyword: Some(keyword)
+        }
+    }
+    fn error() -> Token {
+        Token {
+            token_type: TokenType::Error,
+            integer_value: 0,
+            symbol: None,
+            keyword: None
         }
     }
 }
 
 fn main() {
-    let test: &str = "223 123 1 2 4 4 5  6  7 7456  345		  45";
-    let mut lexer = Lexer::new(test);
+    let contents = fs::read_to_string("main.ur")
+        .expect("Something went wrong reading the file");
+
+    let mut lexer = Lexer::new(&contents);
     while let Some(token) = lexer.next() {
         println!("{:?}", token);
+        if token.token_type == TokenType::Error {
+            break;
+        }
     }
 }
