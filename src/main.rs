@@ -4,27 +4,7 @@ struct Lexer<'a> {
     cur: &'a [u8]
 }
 
-impl<'a> Lexer<'a> {
-    fn new(buffer: &'a str) -> Lexer<'a> {
-        Lexer {
-            cur: buffer.as_bytes()
-        }
-    }
-
-    fn tokenize_number(&mut self) -> (&[u8], Option<Token>) {
-        let (number, trailing) = eat_digits(self.cur);
-        self.cur = trailing;
-        if !number.is_empty() {
-            unsafe {
-                (trailing, from_utf8_unchecked(number).parse::<i32>().map(|j| Token::integer(j)).ok())
-            }
-        } else {
-            (trailing, None)
-        }
-    }
-}
-
-fn eat_digits(s: &[u8]) -> (&[u8], &[u8]) {
+fn eat_digits<'a>(s: &'a [u8]) -> (&[u8], &'a [u8]) {
     let mut i = 0;
     while i < s.len() && b'0' <= s[i] && s[i] <= b'9' {
         i += 1;
@@ -32,11 +12,32 @@ fn eat_digits(s: &[u8]) -> (&[u8], &[u8]) {
     (&s[..i], &s[i..])
 }
 
+impl<'a> Lexer<'a> {
+    fn new(buffer: &'a str) -> Lexer<'a> {
+        Lexer {
+            cur: buffer.as_bytes()
+        }
+    }
+
+    fn tokenize_number(&self) -> (Option<Token>, &'a [u8]) {
+        let (number, trailing) = eat_digits(self.cur);
+        if !number.is_empty() {
+            unsafe {
+                (from_utf8_unchecked(number).parse::<i32>().map(|j| Token::integer(j)).ok(), trailing)
+            }
+        } else {
+            (None, trailing)
+        }
+    }
+}
+
 impl<'a> Iterator for Lexer<'a> {
     type Item = Token;
     fn next(&mut self) -> Option<Token> {
         // Attempt to parse as number first.
-        self.tokenize_number().1
+        let (token, _rest) = self.tokenize_number();
+        self.cur = _rest;
+        token
     }
 }
 
