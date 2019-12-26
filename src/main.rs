@@ -23,7 +23,8 @@ impl<'a> Lexer<'a> {
         let (number, trailing) = eat_digits(self.cur);
         if !number.is_empty() {
             unsafe {
-                (from_utf8_unchecked(number).parse::<i32>().map(|j| Token::integer(j)).ok(), trailing)
+                let token = from_utf8_unchecked(number).parse::<i32>().map(|j| Token::integer(j)).ok();
+                (token, trailing)
             }
         } else {
             (None, trailing)
