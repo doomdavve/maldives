@@ -10,6 +10,18 @@ impl<'a> Lexer<'a> {
             cur: buffer.as_bytes()
         }
     }
+
+    fn tokenize_number(&mut self) -> (&[u8], Option<Token>) {
+        let (number, trailing) = eat_digits(self.cur);
+        self.cur = trailing;
+        if !number.is_empty() {
+            unsafe {
+                (trailing, from_utf8_unchecked(number).parse::<i32>().map(|j| Token::integer(j)).ok())
+            }
+        } else {
+            (trailing, None)
+        }
+    }
 }
 
 fn eat_digits(s: &[u8]) -> (&[u8], &[u8]) {
@@ -23,15 +35,8 @@ fn eat_digits(s: &[u8]) -> (&[u8], &[u8]) {
 impl<'a> Iterator for Lexer<'a> {
     type Item = Token;
     fn next(&mut self) -> Option<Token> {
-        let (number, trailing) = eat_digits(self.cur);
-        self.cur = trailing;
-        if !number.is_empty() {
-            unsafe {
-                from_utf8_unchecked(number).parse::<i32>().map(|j| Token::integer(j)).ok()
-            }
-        } else {
-            None
-        }
+        // Attempt to parse as number first.
+        self.tokenize_number().1
     }
 }
 
