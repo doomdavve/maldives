@@ -1,9 +1,5 @@
 use std::str::from_utf8_unchecked;
 
-struct Lexer<'a> {
-    cur: &'a [u8],
-}
-
 fn eat_digits<'a>(s: &'a [u8]) -> (&[u8], &'a [u8]) {
     let mut i = 0;
     while i < s.len() && b'0' <= s[i] && s[i] <= b'9' {
@@ -14,10 +10,14 @@ fn eat_digits<'a>(s: &'a [u8]) -> (&[u8], &'a [u8]) {
 
 fn eat_whitespace<'a>(s: &'a [u8]) -> (&[u8], &'a [u8]) {
     let mut i = 0;
-    while i < s.len() && b' ' == s[i] {
+    while i < s.len() && (b' ' == s[i] || b'\t' == s[i] || b'\n' == s[i] || b'\r' == s[i]) {
         i += 1;
     }
     (&s[..i], &s[i..])
+}
+
+struct Lexer<'a> {
+    cur: &'a [u8],
 }
 
 impl<'a> Lexer<'a> {
@@ -50,7 +50,6 @@ impl<'a> Lexer<'a> {
             (None, trailing)
         }
     }
-
 }
 
 macro_rules! tokenize {
@@ -76,7 +75,7 @@ impl<'a> Iterator for Lexer<'a> {
 #[derive(Debug)]
 enum TokenType {
     Integer,
-    Whitespace
+    Whitespace,
 }
 
 #[derive(Debug)]
@@ -101,7 +100,7 @@ impl Token {
 }
 
 fn main() {
-    let test: &str = "223 123 1 2 4 4 5  6  7 7456  345  45";
+    let test: &str = "223 123 1 2 4 4 5  6  7 7456  345		  45";
     let mut lexer = Lexer::new(test);
     while let Some(token) = lexer.next() {
         println!("{:?}", token);
