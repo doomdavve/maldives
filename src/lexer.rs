@@ -63,15 +63,6 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn tokenize_whitespace(&self) -> (Option<Token>, &'a [u8]) {
-        let (whitespace, trailing) = eat_whitespace(self.cur);
-        if !whitespace.is_empty() {
-            (Some(Token::whitespace()), trailing)
-        } else {
-            (None, trailing)
-        }
-    }
-
     fn tokenize_symbol(&self) -> (Option<Token>, &'a [u8]) {
         let (symbol, trailing) = eat_symbol(self.cur);
         if !symbol.is_empty() {
@@ -116,8 +107,10 @@ macro_rules! return_if_match {
 impl<'a> Iterator for Lexer<'a> {
     type Item = Token;
     fn next(&mut self) -> Option<Token> {
+        let (_ws, rest) = eat_whitespace(self.cur);
+        self.cur = rest;
+
         return_if_match!(self, self.tokenize_number());
-        return_if_match!(self, self.tokenize_whitespace());
         return_if_match!(self, self.tokenize_keyword());
         return_if_match!(self, self.tokenize_symbol());
 

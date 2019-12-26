@@ -12,7 +12,6 @@ pub enum Keyword {
 #[derive(PartialEq)]
 pub enum TokenType {
     Integer,
-    Whitespace,
     Symbol,
     Keyword,
     Error
@@ -31,14 +30,6 @@ impl Token {
         Token {
             token_type: TokenType::Integer,
             integer_value: integer,
-            symbol: None,
-            keyword: None
-        }
-    }
-    pub fn whitespace() -> Token {
-        Token {
-            token_type: TokenType::Whitespace,
-            integer_value: 0,
             symbol: None,
             keyword: None
         }
