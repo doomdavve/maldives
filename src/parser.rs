@@ -3,18 +3,6 @@
 
 //use crate::lexer::Lexer;
 //use crate::token::Keyword;
-use crate::token::Token;
-
-#[derive(Debug)]
-pub struct TreeNode<'a> {
-    name: &'a Token,
-    children: Vec<TreeNode<'a>>,
-}
-
-pub fn parse(_tokens: &Vec<Token>) -> Option<TreeNode> {
-    None
-    //parse_symbol(tokens, 0)
-}
 
 //fn parse_expression(tokens: &Vec<Token>, pos: usize) -> Option<TreeNode> {
 //    let (node, _next) = parse_function_call(tokens, pos);
