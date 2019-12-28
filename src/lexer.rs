@@ -1,4 +1,4 @@
-use crate::token::{Keyword, Token};
+use crate::token::Token;
 
 use std::str::from_utf8_unchecked;
 
@@ -109,13 +109,13 @@ impl<'a> Lexer<'a> {
     }
 
     fn tokenize_keyword(&self) -> (Option<Token<'a>>, usize) {
-        return_if_character!(self, b'{', Token::Keyword(Keyword::BraceLeft));
-        return_if_character!(self, b'}', Token::Keyword(Keyword::BraceRight));
-        return_if_character!(self, b'(', Token::Keyword(Keyword::ParenLeft));
-        return_if_character!(self, b')', Token::Keyword(Keyword::ParenRight));
-        return_if_character!(self, b';', Token::Keyword(Keyword::SemiColon));
-        return_if_character!(self, b',', Token::Keyword(Keyword::Comma));
-        return_if_2characters!(self, b'f', b'n', Token::Keyword(Keyword::Function));
+        return_if_character!(self, b'{', Token::BraceLeft);
+        return_if_character!(self, b'}', Token::BraceRight);
+        return_if_character!(self, b'(', Token::ParenLeft);
+        return_if_character!(self, b')', Token::ParenRight);
+        return_if_character!(self, b';', Token::SemiColon);
+        return_if_character!(self, b',', Token::Comma);
+        return_if_2characters!(self, b'f', b'n', Token::Function);
 
         (None, self.start)
     }

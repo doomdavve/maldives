@@ -1,5 +1,7 @@
 #[derive(Debug, PartialEq)]
-pub enum Keyword {
+pub enum Token<'a> {
+    Integer(i32),
+    Symbol(&'a [u8]),
     Function,
     BraceLeft,
     BraceRight,
@@ -7,12 +9,4 @@ pub enum Keyword {
     ParenRight,
     SemiColon,
     Comma
-}
-
-#[derive(Debug)]
-pub enum Token<'a> {
-    Integer(i32),
-    Symbol(&'a [u8]),
-    Keyword(Keyword),
-//    Error
 }
