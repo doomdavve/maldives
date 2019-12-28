@@ -81,9 +81,11 @@ impl<'a> Lexer<'a> {
         } else if self.cur.len() >= 1 && self.cur[0] == b'}' {
             (Some(Token::keyword(Keyword::BraceRight)), &self.cur[1..])
         } else if self.cur.len() >= 1 && self.cur[0] == b'(' {
-            (Some(Token::keyword(Keyword::ParanLeft)), &self.cur[1..])
+            (Some(Token::keyword(Keyword::ParenLeft)), &self.cur[1..])
         } else if self.cur.len() >= 1 && self.cur[0] == b')' {
-            (Some(Token::keyword(Keyword::ParanRight)), &self.cur[1..])
+            (Some(Token::keyword(Keyword::ParenRight)), &self.cur[1..])
+        } else if self.cur.len() >= 1 && self.cur[0] == b';' {
+            (Some(Token::keyword(Keyword::SemiColon)), &self.cur[1..])
         } else if self.cur.len() >= 1 && self.cur[0] == b',' {
             (Some(Token::keyword(Keyword::Comma)), &self.cur[1..])
         } else if self.cur.len() >= 2 && self.cur[0] == b'f' && self.cur[1] == b'n' {
@@ -109,6 +111,8 @@ impl<'a> Iterator for Lexer<'a> {
     fn next(&mut self) -> Option<Token> {
         let (_ws, rest) = eat_whitespace(self.cur);
         self.cur = rest;
+
+        println!("left: {:?}", unsafe { from_utf8_unchecked(self.cur) });
 
         return_if_match!(self, self.tokenize_number());
         return_if_match!(self, self.tokenize_keyword());

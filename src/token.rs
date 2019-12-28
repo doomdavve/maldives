@@ -1,15 +1,15 @@
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Keyword {
     Function,
     BraceLeft,
     BraceRight,
-    ParanLeft,
-    ParanRight,
+    ParenLeft,
+    ParenRight,
+    SemiColon,
     Comma
 }
 
-#[derive(Debug)]
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq)]
 pub enum TokenType {
     Integer,
     Symbol,
