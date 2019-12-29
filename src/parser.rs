@@ -96,13 +96,13 @@ impl error::Error for ParserError {
 }
 
 #[derive(Debug, PartialEq)]
-enum Expression {
+pub enum Expression {
     Integer(i32),
     FC(Box<FunctionCall>),
 }
 
 #[derive(Debug, PartialEq)]
-struct FunctionCall {
+pub struct FunctionCall {
     sym: String,
     arguments: Vec<Expression>,
 }
@@ -173,7 +173,7 @@ impl<'a> Parser<'a> {
     fn function_call(&mut self) -> Result<FunctionCall, ParserError> {
         let sym = self.symbol()?;
         self.expect(Token::ParenLeft)?;
-        let mut args: Vec<Expression> = Vec::new();;
+        let mut args: Vec<Expression> = Vec::new();
         if self.sym != Some(Token::ParenRight) {
             let arg = self.expression()?;
             args.push(arg);
@@ -192,6 +192,10 @@ impl<'a> Parser<'a> {
             arguments: args,
         };
         return Ok(fc);
+    }
+
+    pub fn program(&mut self) ->  Result<Expression, ParserError> {
+        self.expression()
     }
 }
 
