@@ -19,13 +19,13 @@ fn main() {
 #[test]
 fn tokenize_fn_definition() {
     let contents = "fn apa() { 2 }";
-
-    let mut lexer = Lexer::new(&contents);
-    while let Some(token) = lexer.next() {
-        println!("T: {:?}", token);
-    }
-
     let tokens: Vec<Token> = Lexer::new(&contents).collect();
     assert_eq!(tokens.len(), 7);
 }
 
+#[test]
+fn parse_symbol() {
+    let contents = "apa";
+    let tokens: Vec<Token> = Lexer::new(&contents).collect();
+    assert_eq!(tokens.len(), 1);
+}

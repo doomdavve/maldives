@@ -7,6 +7,8 @@ pub enum Token<'a> {
     BraceRight,
     ParenLeft,
     ParenRight,
+    BracketLeft,
+    BracketRight,
     SemiColon,
     Comma
 }

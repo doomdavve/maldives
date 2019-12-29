@@ -5,7 +5,6 @@ use std::str::from_utf8_unchecked;
 pub struct Lexer<'a> {
     buffer: &'a [u8],
     start: usize,
-    end: usize,
 }
 
 fn eat_digits<'a>(s: &'a [u8], mut i: usize) -> usize {
@@ -48,20 +47,16 @@ fn eat_character<'a>(s: &'a [u8], mut i: usize, c: u8) -> usize {
     i
 }
 
-macro_rules! return_if_character {
-    ($self:ident, $char:expr, $token:expr) => {{
-        if eat_character($self.buffer, $self.start, $char) > $self.start {
-            return (Some($token), $self.start + 1);
-        }
-    }};
-}
-
-macro_rules! return_if_2characters {
-    ($self:ident, $char1:expr, $char2:expr, $token:expr) => {{
-        if eat_character($self.buffer, $self.start, $char1) > $self.start
-            && eat_character($self.buffer, $self.start + 1, $char2) > $self.start + 1
-        {
-            return (Some($token), $self.start + 2);
+macro_rules! return_if_characters {
+    ($self:ident, $token:expr, $($char:expr),+) => {{
+        let mut i = $self.start;
+        $(
+            if eat_character($self.buffer, i, $char) > i {
+                i+=1;
+            }
+        )+
+        if i > $self.start {
+            return (Some($token), i);
         }
     }};
 }
@@ -71,18 +66,15 @@ impl<'a> Lexer<'a> {
         Lexer {
             buffer: buffer.as_bytes(),
             start: 0,
-            end: 0,
         }
     }
 
-//    fn peek(&mut self) -> Option<Token<'a>> {
-//        let start = self.start;
-//        let end = self.end;
-//        let res = self.next();
-//        self.start = start;
-//        self.end = end;
-//        res
-//    }
+    //    fn peek(&mut self) -> Option<Token<'a>> {
+    //        let start = self.start;
+    //        let res = self.next();
+    //        self.start = start;
+    //        res
+    //    }
 
     fn tokenize_number(&self) -> (Option<Token<'a>>, usize) {
         let n = eat_digits(self.buffer, self.start);
@@ -108,15 +100,16 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn tokenize_keyword(&self) -> (Option<Token<'a>>, usize) {
-        return_if_character!(self, b'{', Token::BraceLeft);
-        return_if_character!(self, b'}', Token::BraceRight);
-        return_if_character!(self, b'(', Token::ParenLeft);
-        return_if_character!(self, b')', Token::ParenRight);
-        return_if_character!(self, b';', Token::SemiColon);
-        return_if_character!(self, b',', Token::Comma);
-        return_if_2characters!(self, b'f', b'n', Token::Function);
-
+    fn tokenize_structure(&self) -> (Option<Token<'a>>, usize) {
+        return_if_characters!(self, Token::BraceLeft, b'{');
+        return_if_characters!(self, Token::BraceRight, b'}');
+        return_if_characters!(self, Token::ParenLeft, b'(');
+        return_if_characters!(self, Token::ParenRight, b')');
+        return_if_characters!(self, Token::BracketLeft, b'[');
+        return_if_characters!(self, Token::BracketRight, b']');
+        return_if_characters!(self, Token::SemiColon, b';');
+        return_if_characters!(self, Token::Comma, b',');
+        return_if_characters!(self, Token::Function, b'f', b'n');
         (None, self.start)
     }
 }
@@ -125,8 +118,7 @@ macro_rules! return_if_match {
     ($self:ident, $func:expr) => {{
         let (token, end) = $func;
         if token.is_some() {
-            $self.end = end;
-            println!("token length: {}", end - $self.start);
+            $self.start = end;
             return token;
         }
     }};
@@ -136,18 +128,13 @@ impl<'a> Iterator for Lexer<'a> {
     type Item = Token<'a>;
     fn next(&mut self) -> Option<Self::Item> {
         if self.start >= self.buffer.len() {
-            return None
+            return None;
         }
 
-        self.end = eat_whitespace(self.buffer, self.end);
-        self.start = self.end;
-
-        println!("left: {:?}", unsafe {
-            from_utf8_unchecked(&self.buffer[self.start..])
-        });
+        self.start = eat_whitespace(self.buffer, self.start);
 
         return_if_match!(self, self.tokenize_number());
-        return_if_match!(self, self.tokenize_keyword());
+        return_if_match!(self, self.tokenize_structure());
         return_if_match!(self, self.tokenize_symbol());
 
         None
