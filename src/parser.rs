@@ -1,29 +1,8 @@
-// Function Symbol ParenLeft ParenRight BraceLeft Expression BraceRight
-// Expression -> Symbol Some(< [_] > :: into_vec (box [$ ($ x), *]))ght
-
-//use crate::lexer::Lexer;
-//use crate::token::Keyword;
-use crate::lexer::Lexer;
-use std::error;
-use std::fmt;
 use std::str::from_utf8_unchecked;
 
+use crate::lexer::Lexer;
 use crate::token::Token;
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct ParserError;
-
-impl fmt::Display for ParserError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Parser error")
-    }
-}
-
-impl error::Error for ParserError {
-    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
-        None
-    }
-}
+use crate::parser_error::ParserError;
 
 #[derive(Debug, PartialEq)]
 pub enum Expression {
