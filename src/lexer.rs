@@ -69,12 +69,9 @@ impl<'a> Lexer<'a> {
         }
     }
 
-//    fn peek(&mut self) -> Option<Token<'a>> {
-//        let start = self.start;
-//        let res = self.next();
-//        self.start = start;
-//        res
-//    }
+    pub fn rewind(&mut self) {
+        self.start = 0;
+    }
 
     fn tokenize_number(&self) -> (Option<Token<'a>>, usize) {
         let n = eat_digits(self.buffer, self.start);
