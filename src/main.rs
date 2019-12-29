@@ -1,3 +1,5 @@
+use std::fs;
+
 mod token;
 mod lexer;
 mod parser_error;
@@ -5,8 +7,6 @@ mod parser;
 
 use lexer::Lexer;
 use parser::Parser;
-
-use std::fs;
 
 fn main() {
     let contents = fs::read_to_string("main.ur")
