@@ -16,16 +16,3 @@ fn main() {
     //println!("{:?}", program);
 }
 
-#[test]
-fn tokenize_fn_definition() {
-    let contents = "fn apa() { 2 }";
-    let tokens: Vec<Token> = Lexer::new(&contents).collect();
-    assert_eq!(tokens.len(), 7);
-}
-
-#[test]
-fn parse_symbol() {
-    let contents = "apa";
-    let tokens: Vec<Token> = Lexer::new(&contents).collect();
-    assert_eq!(tokens.len(), 1);
-}
