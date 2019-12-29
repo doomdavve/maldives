@@ -69,6 +69,7 @@ impl<'a> Lexer<'a> {
         }
     }
 
+    #[cfg(test)]
     pub fn rewind(&mut self) {
         self.start = 0;
     }

@@ -35,6 +35,7 @@ impl<'a> Parser<'a> {
         }
     }
 
+    #[cfg(test)]
     pub fn rewind(&mut self) {
         self.lexer.rewind();
         self.sym = self.lexer.next()
