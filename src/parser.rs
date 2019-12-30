@@ -8,7 +8,15 @@ use crate::token::Token;
 pub enum Expression {
     Integer(i32),
     FunctionCall(Box<FunctionCallExpr>),
+    Bind(Box<BindExpr>),
     Block(Box<BlockExpr>),
+    Symbol(String)
+}
+
+#[derive(Debug, PartialEq)]
+pub struct BindExpr {
+    pub sym: String,
+    pub expr: Expression,
 }
 
 #[derive(Debug, PartialEq)]
@@ -19,7 +27,7 @@ pub struct FunctionCallExpr {
 
 #[derive(Debug, PartialEq)]
 pub struct BlockExpr {
-    list: Vec<Expression>,
+    pub list: Vec<Expression>,
 }
 
 pub struct Parser<'a> {
@@ -31,7 +39,7 @@ impl<'a> Parser<'a> {
     pub fn new(mut lexer: Lexer<'a>) -> Parser<'a> {
         Parser {
             sym: lexer.next(),
-            lexer: lexer,
+            lexer,
         }
     }
 
@@ -44,24 +52,29 @@ impl<'a> Parser<'a> {
     fn accept(&mut self, s: Token) -> bool {
         if self.sym == Some(s) {
             self.sym = self.lexer.next();
-            return true;
+            true
         } else {
-            return false;
+            false
         }
     }
 
-    fn peek_symbol(&mut self) -> bool {
+    fn at_symbol(&mut self) -> bool {
         match self.sym {
             Some(Token::Symbol(_s)) => true,
             _ => false,
         }
     }
 
+    fn peek(&mut self, s: Token) -> bool {
+        let peeked = self.lexer.peek();
+        peeked == Some(s)
+    }
+
     fn expect(&mut self, s: Token) -> Result<(), ParserError> {
         if self.accept(s) {
-            return Ok(());
+            Ok(())
         } else {
-            return Err(ParserError);
+            Err(ParserError)
         }
     }
 
@@ -70,27 +83,36 @@ impl<'a> Parser<'a> {
             Some(Token::Symbol(s)) => {
                 let symbol_name = unsafe { from_utf8_unchecked(s) }.to_string();
                 self.sym = self.lexer.next();
-                return Ok(symbol_name);
+                Ok(symbol_name)
             }
             _ => Err(ParserError),
         }
     }
 
     fn expression(&mut self) -> Result<Expression, ParserError> {
-        if self.peek_symbol() {
-            let fc = self.function_call()?;
-            return Ok(Expression::FunctionCall(Box::new(fc)));
+        if self.at_symbol() {
+            if self.peek(Token::ParenLeft) {
+                let fc = self.function_call()?;
+                Ok(Expression::FunctionCall(Box::new(fc)))
+            } else {
+                let symbol = self.symbol()?;
+                Ok(Expression::Symbol(symbol))
+            }
         } else {
             match self.sym {
+                Some(Token::Let) => {
+                    let binding = self.binding()?;
+                    Ok(Expression::Bind(Box::new(binding)))
+                }
                 Some(Token::BraceLeft) => {
                     let block = self.block()?;
-                    return Ok(Expression::Block(Box::new(block)));
+                    Ok(Expression::Block(Box::new(block)))
                 }
                 Some(Token::Integer(i)) => {
                     self.sym = self.lexer.next();
-                    return Ok(Expression::Integer(i));
+                    Ok(Expression::Integer(i))
                 }
-                _ => return Err(ParserError),
+                _ => Err(ParserError)
             }
         }
     }
@@ -113,10 +135,10 @@ impl<'a> Parser<'a> {
         }
         self.expect(Token::ParenRight)?;
         let fc = FunctionCallExpr {
-            sym: sym,
+            sym,
             arguments: args,
         };
-        return Ok(fc);
+        Ok(fc)
     }
 
     fn block(&mut self) -> Result<BlockExpr, ParserError> {
@@ -133,7 +155,17 @@ impl<'a> Parser<'a> {
             }
         }
         self.expect(Token::BraceRight)?;
-        return Ok(BlockExpr { list: list });
+        Ok(BlockExpr { list })
+    }
+
+    fn binding(&mut self) -> Result<BindExpr, ParserError> {
+        self.expect(Token::Let)?;
+        let sym = self.symbol()?;
+        self.expect(Token::Equal)?;
+        Ok(BindExpr {
+            sym,
+            expr: self.expression()?,
+        })
     }
 
     pub fn program(&mut self) -> Result<Expression, ParserError> {
@@ -148,6 +180,15 @@ fn parse_symbol() {
     let mut parser = Parser::new(tokens);
     let res = parser.symbol();
     assert_eq!(Ok(contents), res);
+}
+
+#[test]
+fn parse_symbol_as_expression() {
+    let contents = String::from("apa");
+    let tokens = Lexer::new(&contents);
+    let mut parser = Parser::new(tokens);
+    let res = parser.expression();
+    assert_eq!(Ok(Expression::Symbol(contents)), res);
 }
 
 #[test]
@@ -257,6 +298,23 @@ fn parse_block() {
 
     parser.rewind();
     let expected_in_expression = Expression::Block(Box::new(expected()));
+    let res_in_expr = parser.expression();
+    assert_eq!(res_in_expr, Ok(expected_in_expression));
+}
+
+#[test]
+fn parse_bind() {
+    let lexer = Lexer::new("let a = 4");
+    let mut parser = Parser::new(lexer);
+    let res = parser.binding();
+    let expected = || BindExpr {
+        sym: String::from("a"),
+        expr: Expression::Integer(4),
+    };
+    assert_eq!(res, Ok(expected()));
+
+    parser.rewind();
+    let expected_in_expression = Expression::Bind(Box::new(expected()));
     let res_in_expr = parser.expression();
     assert_eq!(res_in_expr, Ok(expected_in_expression));
 }

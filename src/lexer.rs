@@ -7,14 +7,14 @@ pub struct Lexer<'a> {
     start: usize,
 }
 
-fn eat_digits<'a>(s: &'a [u8], mut i: usize) -> usize {
+fn eat_digits(s: &[u8], mut i: usize) -> usize {
     while i < s.len() && b'0' <= s[i] && s[i] <= b'9' {
         i += 1;
     }
     i
 }
 
-fn eat_whitespace<'a>(s: &'a [u8], mut i: usize) -> usize {
+fn eat_whitespace(s: &[u8], mut i: usize) -> usize {
     while i < s.len() && (b' ' == s[i] || b'\t' == s[i] || b'\n' == s[i] || b'\r' == s[i]) {
         i += 1;
     }
@@ -29,7 +29,7 @@ fn is_numeric(c: u8) -> bool {
     b'0' <= c && c <= b'9'
 }
 
-fn eat_symbol<'a>(s: &'a [u8], mut i: usize) -> (&[u8], usize) {
+fn eat_symbol(s: &[u8], mut i: usize) -> (&[u8], usize) {
     let start = i;
     if i < s.len() && is_alphabetic(s[i]) {
         i += 1;
@@ -40,7 +40,7 @@ fn eat_symbol<'a>(s: &'a [u8], mut i: usize) -> (&[u8], usize) {
     (&s[start..i], i)
 }
 
-fn eat_character<'a>(s: &'a [u8], mut i: usize, c: u8) -> usize {
+fn eat_character(s: &[u8], mut i: usize, c: u8) -> usize {
     if i < s.len() && c == s[i] {
         i += 1;
     }
@@ -74,19 +74,26 @@ impl<'a> Lexer<'a> {
         self.start = 0;
     }
 
+    pub fn peek(&mut self) -> Option<Token<'a>> {
+        let start = self.start;
+        let res = self.next();
+        self.start = start;
+        res
+    }
+
     fn tokenize_number(&self) -> (Option<Token<'a>>, usize) {
         let n = eat_digits(self.buffer, self.start);
         if n > 0 {
-            unsafe {
-                let token = from_utf8_unchecked(&self.buffer[self.start..n])
+            let token = unsafe {
+                from_utf8_unchecked(&self.buffer[self.start..n])
                     .parse::<i32>()
-                    .map(|j| Token::Integer(j))
-                    .ok();
-                return (token, n);
-            }
+                    .map(Token::Integer)
+                    .ok()
+            };
+            (token, n)
         } else {
-            return (None, n);
-        };
+            (None, n)
+        }
     }
 
     fn tokenize_symbol(&self) -> (Option<Token<'a>>, usize) {
@@ -107,7 +114,9 @@ impl<'a> Lexer<'a> {
         return_if_characters!(self, Token::BracketRight, b']');
         return_if_characters!(self, Token::SemiColon, b';');
         return_if_characters!(self, Token::Comma, b',');
+        return_if_characters!(self, Token::Equal, b'=');
         return_if_characters!(self, Token::Function, b'f', b'n');
+        return_if_characters!(self, Token::Let, b'l', b'e', b't');
         (None, self.start)
     }
 }
