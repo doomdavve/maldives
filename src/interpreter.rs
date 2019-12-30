@@ -47,7 +47,8 @@ impl Interpreter {
             Expression::Bind(b) => {
                 let bind_expr = *b;
                 let val = self.eval(bind_expr.expr)?;
-                self.vars.insert(bind_expr.sym, val).ok_or(InterpreterError)
+                self.vars.insert(bind_expr.sym, val);
+                Ok(val)
             }
             Expression::Block(b) => {
                 let block_expr = *b;
