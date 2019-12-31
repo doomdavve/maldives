@@ -1,16 +1,19 @@
+use std::rc::Rc;
 use std::str::from_utf8_unchecked;
 
 use crate::lexer::Lexer;
 use crate::parser_error::ParserError;
 use crate::token::Token;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Expression {
     Integer(i32),
-    FunctionCall(Box<FunctionCallExpr>),
-    Bind(Box<BindExpr>),
-    Block(Box<BlockExpr>),
-    Symbol(String)
+    Function(Rc<FunctionExpr>),
+    FunctionCall(Rc<FunctionCallExpr>),
+    Bind(Rc<BindExpr>),
+    Block(Rc<BlockExpr>),
+    Symbol(String),
+    Void
 }
 
 #[derive(Debug, PartialEq)]
@@ -21,8 +24,15 @@ pub struct BindExpr {
 
 #[derive(Debug, PartialEq)]
 pub struct FunctionCallExpr {
-    sym: String,
-    arguments: Vec<Expression>,
+    pub sym: String,
+    pub arguments: Vec<Expression>,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct FunctionExpr {
+    pub sym: String,
+    pub parameters: Vec<String>,
+    pub expr: Expression,
 }
 
 #[derive(Debug, PartialEq)]
@@ -89,30 +99,61 @@ impl<'a> Parser<'a> {
         }
     }
 
+    fn function(&mut self) -> Result<FunctionExpr, ParserError> {
+        self.expect(Token::Function)?;
+        let sym = self.symbol()?;
+        self.expect(Token::ParenLeft)?;
+        let mut parameters: Vec<String> = Vec::new();
+        if self.sym != Some(Token::ParenRight) {
+            let parameter = self.symbol()?;
+            parameters.push(parameter);
+            loop {
+                if self.accept(Token::Comma) {
+                    let parameter = self.symbol()?;
+                    parameters.push(parameter);
+                } else {
+                    break;
+                }
+            }
+        }
+        self.expect(Token::ParenRight)?;
+        let expr = self.expression()?;
+        let function = FunctionExpr {
+            sym,
+            parameters,
+            expr,
+        };
+        Ok(function)
+    }
+
     fn expression(&mut self) -> Result<Expression, ParserError> {
         if self.at_symbol() {
             if self.peek(Token::ParenLeft) {
                 let fc = self.function_call()?;
-                Ok(Expression::FunctionCall(Box::new(fc)))
+                Ok(Expression::FunctionCall(Rc::new(fc)))
             } else {
                 let symbol = self.symbol()?;
                 Ok(Expression::Symbol(symbol))
             }
         } else {
             match self.sym {
+                Some(Token::Function) => {
+                    let function = self.function()?;
+                    Ok(Expression::Function(Rc::new(function)))
+                }
                 Some(Token::Let) => {
                     let binding = self.binding()?;
-                    Ok(Expression::Bind(Box::new(binding)))
+                    Ok(Expression::Bind(Rc::new(binding)))
                 }
                 Some(Token::BraceLeft) => {
                     let block = self.block()?;
-                    Ok(Expression::Block(Box::new(block)))
+                    Ok(Expression::Block(Rc::new(block)))
                 }
                 Some(Token::Integer(i)) => {
                     self.sym = self.lexer.next();
                     Ok(Expression::Integer(i))
                 }
-                _ => Err(ParserError)
+                _ => Err(ParserError),
             }
         }
     }
@@ -242,7 +283,7 @@ fn parse_function_call_many_multiple_args() {
 fn parse_function_call_as_expression() {
     let mut parser = Parser::new(Lexer::new("sqrt(4)"));
     let res = parser.expression();
-    let expected = Expression::FunctionCall(Box::new(FunctionCallExpr {
+    let expected = Expression::FunctionCall(Rc::new(FunctionCallExpr {
         sym: String::from("sqrt"),
         arguments: vec![4]
             .into_iter()
@@ -256,15 +297,29 @@ fn parse_function_call_as_expression() {
 fn parse_nested_function_call_as_expression() {
     let mut parser = Parser::new(Lexer::new("sqrt(sqrt(81))"));
     let res = parser.expression();
-    let expected = Expression::FunctionCall(Box::new(FunctionCallExpr {
+    let expected = Expression::FunctionCall(Rc::new(FunctionCallExpr {
         sym: String::from("sqrt"),
-        arguments: vec![Expression::FunctionCall(Box::new(FunctionCallExpr {
+        arguments: vec![Expression::FunctionCall(Rc::new(FunctionCallExpr {
             sym: String::from("sqrt"),
             arguments: vec![81]
                 .into_iter()
                 .map(|i| Expression::Integer(i))
                 .collect(),
         }))],
+    }));
+    assert_eq!(res, Ok(expected));
+}
+
+#[test]
+fn parse_define_function() {
+    let mut parser = Parser::new(Lexer::new("fn identity(x) { x }"));
+    let res = parser.expression();
+    let expected = Expression::Function(Rc::new(FunctionExpr {
+        sym: String::from("identity"),
+        parameters: vec![String::from("x")],
+        expr: Expression::Block(Rc::new(BlockExpr {
+            list: vec![Expression::Symbol(String::from("x"))],
+        })),
     }));
     assert_eq!(res, Ok(expected));
 }
@@ -284,11 +339,11 @@ fn parse_block() {
     let res = parser.block();
     let expected = || BlockExpr {
         list: vec![
-            Expression::FunctionCall(Box::new(FunctionCallExpr {
+            Expression::FunctionCall(Rc::new(FunctionCallExpr {
                 sym: String::from("print"),
                 arguments: vec![Expression::Integer(9)],
             })),
-            Expression::FunctionCall(Box::new(FunctionCallExpr {
+            Expression::FunctionCall(Rc::new(FunctionCallExpr {
                 sym: String::from("print"),
                 arguments: vec![Expression::Integer(3)],
             })),
@@ -297,7 +352,7 @@ fn parse_block() {
     assert_eq!(res, Ok(expected()));
 
     parser.rewind();
-    let expected_in_expression = Expression::Block(Box::new(expected()));
+    let expected_in_expression = Expression::Block(Rc::new(expected()));
     let res_in_expr = parser.expression();
     assert_eq!(res_in_expr, Ok(expected_in_expression));
 }
@@ -314,7 +369,7 @@ fn parse_bind() {
     assert_eq!(res, Ok(expected()));
 
     parser.rewind();
-    let expected_in_expression = Expression::Bind(Box::new(expected()));
+    let expected_in_expression = Expression::Bind(Rc::new(expected()));
     let res_in_expr = parser.expression();
     assert_eq!(res_in_expr, Ok(expected_in_expression));
 }

@@ -5,11 +5,15 @@ use std::fmt;
 use crate::parser::Expression;
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct InterpreterError;
+pub struct InterpreterError {
+    message: String,
+    vars: HashMap<String, Expression>
+}
 
 impl fmt::Display for InterpreterError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Interpreter error")
+        write!(f, "Interpreter error: {}\n", self.message)?;
+        write!(f, "Environment: {:?}", self.vars)
     }
 }
 
@@ -19,9 +23,15 @@ impl error::Error for InterpreterError {
     }
 }
 
+impl InterpreterError {
+    fn new(message: String, vars: HashMap<String, Expression>) -> InterpreterError {
+        InterpreterError{ message, vars }
+    }
+}
+
 pub struct Interpreter
 {
-    vars: HashMap<String, i32>,
+    vars: HashMap<String, Expression>,
 }
 
 impl Interpreter {
@@ -31,34 +41,67 @@ impl Interpreter {
         }
     }
 
+    fn error(&self, message: String) -> InterpreterError {
+        InterpreterError::new(message, self.vars.clone())
+    }
+
     #[cfg(test)]
-    pub fn set(&mut self, symbol: String, value: i32) -> Option<i32> {
+    pub fn set(&mut self, symbol: String, value: Expression) -> Option<Expression> {
         self.vars.insert(symbol, value)
     }
 
-    pub fn eval(&mut self, expression: Expression) -> Result<i32, InterpreterError> {
+    pub fn eval(&mut self, expression: &Expression) -> Result<Expression, InterpreterError> {
         match expression {
+            Expression::Void => {
+                Ok(Expression::Void)
+            }
             Expression::Integer(i) => {
-                Ok(i)
+                Ok(Expression::Integer(*i))
             }
             Expression::Symbol(s) => {
-                self.vars.get(&s).copied().ok_or(InterpreterError)
+                let val = {
+                    let nested = self.vars.get(s).ok_or(self.error(format!("unknown symbol '{}'", s)))?;
+                    nested.clone()
+                };
+                let value = self.eval(&val)?;
+                Ok(value)
             }
             Expression::Bind(b) => {
-                let bind_expr = *b;
-                let val = self.eval(bind_expr.expr)?;
-                self.vars.insert(bind_expr.sym, val);
+                let val = self.eval(&b.expr)?;
+                self.vars.insert(String::from(&b.sym), val.clone());
                 Ok(val)
             }
             Expression::Block(b) => {
-                let block_expr = *b;
-                let mut last = Ok(0);
-                for expr in block_expr.list {
-                    last = self.eval(expr);
+                let mut last = Ok(Expression::Void);
+                for expr in &b.list {
+                    last = self.eval(&expr);
                 }
                 last
             }
-            _ => Err(InterpreterError)
+            Expression::Function(f) => {
+                self.vars.insert(String::from(&f.sym), expression.clone());
+                Ok(Expression::Symbol(f.sym.clone()))
+            },
+            Expression::FunctionCall(fc) => {
+                let value = {
+                    let nested = self.vars.get(&fc.sym).ok_or(self.error(format!("unknown symbol '{}'", fc.sym)))?;
+                    nested.clone()
+                };
+                match value {
+                    Expression::Function(f) => {
+                        let old_vars = self.vars.clone();
+                        for (idx, parameter) in f.parameters.iter().enumerate() {
+                            let argument = fc.arguments.get(idx).unwrap_or(&Expression::Void);
+                            let val = self.eval(argument)?;
+                            self.vars.insert(String::from(parameter), val.clone());
+                        }
+                        let result = self.eval(&f.expr)?;
+                        self.vars = old_vars;
+                        Ok(result) // XXX
+                    }
+                    _ => Err(self.error(format!("symbol '{}' did not evaluate to function", fc.sym)))
+                }
+            }
         }
     }
 }

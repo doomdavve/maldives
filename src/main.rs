@@ -11,6 +11,7 @@ mod interpreter;
 
 use lexer::Lexer;
 use parser::Parser;
+use parser::Expression; // for test
 use interpreter::Interpreter;
 
 fn main() {
@@ -28,7 +29,7 @@ fn main() {
                 let tokens = Lexer::new(line.as_str());
                 match Parser::new(tokens).program() {
                     Ok(program) => {
-                        let res = interpreter.eval(program);
+                        let res = interpreter.eval(&program);
                         println!("{:?}", res);
                     }
                     Err(e) => {
@@ -59,9 +60,9 @@ fn eval_simple() {
     let expression = parser.program().unwrap();
 
     let mut interpreter = Interpreter::new();
-    interpreter.set("apa".to_string(), 4);
-    let res = interpreter.eval(expression);
-    assert_eq!(Ok(4), res);
+    interpreter.set("apa".to_string(), Expression::Integer(4));
+    let res = interpreter.eval(&expression);
+    assert_eq!(Ok(Expression::Integer(4)), res);
 }
 
 #[test]
@@ -70,8 +71,8 @@ fn eval_simple_assignment() {
     let expression = parser.program().unwrap();
 
     let mut interpreter = Interpreter::new();
-    let res = interpreter.eval(expression);
-    assert_eq!(Ok(3), res);
+    let res = interpreter.eval(&expression);
+    assert_eq!(Ok(Expression::Integer(3)), res);
 }
 
 #[test]
@@ -80,6 +81,6 @@ fn eval_assignment() {
     let expression = parser.program().unwrap();
 
     let mut interpreter = Interpreter::new();
-    let res = interpreter.eval(expression);
-    assert_eq!(Ok(3), res);
+    let res = interpreter.eval(&expression);
+    assert_eq!(Ok(Expression::Integer(3)), res);
 }
