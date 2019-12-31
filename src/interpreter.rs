@@ -97,7 +97,7 @@ impl Interpreter {
                         }
                         let result = self.eval(&f.expr)?;
                         self.vars = old_vars;
-                        Ok(result) // XXX
+                        Ok(result)
                     }
                     _ => Err(self.error(format!("symbol '{}' did not evaluate to function", fc.sym)))
                 }

@@ -22,7 +22,7 @@ fn main() {
     }
     let mut interpreter = Interpreter::new();
     loop {
-        let readline = rl.readline(">> ");
+        let readline = rl.readline("> ");
         match readline {
             Ok(line) => {
                 rl.add_history_entry(line.as_str());
@@ -30,7 +30,10 @@ fn main() {
                 match Parser::new(tokens).program() {
                     Ok(program) => {
                         let res = interpreter.eval(&program);
-                        println!("{:?}", res);
+                        match res {
+                            Ok(a) => println!("{:?}", a),
+                            Err(e) => println!("{}", e)
+                        }
                     }
                     Err(e) => {
                         println!("Failed to parse: {:?}", e);
@@ -38,11 +41,11 @@ fn main() {
                 }
             }
             Err(ReadlineError::Interrupted) => {
-                println!("CTRL-C");
+                println!("Exit.");
                 break
             },
             Err(ReadlineError::Eof) => {
-                println!("CTRL-D");
+                println!("Exit.");
                 break
             },
             Err(err) => {
