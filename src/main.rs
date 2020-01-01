@@ -1,10 +1,12 @@
 extern crate rustyline;
+extern crate dirs;
 
 #[macro_use]
 extern crate log;
 
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
+
 
 mod interpreter;
 mod lexer;
@@ -16,9 +18,13 @@ use interpreter::Interpreter;
 use lexer::Lexer;
 use parser::Parser;
 
+use std::path::Path;
+
 fn main() {
     let mut rl = Editor::<()>::new();
-    if rl.load_history("history.txt").is_err() {
+    let homedir = dirs::home_dir().unwrap();
+    let history_file_path = Path::new(&homedir).join(".maldives_history");
+    if rl.load_history(&history_file_path).is_err() {
         println!("No previous history.");
     }
     let mut interpreter = Interpreter::new();
@@ -56,7 +62,7 @@ fn main() {
             }
         }
     }
-    rl.save_history("history.txt").unwrap();
+    rl.save_history(&history_file_path).unwrap();
 }
 
 #[cfg(test)]

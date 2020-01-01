@@ -157,6 +157,7 @@ dependencies = [
 name = "maldives"
 version = "0.1.0"
 dependencies = [
+ "dirs 2.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustyline 5.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
