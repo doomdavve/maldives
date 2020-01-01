@@ -1,5 +1,4 @@
+#### Near term
 
- * strings
-
- * lexical scoping
-
+- [ ] strings
+- [ ] lexical scoping
