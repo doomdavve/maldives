@@ -112,3 +112,33 @@ fn eval_anon_function_with_arg() {
     let res = interpreter.eval(&expression);
     assert_eq!(Ok(Expression::Integer(3)), res);
 }
+
+#[test]
+fn eval_infix() {
+    let mut parser = Parser::new(Lexer::new("3 + 2"));
+    let expression = parser.program().unwrap();
+
+    let mut interpreter = Interpreter::new();
+    let res = interpreter.eval(&expression);
+    assert_eq!(Ok(Expression::Integer(5)), res);
+}
+
+#[test]
+fn eval_infix_in_succession() {
+    let mut parser = Parser::new(Lexer::new("3 + 2 + 10"));
+    let expression = parser.program().unwrap();
+
+    let mut interpreter = Interpreter::new();
+    let res = interpreter.eval(&expression);
+    assert_eq!(Ok(Expression::Integer(15)), res);
+}
+
+#[test]
+fn eval_infix_operators() {
+    let mut parser = Parser::new(Lexer::new("(3 + 3) * 10"));
+    let expression = parser.program().unwrap();
+
+    let mut interpreter = Interpreter::new();
+    let res = interpreter.eval(&expression);
+    assert_eq!(Ok(Expression::Integer(60)), res);
+}

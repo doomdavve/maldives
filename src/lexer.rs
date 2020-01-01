@@ -120,6 +120,11 @@ impl<'a> Lexer<'a> {
         return_if_character!(self, Token::SemiColon, b';');
         return_if_character!(self, Token::Comma, b',');
         return_if_character!(self, Token::Equal, b'=');
+        return_if_character!(self, Token::Plus, b'+');
+        return_if_character!(self, Token::Minus, b'-');
+        return_if_character!(self, Token::Star, b'*');
+        return_if_character!(self, Token::Slash, b'/');
+        return_if_character!(self, Token::Minus, b'-');
         return_if_2characters!(self, Token::Function, b'f', b'n');
         return_if_3characters!(self, Token::Let, b'l', b'e', b't');
         (None, self.start)

@@ -3,6 +3,7 @@ use std::error;
 use std::fmt;
 
 use crate::parser::Expression;
+use crate::parser::Operation;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct InterpreterError {
@@ -54,6 +55,49 @@ impl Interpreter {
 
         match expression {
             Expression::Void => Ok(Expression::Void),
+            Expression::Binary(b) => {
+                let l = self.eval(&b.left)?;
+                let r = self.eval(&b.right)?;
+                match b.operation {
+                    Operation::Sum => {
+                        match (l, r) {
+                            (Expression::Integer(li), Expression::Integer(ri)) => {
+                                Ok(Expression::Integer(li + ri))
+                            }
+                            _ => Err(self
+                                .error(format!("One or more non-integer terms to sum operator"))),
+                        }
+                    }
+                    Operation::Difference => match (l, r) {
+                        (Expression::Integer(li), Expression::Integer(ri)) => {
+                            Ok(Expression::Integer(li - ri))
+                        }
+                        _ => Err(self.error(format!(
+                            "One or more non-integer terms to difference operator"
+                        ))),
+                    },
+                    Operation::Multiply => match (l, r) {
+                        (Expression::Integer(li), Expression::Integer(ri)) => {
+                            Ok(Expression::Integer(li * ri))
+                        }
+                        _ => Err(self.error(format!(
+                            "One or more non-integer terms to multiply operator"
+                        ))),
+                    },
+                    Operation::Divide => {
+                        // TODO: handle division by zero.
+                        match (l, r) {
+                            (Expression::Integer(li), Expression::Integer(ri)) => {
+                                Ok(Expression::Integer(li / ri))
+                            }
+                            _ => Err(self.error(format!(
+                                "One or more non-integer terms to divide operator"
+                            ))),
+                        }
+                    }
+                }
+            }
+            Expression::Group(g) => self.eval(&g.expr),
             Expression::Integer(i) => Ok(Expression::Integer(*i)),
             Expression::Symbol(s) => {
                 let value = self

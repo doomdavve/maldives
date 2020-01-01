@@ -9,11 +9,21 @@ use crate::token::Token;
 pub enum Expression {
     Integer(i32),
     Function(Rc<FunctionExpr>),
+    Binary(Rc<BinaryExpr>),
     FunctionCall(Rc<FunctionCallExpr>),
     Bind(Rc<BindExpr>),
     Block(Rc<BlockExpr>),
+    Group(Rc<GroupExpr>),
     Symbol(String),
     Void,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum Operation {
+    Sum,
+    Difference,
+    Multiply,
+    Divide,
 }
 
 #[derive(Debug, PartialEq)]
@@ -23,9 +33,21 @@ pub struct BindExpr {
 }
 
 #[derive(Debug, PartialEq)]
+pub struct GroupExpr {
+    pub expr: Expression,
+}
+
+#[derive(Debug, PartialEq)]
 pub struct FunctionCallExpr {
     pub expr: Expression,
     pub arguments: Vec<Expression>,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct BinaryExpr {
+    pub operation: Operation,
+    pub left: Expression,
+    pub right: Expression,
 }
 
 #[derive(Debug, PartialEq)]
@@ -97,6 +119,31 @@ impl<'a> Parser<'a> {
         }
     }
 
+    fn operation(&mut self) -> Result<Operation, ParseError> {
+        match self.sym {
+            Some(Token::Plus) => {
+                self.sym = self.lexer.next();
+                Ok(Operation::Sum)
+            }
+            Some(Token::Minus) => {
+                self.sym = self.lexer.next();
+                Ok(Operation::Difference)
+            }
+            Some(Token::Slash) => {
+                self.sym = self.lexer.next();
+                Ok(Operation::Divide)
+            }
+            Some(Token::Star) => {
+                self.sym = self.lexer.next();
+                Ok(Operation::Multiply)
+            }
+            _ => Err(ParseError::new(format!(
+                "unexpected token {:?} found, expected operation such as '+'",
+                self.sym
+            ))),
+        }
+    }
+
     fn function(&mut self) -> Result<FunctionExpr, ParseError> {
         self.expect(Token::Function)?;
         let sym = if self.sym != Some(Token::ParenLeft) {
@@ -129,16 +176,23 @@ impl<'a> Parser<'a> {
     }
 
     fn expression(&mut self) -> Result<Expression, ParseError> {
-        let expr = self.expression_low()?;
-        if self.sym == Some(Token::ParenLeft) {
-            let fc = self.function_call(expr)?;
-            Ok(Expression::FunctionCall(Rc::new(fc)))
-        } else {
-            Ok(expr)
-        }
+        self.expression_wrap(None)
     }
 
-    fn expression_low(&mut self) -> Result<Expression, ParseError> {
+    fn expression_wrap(&mut self, child: Option<Expression>) -> Result<Expression, ParseError> {
+        let mut expr = self.expression_sub(child)?;
+        while self.sym == Some(Token::ParenLeft)
+            || self.sym == Some(Token::Plus)
+            || self.sym == Some(Token::Minus)
+            || self.sym == Some(Token::Star)
+            || self.sym == Some(Token::Slash)
+        {
+            expr = self.expression_wrap(Some(expr))?
+        }
+        Ok(expr)
+    }
+
+    fn expression_sub(&mut self, child: Option<Expression>) -> Result<Expression, ParseError> {
         if self.at_symbol() {
             Ok(Expression::Symbol(self.symbol()?))
         } else {
@@ -146,6 +200,18 @@ impl<'a> Parser<'a> {
                 Some(Token::Function) => {
                     let function = self.function()?;
                     Ok(Expression::Function(Rc::new(function)))
+                }
+                Some(Token::ParenLeft) => {
+                    match child {
+                        Some(function_expr) => {
+                            let call = self.function_call(function_expr)?;
+                            Ok(Expression::FunctionCall(Rc::new(call)))
+                        }
+                        None => {
+                            let group = self.group()?;
+                            Ok(Expression::Group(Rc::new(group)))
+                        }
+                    }
                 }
                 Some(Token::Let) => {
                     let binding = self.binding()?;
@@ -159,12 +225,35 @@ impl<'a> Parser<'a> {
                     self.sym = self.lexer.next();
                     Ok(Expression::Integer(i))
                 }
+                Some(Token::Plus) | Some(Token::Minus) | Some(Token::Star) | Some(Token::Slash) => {
+                    let left =
+                        child.ok_or(ParseError::new(format!("missing left-hand expression")))?;
+                    let binary = self.binary(left)?;
+                    Ok(Expression::Binary(Rc::new(binary)))
+                }
                 _ => Err(ParseError::new(format!(
                     "unexpected token {:?} found, expected 'fn', 'let', '{{' or integer",
                     self.sym
                 ))),
             }
         }
+    }
+
+    fn group(&mut self) -> Result<GroupExpr, ParseError> {
+        self.expect(Token::ParenLeft)?;
+        let expr = self.expression()?;
+        self.expect(Token::ParenRight)?;
+        Ok(GroupExpr { expr })
+    }
+
+    fn binary(&mut self, left: Expression) -> Result<BinaryExpr, ParseError> {
+        let operation = self.operation()?;
+        let right = self.expression()?;
+        Ok(BinaryExpr {
+            operation,
+            left,
+            right,
+        })
     }
 
     fn function_call(&mut self, expr: Expression) -> Result<FunctionCallExpr, ParseError> {
@@ -380,4 +469,33 @@ fn parse_bind() {
     let expected_in_expression = Expression::Bind(Rc::new(expected()));
     let res_in_expr = parser.expression();
     assert_eq!(res_in_expr, Ok(expected_in_expression));
+}
+
+#[test]
+fn parse_nested_call_expr() {
+    let mut parser = Parser::new(Lexer::new("apa()()()"));
+    let res_in_expr = parser.expression();
+    let expected = Expression::FunctionCall(Rc::new(FunctionCallExpr {
+        expr: Expression::FunctionCall(Rc::new(FunctionCallExpr {
+            expr: Expression::FunctionCall(Rc::new(FunctionCallExpr {
+                expr: Expression::Symbol(String::from("apa")),
+                arguments: vec![],
+            })),
+            arguments: vec![],
+        })),
+        arguments: vec![],
+    }));
+    assert_eq!(res_in_expr, Ok(expected));
+}
+
+#[test]
+fn parse_infix() {
+    let mut parser = Parser::new(Lexer::new("1 + 2"));
+    let expected = Expression::Binary(Rc::new(BinaryExpr {
+        operation: Operation::Sum,
+        left: Expression::Integer(1),
+        right: Expression::Integer(2),
+    }));
+    let expression = parser.expression();
+    assert_eq!(expression, Ok(expected));
 }
