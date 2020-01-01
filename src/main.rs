@@ -66,79 +66,61 @@ use parser::Expression;
 fn eval_simple() {
     let mut parser = Parser::new(Lexer::new("apa"));
     let expression = parser.program().unwrap();
-
     let mut interpreter = Interpreter::new();
     interpreter.set("apa".to_string(), Expression::Integer(4));
     let res = interpreter.eval(&expression);
     assert_eq!(Ok(Expression::Integer(4)), res);
 }
 
+#[cfg(test)]
+fn eval_program(contents: &str) -> std::result::Result<parser::Expression, interpreter::InterpreterError> {
+    let mut parser = Parser::new(Lexer::new(contents));
+    let expression = parser.program().unwrap();
+    let mut interpreter = Interpreter::new();
+    interpreter.eval(&expression)
+}
+
 #[test]
 fn eval_simple_assignment() {
-    let mut parser = Parser::new(Lexer::new("{ let apa = 3; apa }"));
-    let expression = parser.program().unwrap();
-
-    let mut interpreter = Interpreter::new();
-    let res = interpreter.eval(&expression);
-    assert_eq!(Ok(Expression::Integer(3)), res);
+    assert_eq!(Ok(Expression::Integer(3)), eval_program("{ let apa = 3; apa }"));
 }
 
 #[test]
 fn eval_assignment() {
-    let mut parser = Parser::new(Lexer::new("let apa = 3"));
-    let expression = parser.program().unwrap();
-
-    let mut interpreter = Interpreter::new();
-    let res = interpreter.eval(&expression);
-    assert_eq!(Ok(Expression::Integer(3)), res);
+    assert_eq!(Ok(Expression::Integer(3)), eval_program("let apa = 3"));
 }
 
 #[test]
 fn eval_anon_function() {
-    let mut parser = Parser::new(Lexer::new("{ let apa = fn () 3; apa() }"));
-    let expression = parser.program().unwrap();
-
-    let mut interpreter = Interpreter::new();
-    let res = interpreter.eval(&expression);
-    assert_eq!(Ok(Expression::Integer(3)), res);
+    assert_eq!(Ok(Expression::Integer(3)), eval_program("{ let apa = fn () 3; apa() }"));
 }
 
 #[test]
 fn eval_anon_function_with_arg() {
-    let mut parser = Parser::new(Lexer::new("{ let apa = fn (x) x; apa(3) }"));
-    let expression = parser.program().unwrap();
+    assert_eq!(Ok(Expression::Integer(3)), eval_program("{ let apa = fn (x) x; apa(3) }"));
+}
 
-    let mut interpreter = Interpreter::new();
-    let res = interpreter.eval(&expression);
-    assert_eq!(Ok(Expression::Integer(3)), res);
+#[test]
+fn eval_anon_function_as_arg() {
+    assert_eq!(Ok(Expression::Integer(6)), eval_program("{ let apply = fn (x, arg) x(arg); let doubler = fn (i) i*2; apply(doubler, 3) }"));
 }
 
 #[test]
 fn eval_infix() {
-    let mut parser = Parser::new(Lexer::new("3 + 2"));
-    let expression = parser.program().unwrap();
-
-    let mut interpreter = Interpreter::new();
-    let res = interpreter.eval(&expression);
-    assert_eq!(Ok(Expression::Integer(5)), res);
+    assert_eq!(Ok(Expression::Integer(5)), eval_program("3 + 2"));
 }
 
 #[test]
 fn eval_infix_in_succession() {
-    let mut parser = Parser::new(Lexer::new("3 + 2 + 10"));
-    let expression = parser.program().unwrap();
-
-    let mut interpreter = Interpreter::new();
-    let res = interpreter.eval(&expression);
-    assert_eq!(Ok(Expression::Integer(15)), res);
+    assert_eq!(Ok(Expression::Integer(15)), eval_program("3 + 2 + 10"));
 }
 
 #[test]
-fn eval_infix_operators() {
-    let mut parser = Parser::new(Lexer::new("(3 + 3) * 10"));
-    let expression = parser.program().unwrap();
+fn eval_infix_operators_grouping() {
+    assert_eq!(Ok(Expression::Integer(60)), eval_program("(3 + 3) * 10"));
+}
 
-    let mut interpreter = Interpreter::new();
-    let res = interpreter.eval(&expression);
-    assert_eq!(Ok(Expression::Integer(60)), res);
+#[test]
+fn eval_infix_division() {
+    assert_eq!(Ok(Expression::Integer(545)), eval_program("125895 / 231"));
 }
