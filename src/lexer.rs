@@ -40,23 +40,35 @@ fn eat_symbol(s: &[u8], mut i: usize) -> (&[u8], usize) {
     (&s[start..i], i)
 }
 
-fn eat_character(s: &[u8], mut i: usize, c: u8) -> usize {
-    if i < s.len() && c == s[i] {
-        i += 1;
-    }
-    i
+fn match_character(s: &[u8], i: usize, c: u8) -> bool {
+    i < s.len() && c == s[i]
 }
 
-macro_rules! return_if_characters {
-    ($self:ident, $token:expr, $($char:expr),+) => {{
-        let mut i = $self.start;
-        $(
-            if eat_character($self.buffer, i, $char) > i {
-                i+=1;
-            }
-        )+
-        if i > $self.start {
-            return (Some($token), i);
+macro_rules! return_if_character {
+    ($self:ident, $token:expr, $char:expr) => {{
+        if match_character($self.buffer, $self.start, $char) {
+            return (Some($token), $self.start + 1);
+        }
+    }};
+}
+
+macro_rules! return_if_2characters {
+    ($self:ident, $token:expr, $char1:expr, $char2:expr) => {{
+        if match_character($self.buffer, $self.start, $char1)
+            && match_character($self.buffer, $self.start + 1, $char2)
+        {
+            return (Some($token), $self.start + 2);
+        }
+    }};
+}
+
+macro_rules! return_if_3characters {
+    ($self:ident, $token:expr, $char1:expr, $char2:expr, $char3:expr) => {{
+        if match_character($self.buffer, $self.start, $char1)
+            && match_character($self.buffer, $self.start + 1, $char2)
+            && match_character($self.buffer, $self.start + 2, $char3)
+        {
+            return (Some($token), $self.start + 3);
         }
     }};
 }
@@ -72,13 +84,6 @@ impl<'a> Lexer<'a> {
     #[cfg(test)]
     pub fn rewind(&mut self) {
         self.start = 0;
-    }
-
-    pub fn peek(&mut self) -> Option<Token<'a>> {
-        let start = self.start;
-        let res = self.next();
-        self.start = start;
-        res
     }
 
     fn tokenize_number(&self) -> (Option<Token<'a>>, usize) {
@@ -106,17 +111,17 @@ impl<'a> Lexer<'a> {
     }
 
     fn tokenize_structure(&self) -> (Option<Token<'a>>, usize) {
-        return_if_characters!(self, Token::BraceLeft, b'{');
-        return_if_characters!(self, Token::BraceRight, b'}');
-        return_if_characters!(self, Token::ParenLeft, b'(');
-        return_if_characters!(self, Token::ParenRight, b')');
-        return_if_characters!(self, Token::BracketLeft, b'[');
-        return_if_characters!(self, Token::BracketRight, b']');
-        return_if_characters!(self, Token::SemiColon, b';');
-        return_if_characters!(self, Token::Comma, b',');
-        return_if_characters!(self, Token::Equal, b'=');
-        return_if_characters!(self, Token::Function, b'f', b'n');
-        return_if_characters!(self, Token::Let, b'l', b'e', b't');
+        return_if_character!(self, Token::BraceLeft, b'{');
+        return_if_character!(self, Token::BraceRight, b'}');
+        return_if_character!(self, Token::ParenLeft, b'(');
+        return_if_character!(self, Token::ParenRight, b')');
+        return_if_character!(self, Token::BracketLeft, b'[');
+        return_if_character!(self, Token::BracketRight, b']');
+        return_if_character!(self, Token::SemiColon, b';');
+        return_if_character!(self, Token::Comma, b',');
+        return_if_character!(self, Token::Equal, b'=');
+        return_if_2characters!(self, Token::Function, b'f', b'n');
+        return_if_3characters!(self, Token::Let, b'l', b'e', b't');
         (None, self.start)
     }
 }

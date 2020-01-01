@@ -1,21 +1,22 @@
 extern crate rustyline;
 
+#[macro_use]
+extern crate log;
+
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 
-mod token;
-mod lexer;
-mod parser_error;
-mod parser;
 mod interpreter;
+mod lexer;
+mod parse_error;
+mod parser;
+mod token;
 
+use interpreter::Interpreter;
 use lexer::Lexer;
 use parser::Parser;
-use parser::Expression; // for test
-use interpreter::Interpreter;
 
 fn main() {
-// `()` can be used when no completer is required
     let mut rl = Editor::<()>::new();
     if rl.load_history("history.txt").is_err() {
         println!("No previous history.");
@@ -29,10 +30,11 @@ fn main() {
                 let tokens = Lexer::new(line.as_str());
                 match Parser::new(tokens).program() {
                     Ok(program) => {
+                        debug!("Parsed program: {:?}", program);
                         let res = interpreter.eval(&program);
                         match res {
                             Ok(a) => println!("{:?}", a),
-                            Err(e) => println!("{}", e)
+                            Err(e) => println!("{}", e),
                         }
                     }
                     Err(e) => {
@@ -42,20 +44,23 @@ fn main() {
             }
             Err(ReadlineError::Interrupted) => {
                 println!("Exit.");
-                break
-            },
+                break;
+            }
             Err(ReadlineError::Eof) => {
                 println!("Exit.");
-                break
-            },
+                break;
+            }
             Err(err) => {
                 println!("Error: {:?}", err);
-                break
+                break;
             }
         }
     }
     rl.save_history("history.txt").unwrap();
 }
+
+#[cfg(test)]
+use parser::Expression;
 
 #[test]
 fn eval_simple() {
@@ -81,6 +86,26 @@ fn eval_simple_assignment() {
 #[test]
 fn eval_assignment() {
     let mut parser = Parser::new(Lexer::new("let apa = 3"));
+    let expression = parser.program().unwrap();
+
+    let mut interpreter = Interpreter::new();
+    let res = interpreter.eval(&expression);
+    assert_eq!(Ok(Expression::Integer(3)), res);
+}
+
+#[test]
+fn eval_anon_function() {
+    let mut parser = Parser::new(Lexer::new("{ let apa = fn () 3; apa() }"));
+    let expression = parser.program().unwrap();
+
+    let mut interpreter = Interpreter::new();
+    let res = interpreter.eval(&expression);
+    assert_eq!(Ok(Expression::Integer(3)), res);
+}
+
+#[test]
+fn eval_anon_function_with_arg() {
+    let mut parser = Parser::new(Lexer::new("{ let apa = fn (x) x; apa(3) }"));
     let expression = parser.program().unwrap();
 
     let mut interpreter = Interpreter::new();
