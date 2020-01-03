@@ -3,6 +3,7 @@ extern crate rustyline;
 
 #[macro_use]
 extern crate log;
+extern crate env_logger;
 
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
@@ -20,6 +21,8 @@ use parser::Parser;
 use std::path::Path;
 
 fn main() {
+    env_logger::init();
+
     let mut rl = Editor::<()>::new();
     let homedir = dirs::home_dir().unwrap();
     let history_file_path = Path::new(&homedir).join(".maldives_history");
