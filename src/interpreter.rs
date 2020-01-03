@@ -5,7 +5,12 @@ use std::fmt;
 use crate::parser::Expression;
 use crate::parser::Operation;
 
-type SymbolTable = HashMap<String, Expression>;
+#[derive(Debug, Clone, PartialEq)]
+pub struct Closure {
+    expr: Expression,
+    env: Option<SymbolTable>
+}
+type SymbolTable = HashMap<String, Closure>;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct InterpreterError {
@@ -48,8 +53,8 @@ impl Interpreter {
     }
 
     #[cfg(test)]
-    pub fn set(&mut self, symbol: String, value: Expression) -> Option<Expression> {
-        self.vars.insert(symbol, value)
+    pub fn set(&mut self, symbol: String, value: Expression) -> Option<Closure> {
+        self.vars.insert(symbol, Closure{ expr: value, env: None })
     }
 
     pub fn eval_global(&mut self, expression: &Expression) -> Result<Expression, InterpreterError> {
@@ -160,11 +165,11 @@ impl Interpreter {
                     .vars
                     .get(s)
                     .ok_or_else(|| self.error(format!("unknown symbol '{}'", s)))?;
-                Ok(value.clone())
+                Ok(value.expr.clone())
             }
             Expression::Bind(b) => {
                 let val = self.eval(&b.expr, env)?;
-                self.vars.insert(String::from(&b.sym), val.clone());
+                self.vars.insert(String::from(&b.sym), Closure { expr: val.clone(), env: None });
                 Ok(val)
             }
             Expression::Block(b) => {
@@ -176,7 +181,7 @@ impl Interpreter {
             }
             Expression::Function(f) => {
                 if let Some(sym) = &f.sym {
-                    self.vars.insert(String::from(sym), expression.clone());
+                    self.vars.insert(String::from(sym), Closure { expr: expression.clone(), env: None });
                 }
                 Ok(expression.clone())
             }
@@ -190,7 +195,7 @@ impl Interpreter {
                             let argument = fc.arguments.get(idx).unwrap_or(&Expression::Void);
                             let val = self.eval(argument, env)?;
                             debug!("Mapping: {:?} -> {:?}", parameter, val);
-                            self.vars.insert(String::from(parameter), val.clone());
+                            self.vars.insert(String::from(parameter), { Closure { expr: val.clone(), env: None } });
                         }
                         let result = self.eval(&f.expr, env)?;
                         self.vars = old_vars;
