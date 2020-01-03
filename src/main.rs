@@ -7,7 +7,6 @@ extern crate log;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 
-
 mod interpreter;
 mod lexer;
 mod parse_error;
@@ -32,19 +31,21 @@ fn main() {
         let readline = rl.readline("> ");
         match readline {
             Ok(line) => {
-                rl.add_history_entry(line.as_str());
-                let tokens = Lexer::new(line.as_str());
-                match Parser::new(tokens).program() {
-                    Ok(program) => {
-                        debug!("Parsed program: {:?}", program);
-                        let res = interpreter.eval(&program);
-                        match res {
-                            Ok(a) => println!("{:?}", a),
-                            Err(e) => println!("{}", e),
+                if line != "" {
+                    rl.add_history_entry(line.as_str());
+                    let tokens = Lexer::new(line.as_str());
+                    match Parser::new(tokens).program() {
+                        Ok(program) => {
+                            debug!("Parsed program: {:?}", program);
+                            let res = interpreter.eval(&program);
+                            match res {
+                                Ok(a) => println!("{:?}", a),
+                                Err(e) => println!("{}", e),
+                            }
                         }
-                    }
-                    Err(e) => {
-                        println!("Failed to parse: {:?}", e);
+                        Err(e) => {
+                            println!("Failed to parse: {:?}", e);
+                        }
                     }
                 }
             }
