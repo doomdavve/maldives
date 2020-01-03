@@ -37,7 +37,7 @@ fn main() {
                     match Parser::new(tokens).program() {
                         Ok(program) => {
                             debug!("Parsed program: {:?}", program);
-                            let res = interpreter.eval(&program);
+                            let res = interpreter.eval_global(&program);
                             match res {
                                 Ok(a) => println!("{:?}", a),
                                 Err(e) => println!("{}", e),
@@ -75,7 +75,7 @@ fn eval_simple() {
     let expression = parser.program().unwrap();
     let mut interpreter = Interpreter::new();
     interpreter.set("apa".to_string(), Expression::Integer(4));
-    let res = interpreter.eval(&expression);
+    let res = interpreter.eval_global(&expression);
     assert_eq!(Ok(Expression::Integer(4)), res);
 }
 
@@ -84,7 +84,7 @@ fn eval_program(contents: &str) -> std::result::Result<parser::Expression, inter
     let mut parser = Parser::new(Lexer::new(contents));
     let expression = parser.program().unwrap();
     let mut interpreter = Interpreter::new();
-    interpreter.eval(&expression)
+    interpreter.eval_global(&expression)
 }
 
 #[test]

@@ -5,10 +5,12 @@ use std::fmt;
 use crate::parser::Expression;
 use crate::parser::Operation;
 
+type SymbolTable = HashMap<String, Expression>;
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct InterpreterError {
     message: String,
-    vars: HashMap<String, Expression>,
+    vars: SymbolTable,
 }
 
 impl fmt::Display for InterpreterError {
@@ -25,19 +27,19 @@ impl error::Error for InterpreterError {
 }
 
 impl InterpreterError {
-    fn new(message: String, vars: HashMap<String, Expression>) -> InterpreterError {
+    fn new(message: String, vars: SymbolTable) -> InterpreterError {
         InterpreterError { message, vars }
     }
 }
 
 pub struct Interpreter {
-    vars: HashMap<String, Expression>,
+    vars: SymbolTable,
 }
 
 impl Interpreter {
     pub fn new() -> Interpreter {
         Interpreter {
-            vars: HashMap::new(),
+            vars: SymbolTable::new(),
         }
     }
 
@@ -50,14 +52,18 @@ impl Interpreter {
         self.vars.insert(symbol, value)
     }
 
-    pub fn eval(&mut self, expression: &Expression) -> Result<Expression, InterpreterError> {
+    pub fn eval_global(&mut self, expression: &Expression) -> Result<Expression, InterpreterError> {
+        self.eval(expression, &self.vars.clone())
+    }
+
+    fn eval(&mut self, expression: &Expression, env: &SymbolTable) -> Result<Expression, InterpreterError> {
         debug!("Evaulating {:?} with vars: {:?}", expression, self.vars);
 
         match expression {
             Expression::Void => Ok(Expression::Void),
             Expression::Binary(b) => {
-                let l = self.eval(&b.left)?;
-                let r = self.eval(&b.right)?;
+                let l = self.eval(&b.left, env)?;
+                let r = self.eval(&b.right, env)?;
                 match b.operation {
                     Operation::Sum => {
                         match (l, r) {
@@ -138,15 +144,15 @@ impl Interpreter {
                 }
             }
             Expression::Conditional(c) => {
-                let premise = self.eval(&c.condition)?;
+                let premise = self.eval(&c.condition, env)?;
                 match (premise, c.false_branch.as_ref()) {
-                    (Expression::Bool(true), _) => Ok(self.eval(&c.true_branch)?),
-                    (Expression::Bool(false), Some(false_branch)) => Ok(self.eval(&false_branch)?),
+                    (Expression::Bool(true), _) => Ok(self.eval(&c.true_branch, env)?),
+                    (Expression::Bool(false), Some(false_branch)) => Ok(self.eval(&false_branch, env)?),
                     (Expression::Bool(false), _) => Ok(Expression::Void),
                     _ => Err(self.error(format!("Unexpected result of conditional")))
                 }
             }
-            Expression::Group(g) => self.eval(&g.expr),
+            Expression::Group(g) => self.eval(&g.expr, env),
             Expression::Bool(b) => Ok(Expression::Bool(*b)),
             Expression::Integer(i) => Ok(Expression::Integer(*i)),
             Expression::Symbol(s) => {
@@ -157,14 +163,14 @@ impl Interpreter {
                 Ok(value.clone())
             }
             Expression::Bind(b) => {
-                let val = self.eval(&b.expr)?;
+                let val = self.eval(&b.expr, env)?;
                 self.vars.insert(String::from(&b.sym), val.clone());
                 Ok(val)
             }
             Expression::Block(b) => {
                 let mut last = Ok(Expression::Void);
                 for expr in &b.list {
-                    last = self.eval(&expr);
+                    last = self.eval(&expr, env);
                 }
                 last
             }
@@ -175,18 +181,18 @@ impl Interpreter {
                 Ok(expression.clone())
             }
             Expression::FunctionCall(fc) => {
-                let value = self.eval(&fc.expr)?;
+                let value = self.eval(&fc.expr, env)?;
                 match value {
                     Expression::Function(f) => {
                         let old_vars = self.vars.clone();
                         debug!("Parameters: {:?}", f.parameters);
                         for (idx, parameter) in f.parameters.iter().enumerate() {
                             let argument = fc.arguments.get(idx).unwrap_or(&Expression::Void);
-                            let val = self.eval(argument)?;
+                            let val = self.eval(argument, env)?;
                             debug!("Mapping: {:?} -> {:?}", parameter, val);
                             self.vars.insert(String::from(parameter), val.clone());
                         }
-                        let result = self.eval(&f.expr)?;
+                        let result = self.eval(&f.expr, env)?;
                         self.vars = old_vars;
                         Ok(result)
                     }
