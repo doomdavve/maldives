@@ -1,5 +1,5 @@
-extern crate rustyline;
 extern crate dirs;
+extern crate rustyline;
 
 #[macro_use]
 extern crate log;
@@ -80,7 +80,9 @@ fn eval_simple() {
 }
 
 #[cfg(test)]
-fn eval_program(contents: &str) -> std::result::Result<parser::Expression, interpreter::InterpreterError> {
+fn eval_program(
+    contents: &str,
+) -> std::result::Result<parser::Expression, interpreter::InterpreterError> {
     let mut parser = Parser::new(Lexer::new(contents));
     let expression = parser.program().unwrap();
     let mut interpreter = Interpreter::new();
@@ -89,7 +91,10 @@ fn eval_program(contents: &str) -> std::result::Result<parser::Expression, inter
 
 #[test]
 fn eval_simple_assignment() {
-    assert_eq!(Ok(Expression::Integer(3)), eval_program("{ let apa = 3; apa }"));
+    assert_eq!(
+        Ok(Expression::Integer(3)),
+        eval_program("{ let apa = 3; apa }")
+    );
 }
 
 #[test]
@@ -99,17 +104,28 @@ fn eval_assignment() {
 
 #[test]
 fn eval_anon_function() {
-    assert_eq!(Ok(Expression::Integer(3)), eval_program("{ let apa = fn () 3; apa() }"));
+    assert_eq!(
+        Ok(Expression::Integer(3)),
+        eval_program("{ let apa = fn () 3; apa() }")
+    );
 }
 
 #[test]
 fn eval_anon_function_with_arg() {
-    assert_eq!(Ok(Expression::Integer(3)), eval_program("{ let apa = fn (x) x; apa(3) }"));
+    assert_eq!(
+        Ok(Expression::Integer(3)),
+        eval_program("{ let apa = fn (x) x; apa(3) }")
+    );
 }
 
 #[test]
 fn eval_anon_function_as_arg() {
-    assert_eq!(Ok(Expression::Integer(6)), eval_program("{ let apply = fn (x, arg) x(arg); let doubler = fn (i) i*2; apply(doubler, 3) }"));
+    assert_eq!(
+        Ok(Expression::Integer(6)),
+        eval_program(
+            "{ let apply = fn (x, arg) x(arg); let doubler = fn (i) i*2; apply(doubler, 3) }"
+        )
+    );
 }
 
 #[test]
@@ -130,4 +146,20 @@ fn eval_infix_operators_grouping() {
 #[test]
 fn eval_infix_division() {
     assert_eq!(Ok(Expression::Integer(545)), eval_program("125895 / 231"));
+}
+
+#[test]
+fn eval_closure_1() {
+    assert_eq!(
+        Ok(Expression::Integer(12)),
+        eval_program("{ fn b() { let a = 12; fn () a }; b()() }")
+    );
+}
+
+#[test]
+fn eval_closure_2() {
+    assert_eq!(
+        Ok(Expression::Integer(12)),
+        eval_program("{ let a = 1; fn b() { let a = 12; fn () a }; b()() }")
+    );
 }
