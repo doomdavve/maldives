@@ -73,6 +73,31 @@ macro_rules! return_if_3characters {
     }};
 }
 
+macro_rules! return_if_4characters {
+    ($self:ident, $token:expr, $char1:expr, $char2:expr, $char3:expr, $char4:expr) => {{
+        if match_character($self.buffer, $self.start, $char1)
+            && match_character($self.buffer, $self.start + 1, $char2)
+            && match_character($self.buffer, $self.start + 2, $char3)
+            && match_character($self.buffer, $self.start + 3, $char4)
+        {
+            return (Some($token), $self.start + 4);
+        }
+    }};
+}
+
+macro_rules! return_if_5characters {
+    ($self:ident, $token:expr, $char1:expr, $char2:expr, $char3:expr, $char4:expr, $char5:expr) => {{
+        if match_character($self.buffer, $self.start, $char1)
+            && match_character($self.buffer, $self.start + 1, $char2)
+            && match_character($self.buffer, $self.start + 2, $char3)
+            && match_character($self.buffer, $self.start + 3, $char4)
+            && match_character($self.buffer, $self.start + 4, $char5)
+        {
+            return (Some($token), $self.start + 5);
+        }
+    }};
+}
+
 impl<'a> Lexer<'a> {
     pub fn new(buffer: &'a str) -> Lexer<'a> {
         Lexer {
@@ -111,6 +136,14 @@ impl<'a> Lexer<'a> {
     }
 
     fn tokenize_structure(&self) -> (Option<Token<'a>>, usize) {
+        return_if_5characters!(self, Token::False, b'f', b'a', b'l', b's', b'e');
+        return_if_4characters!(self, Token::True, b't', b'r', b'u', b'e');
+        return_if_4characters!(self, Token::Else, b'e', b'l', b's', b'e');
+        return_if_3characters!(self, Token::Let, b'l', b'e', b't');
+        return_if_2characters!(self, Token::If, b'i', b'f');
+        return_if_2characters!(self, Token::Function, b'f', b'n');
+        return_if_2characters!(self, Token::GreaterEqual, b'>', b'=');
+        return_if_2characters!(self, Token::LessEqual, b'<', b'=');
         return_if_character!(self, Token::BraceLeft, b'{');
         return_if_character!(self, Token::BraceRight, b'}');
         return_if_character!(self, Token::ParenLeft, b'(');
@@ -120,13 +153,13 @@ impl<'a> Lexer<'a> {
         return_if_character!(self, Token::SemiColon, b';');
         return_if_character!(self, Token::Comma, b',');
         return_if_character!(self, Token::Equal, b'=');
+        return_if_character!(self, Token::Less, b'<');
+        return_if_character!(self, Token::Greater, b'>');
         return_if_character!(self, Token::Plus, b'+');
         return_if_character!(self, Token::Minus, b'-');
         return_if_character!(self, Token::Star, b'*');
         return_if_character!(self, Token::Slash, b'/');
         return_if_character!(self, Token::Minus, b'-');
-        return_if_2characters!(self, Token::Function, b'f', b'n');
-        return_if_3characters!(self, Token::Let, b'l', b'e', b't');
         (None, self.start)
     }
 }
@@ -157,3 +190,36 @@ impl<'a> Iterator for Lexer<'a> {
         None
     }
 }
+
+#[test]
+fn tokenize_if() {
+    let tokens: Vec<Token> = Lexer::new("if 2>1 1 else 0").collect();
+    assert_eq!(
+        tokens,
+        vec![
+            Token::If,
+            Token::Integer(2),
+            Token::Greater,
+            Token::Integer(1),
+            Token::Integer(1),
+            Token::Else,
+            Token::Integer(0)
+        ]
+    );
+}
+
+#[test]
+fn tokenize_if_with_bool_literals() {
+    let tokens: Vec<Token> = Lexer::new("if false 1 else 0").collect();
+    assert_eq!(
+        tokens,
+        vec![
+            Token::If,
+            Token::False,
+            Token::Integer(1),
+            Token::Else,
+            Token::Integer(0)
+        ]
+    );
+}
+

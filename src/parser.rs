@@ -8,6 +8,7 @@ use crate::token::Token;
 #[derive(Debug, PartialEq, Clone)]
 pub enum Expression {
     Integer(i32),
+    Bool(bool),
     Function(Rc<FunctionExpr>),
     Binary(Rc<BinaryExpr>),
     FunctionCall(Rc<FunctionCallExpr>),
@@ -15,6 +16,7 @@ pub enum Expression {
     Block(Rc<BlockExpr>),
     Group(Rc<GroupExpr>),
     Symbol(String),
+    Conditional(Rc<ConditionalExpr>),
     Void,
 }
 
@@ -24,6 +26,10 @@ pub enum Operation {
     Difference,
     Multiply,
     Divide,
+    LessThan,
+    GreaterThan,
+    LessEqualThan,
+    GreaterEqualThan
 }
 
 #[derive(Debug, PartialEq)]
@@ -41,6 +47,13 @@ pub struct GroupExpr {
 pub struct FunctionCallExpr {
     pub expr: Expression,
     pub arguments: Vec<Expression>,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct ConditionalExpr {
+    pub condition: Expression,
+    pub true_branch: Expression,
+    pub false_branch: Option<Expression>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -137,6 +150,22 @@ impl<'a> Parser<'a> {
                 self.sym = self.lexer.next();
                 Ok(Operation::Multiply)
             }
+            Some(Token::Less) => {
+                self.sym = self.lexer.next();
+                Ok(Operation::LessThan)
+            }
+            Some(Token::Greater) => {
+                self.sym = self.lexer.next();
+                Ok(Operation::GreaterThan)
+            }
+            Some(Token::GreaterEqual) => {
+                self.sym = self.lexer.next();
+                Ok(Operation::GreaterEqualThan)
+            }
+            Some(Token::LessEqual) => {
+                self.sym = self.lexer.next();
+                Ok(Operation::LessEqualThan)
+            }
             _ => Err(ParseError::new(format!(
                 "unexpected token {:?} found, expected operation such as '+'",
                 self.sym
@@ -186,6 +215,10 @@ impl<'a> Parser<'a> {
             || self.sym == Some(Token::Minus)
             || self.sym == Some(Token::Star)
             || self.sym == Some(Token::Slash)
+            || self.sym == Some(Token::Less)
+            || self.sym == Some(Token::LessEqual)
+            || self.sym == Some(Token::Greater)
+            || self.sym == Some(Token::GreaterEqual)
         {
             expr = self.expression_wrap(Some(expr))?
         }
@@ -200,6 +233,10 @@ impl<'a> Parser<'a> {
                 Some(Token::Function) => {
                     let function = self.function()?;
                     Ok(Expression::Function(Rc::new(function)))
+                }
+                Some(Token::If) => {
+                    let conditional = self.conditional()?;
+                    Ok(Expression::Conditional(Rc::new(conditional)))
                 }
                 Some(Token::ParenLeft) => {
                     match child {
@@ -225,7 +262,15 @@ impl<'a> Parser<'a> {
                     self.sym = self.lexer.next();
                     Ok(Expression::Integer(i))
                 }
-                Some(Token::Plus) | Some(Token::Minus) | Some(Token::Star) | Some(Token::Slash) => {
+                Some(Token::True) => {
+                    self.sym = self.lexer.next();
+                    Ok(Expression::Bool(true))
+                }
+                Some(Token::False) => {
+                    self.sym = self.lexer.next();
+                    Ok(Expression::Bool(false))
+                }
+                Some(Token::Plus) | Some(Token::Minus) | Some(Token::Star) | Some(Token::Slash) | Some(Token::Greater) | Some(Token::Less) | Some(Token::LessEqual) | Some(Token::GreaterEqual) => {
                     let left =
                         child.ok_or(ParseError::new(format!("missing left-hand expression")))?;
                     let binary = self.binary(left)?;
@@ -237,6 +282,22 @@ impl<'a> Parser<'a> {
                 ))),
             }
         }
+    }
+
+    fn conditional(&mut self) -> Result<ConditionalExpr, ParseError> {
+        self.expect(Token::If)?;
+        let condition = self.expression()?;
+        let true_branch = self.expression()?;
+        let false_branch = if self.accept(Token::Else) {
+            Some(self.expression()?)
+        } else {
+            None
+        };
+        Ok(ConditionalExpr {
+            condition,
+            true_branch,
+            false_branch
+        })
     }
 
     fn group(&mut self) -> Result<GroupExpr, ParseError> {

@@ -95,9 +95,59 @@ impl Interpreter {
                             ))),
                         }
                     }
+                    Operation::LessThan => {
+                        match (l, r) {
+                            (Expression::Integer(li), Expression::Integer(ri)) => {
+                                Ok(Expression::Bool(li < ri))
+                            }
+                            _ => Err(self.error(format!(
+                                "One or more non-boolean terms to divide operator"
+                            ))),
+                        }
+                    }
+                    Operation::GreaterThan => {
+                        match (l, r) {
+                            (Expression::Integer(li), Expression::Integer(ri)) => {
+                                Ok(Expression::Bool(li > ri))
+                            }
+                            _ => Err(self.error(format!(
+                                "One or more non-boolean terms to divide operator"
+                            ))),
+                        }
+                    }
+                    Operation::LessEqualThan => {
+                        match (l, r) {
+                            (Expression::Integer(li), Expression::Integer(ri)) => {
+                                Ok(Expression::Bool(li <= ri))
+                            }
+                            _ => Err(self.error(format!(
+                                "One or more non-boolean terms to divide operator"
+                            ))),
+                        }
+                    }
+                    Operation::GreaterEqualThan => {
+                        match (l, r) {
+                            (Expression::Integer(li), Expression::Integer(ri)) => {
+                                Ok(Expression::Bool(li >= ri))
+                            }
+                            _ => Err(self.error(format!(
+                                "One or more non-boolean terms to divide operator"
+                            ))),
+                        }
+                    }
+                }
+            }
+            Expression::Conditional(c) => {
+                let premise = self.eval(&c.condition)?;
+                match (premise, c.false_branch.as_ref()) {
+                    (Expression::Bool(true), _) => Ok(self.eval(&c.true_branch)?),
+                    (Expression::Bool(false), Some(false_branch)) => Ok(self.eval(&false_branch)?),
+                    (Expression::Bool(false), _) => Ok(Expression::Void),
+                    _ => Err(self.error(format!("Unexpected result of conditional")))
                 }
             }
             Expression::Group(g) => self.eval(&g.expr),
+            Expression::Bool(b) => Ok(Expression::Bool(*b)),
             Expression::Integer(i) => Ok(Expression::Integer(*i)),
             Expression::Symbol(s) => {
                 let value = self
