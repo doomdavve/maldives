@@ -1,4 +1,11 @@
 #### Near term
 
-- [ ] strings
-- [ ] lexical scoping
+ - [ ] write/print to somewhere
+ - [ ] loops
+ - [ ] arrays
+ - [ ] structures
+
+#### Completed
+
+- [X] strings
+- [X] lexical scoping
