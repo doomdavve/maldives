@@ -96,8 +96,11 @@ impl Interpreter {
                             (Expression::Integer(li), Expression::Integer(ri)) => {
                                 Ok(Closure::simple(Expression::Integer(li + ri)))
                             }
+                            (Expression::String(li), Expression::String(ri)) => {
+                                Ok(Closure::simple(Expression::String(li + &ri)))
+                            }
                             _ => Err(self
-                                .error(format!("One or more non-integer terms to sum operator"))),
+                                .error(format!("Unexpected terms in sum operator"))),
                         }
                     }
                     Operation::Difference => match (l.expr, r.expr) {
@@ -179,6 +182,7 @@ impl Interpreter {
             Expression::Group(g) => self.eval(&g.expr, env),
             Expression::Bool(b) => Ok(Closure::simple(Expression::Bool(*b))),
             Expression::Integer(i) => Ok(Closure::simple(Expression::Integer(*i))),
+            Expression::String(s) => Ok(Closure::simple(Expression::String(s.to_string()))),
             Expression::Symbol(s) => {
                 let value = self
                     .vars

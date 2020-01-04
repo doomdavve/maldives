@@ -2,6 +2,7 @@
 pub enum Token<'a> {
     Integer(i32),
     Symbol(&'a [u8]),
+    String(&'a [u8]),
     True,
     False,
     If,

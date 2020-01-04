@@ -16,6 +16,7 @@ pub enum Expression {
     Block(Rc<BlockExpr>),
     Group(Rc<GroupExpr>),
     Symbol(String),
+    String(String),
     Conditional(Rc<ConditionalExpr>),
     Void,
 }
@@ -100,13 +101,6 @@ impl<'a> Parser<'a> {
             true
         } else {
             false
-        }
-    }
-
-    fn at_symbol(&mut self) -> bool {
-        match self.sym {
-            Some(Token::Symbol(_s)) => true,
-            _ => false,
         }
     }
 
@@ -226,61 +220,68 @@ impl<'a> Parser<'a> {
     }
 
     fn expression_sub(&mut self, child: Option<Expression>) -> Result<Expression, ParseError> {
-        if self.at_symbol() {
-            Ok(Expression::Symbol(self.symbol()?))
-        } else {
-            match self.sym {
-                Some(Token::Function) => {
-                    let function = self.function()?;
-                    Ok(Expression::Function(Rc::new(function)))
-                }
-                Some(Token::If) => {
-                    let conditional = self.conditional()?;
-                    Ok(Expression::Conditional(Rc::new(conditional)))
-                }
-                Some(Token::ParenLeft) => {
-                    match child {
-                        Some(function_expr) => {
-                            let call = self.function_call(function_expr)?;
-                            Ok(Expression::FunctionCall(Rc::new(call)))
-                        }
-                        None => {
-                            let group = self.group()?;
-                            Ok(Expression::Group(Rc::new(group)))
-                        }
+        match self.sym {
+            Some(Token::Symbol(s)) => {
+                let symbol_name = unsafe { from_utf8_unchecked(s) }.to_string();
+                self.sym = self.lexer.next();
+                Ok(Expression::Symbol(symbol_name))
+            }
+            Some(Token::String(s)) => {
+                // Remove escaping in this copy step
+                let string = unsafe { from_utf8_unchecked(s) }.to_string();
+                self.sym = self.lexer.next();
+                Ok(Expression::String(string))
+            }
+            Some(Token::Function) => {
+                let function = self.function()?;
+                Ok(Expression::Function(Rc::new(function)))
+            }
+            Some(Token::If) => {
+                let conditional = self.conditional()?;
+                Ok(Expression::Conditional(Rc::new(conditional)))
+            }
+            Some(Token::ParenLeft) => {
+                match child {
+                    Some(function_expr) => {
+                        let call = self.function_call(function_expr)?;
+                        Ok(Expression::FunctionCall(Rc::new(call)))
+                    }
+                    None => {
+                        let group = self.group()?;
+                        Ok(Expression::Group(Rc::new(group)))
                     }
                 }
-                Some(Token::Let) => {
-                    let binding = self.binding()?;
-                    Ok(Expression::Bind(Rc::new(binding)))
-                }
-                Some(Token::BraceLeft) => {
-                    let block = self.block()?;
-                    Ok(Expression::Block(Rc::new(block)))
-                }
-                Some(Token::Integer(i)) => {
-                    self.sym = self.lexer.next();
-                    Ok(Expression::Integer(i))
-                }
-                Some(Token::True) => {
-                    self.sym = self.lexer.next();
-                    Ok(Expression::Bool(true))
-                }
-                Some(Token::False) => {
-                    self.sym = self.lexer.next();
-                    Ok(Expression::Bool(false))
-                }
-                Some(Token::Plus) | Some(Token::Minus) | Some(Token::Star) | Some(Token::Slash) | Some(Token::Greater) | Some(Token::Less) | Some(Token::LessEqual) | Some(Token::GreaterEqual) => {
-                    let left =
-                        child.ok_or(ParseError::new(format!("missing left-hand expression")))?;
-                    let binary = self.binary(left)?;
-                    Ok(Expression::Binary(Rc::new(binary)))
-                }
-                _ => Err(ParseError::new(format!(
-                    "unexpected token {:?} found, expected 'fn', 'let', '{{' or integer",
-                    self.sym
-                ))),
             }
+            Some(Token::Let) => {
+                let binding = self.binding()?;
+                Ok(Expression::Bind(Rc::new(binding)))
+            }
+            Some(Token::BraceLeft) => {
+                let block = self.block()?;
+                Ok(Expression::Block(Rc::new(block)))
+            }
+            Some(Token::Integer(i)) => {
+                self.sym = self.lexer.next();
+                Ok(Expression::Integer(i))
+            }
+            Some(Token::True) => {
+                self.sym = self.lexer.next();
+                Ok(Expression::Bool(true))
+            }
+            Some(Token::False) => {
+                self.sym = self.lexer.next();
+                Ok(Expression::Bool(false))
+            }
+            Some(Token::Plus) | Some(Token::Minus) | Some(Token::Star) | Some(Token::Slash) | Some(Token::Greater) | Some(Token::Less) | Some(Token::LessEqual) | Some(Token::GreaterEqual) => {
+                let left =
+                    child.ok_or(ParseError::new(format!("missing left-hand expression")))?;
+                let binary = self.binary(left)?;
+                Ok(Expression::Binary(Rc::new(binary)))
+            }
+            _ => Err(ParseError::new(format!(
+                "unexpected token {:?} found, expected sub expression",
+                self.sym
+            ))),
         }
     }
 
@@ -560,3 +561,16 @@ fn parse_infix() {
     let expression = parser.expression();
     assert_eq!(expression, Ok(expected));
 }
+
+#[test]
+fn parse_string_concatination() {
+    let mut parser = Parser::new(Lexer::new("\"apa\" + \"banan\""));
+    let expected = Expression::Binary(Rc::new(BinaryExpr {
+        operation: Operation::Sum,
+        left: Expression::String("apa".to_string()),
+        right: Expression::String("banan".to_string()),
+    }));
+    let expression = parser.expression();
+    assert_eq!(expression, Ok(expected));
+}
+

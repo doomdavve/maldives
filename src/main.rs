@@ -166,3 +166,19 @@ fn eval_closure_2() {
         eval_program("{ let a = 1; fn b() { let a = 12; fn () a }; b()() }")
     );
 }
+
+#[test]
+fn eval_closure_3() {
+    assert_eq!(
+        Ok(Expression::Integer(12)),
+        eval_program("{ let a = 1; fn b() { let a = 12; fn () a }; b()() }")
+    );
+}
+
+#[test]
+fn eval_string_concatination() {
+    assert_eq!(
+        Ok(Expression::String("apabanan".to_string())),
+        eval_program("{ let a = \"apa\"; let b = \"banan\"; a + b }")
+    );
+}

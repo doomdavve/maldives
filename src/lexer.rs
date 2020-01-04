@@ -126,6 +126,45 @@ impl<'a> Lexer<'a> {
         }
     }
 
+    fn tokenize_string(&self) -> (Option<Token<'a>>, usize) {
+        let at_string = match_character(self.buffer, self.start, b'"');
+        if at_string {
+            let string_start = self.start + 1;
+            let mut n = string_start;
+            let mut escape_next = false;
+            loop {
+                if n >= self.buffer.len() {
+                    break;
+                }
+
+                // Because this is a zero-coping tokenizer, we can't
+                // modify the string. The escaping is thus kept.
+                if !escape_next {
+                    escape_next = match_character(self.buffer, n, b'\\');
+                } else {
+                    escape_next = false;
+                    n+=1;
+                }
+
+                if match_character(self.buffer, n, b'"') {
+                    break;
+                } else {
+                    n+=1;
+                }
+            }
+            // TODO: Error handling missing here.
+            let string_end = n;
+            let str = Token::String(&self.buffer[string_start..string_end]);
+            if match_character(self.buffer, n, b'"') {
+                n+=1;
+            }
+            (Some(str), n)
+        } else {
+            (None, self.start)
+        }
+    }
+
+
     fn tokenize_symbol(&self) -> (Option<Token<'a>>, usize) {
         let (symbol, n) = eat_symbol(self.buffer, self.start);
         if !symbol.is_empty() {
@@ -184,6 +223,7 @@ impl<'a> Iterator for Lexer<'a> {
         self.start = eat_whitespace(self.buffer, self.start);
 
         return_if_match!(self, self.tokenize_number());
+        return_if_match!(self, self.tokenize_string());
         return_if_match!(self, self.tokenize_structure());
         return_if_match!(self, self.tokenize_symbol());
 
@@ -207,6 +247,29 @@ fn tokenize_if() {
         ]
     );
 }
+
+#[test]
+fn tokenize_string() {
+    let tokens: Vec<Token> = Lexer::new("\"this is a string\"").collect();
+    assert_eq!(
+        tokens,
+        vec![
+            Token::String("this is a string".as_bytes()),
+        ]
+    );
+}
+
+#[test]
+fn tokenize_string_with_escaping() {
+    let tokens: Vec<Token> = Lexer::new("\"this is a \\\"string\\\"\"").collect();
+    assert_eq!(
+        tokens,
+        vec![
+            Token::String("this is a \\\"string\\\"".as_bytes()),
+        ]
+    );
+}
+
 
 #[test]
 fn tokenize_if_with_bool_literals() {
