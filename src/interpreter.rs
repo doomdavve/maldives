@@ -2,8 +2,8 @@ use std::collections::HashMap;
 use std::error;
 use std::fmt;
 
-use crate::parser::Expression;
-use crate::parser::Operation;
+use crate::expression::Expression;
+use crate::expression::Operation;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Closure {

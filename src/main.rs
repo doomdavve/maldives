@@ -8,6 +8,7 @@ extern crate env_logger;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 
+mod expression;
 mod interpreter;
 mod lexer;
 mod parse_error;
@@ -70,7 +71,7 @@ fn main() {
 }
 
 #[cfg(test)]
-use parser::Expression;
+use expression::Expression;
 
 #[test]
 fn eval_simple() {
@@ -83,9 +84,7 @@ fn eval_simple() {
 }
 
 #[cfg(test)]
-fn eval_program(
-    contents: &str,
-) -> std::result::Result<parser::Expression, interpreter::InterpreterError> {
+fn eval_program(contents: &str) -> std::result::Result<Expression, interpreter::InterpreterError> {
     let mut parser = Parser::new(Lexer::new(contents));
     let expression = parser.program().unwrap();
     let mut interpreter = Interpreter::new();

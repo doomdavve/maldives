@@ -1,80 +1,13 @@
 use std::rc::Rc;
 use std::str::from_utf8_unchecked;
 
+use crate::expression::{
+    BinaryExpr, BindExpr, BlockExpr, ConditionalExpr, Expression, FunctionCallExpr, FunctionExpr,
+    GroupExpr, Operation,
+};
 use crate::lexer::Lexer;
 use crate::parse_error::ParseError;
 use crate::token::Token;
-
-#[derive(Debug, PartialEq, Clone)]
-pub enum Expression {
-    Integer(i32),
-    Bool(bool),
-    Function(Rc<FunctionExpr>),
-    Binary(Rc<BinaryExpr>),
-    FunctionCall(Rc<FunctionCallExpr>),
-    Bind(Rc<BindExpr>),
-    Block(Rc<BlockExpr>),
-    Group(Rc<GroupExpr>),
-    Symbol(String),
-    String(String),
-    Conditional(Rc<ConditionalExpr>),
-    Void,
-}
-
-#[derive(Debug, PartialEq)]
-pub enum Operation {
-    Sum,
-    Difference,
-    Multiply,
-    Divide,
-    LessThan,
-    GreaterThan,
-    LessEqualThan,
-    GreaterEqualThan
-}
-
-#[derive(Debug, PartialEq)]
-pub struct BindExpr {
-    pub sym: String,
-    pub expr: Expression,
-}
-
-#[derive(Debug, PartialEq)]
-pub struct GroupExpr {
-    pub expr: Expression,
-}
-
-#[derive(Debug, PartialEq)]
-pub struct FunctionCallExpr {
-    pub expr: Expression,
-    pub arguments: Vec<Expression>,
-}
-
-#[derive(Debug, PartialEq)]
-pub struct ConditionalExpr {
-    pub condition: Expression,
-    pub true_branch: Expression,
-    pub false_branch: Option<Expression>,
-}
-
-#[derive(Debug, PartialEq)]
-pub struct BinaryExpr {
-    pub operation: Operation,
-    pub left: Expression,
-    pub right: Expression,
-}
-
-#[derive(Debug, PartialEq)]
-pub struct FunctionExpr {
-    pub sym: Option<String>,
-    pub parameters: Vec<String>,
-    pub expr: Expression,
-}
-
-#[derive(Debug, PartialEq)]
-pub struct BlockExpr {
-    pub list: Vec<Expression>,
-}
 
 pub struct Parser<'a> {
     sym: Option<Token<'a>>,
@@ -240,18 +173,16 @@ impl<'a> Parser<'a> {
                 let conditional = self.conditional()?;
                 Ok(Expression::Conditional(Rc::new(conditional)))
             }
-            Some(Token::ParenLeft) => {
-                match child {
-                    Some(function_expr) => {
-                        let call = self.function_call(function_expr)?;
-                        Ok(Expression::FunctionCall(Rc::new(call)))
-                    }
-                    None => {
-                        let group = self.group()?;
-                        Ok(Expression::Group(Rc::new(group)))
-                    }
+            Some(Token::ParenLeft) => match child {
+                Some(function_expr) => {
+                    let call = self.function_call(function_expr)?;
+                    Ok(Expression::FunctionCall(Rc::new(call)))
                 }
-            }
+                None => {
+                    let group = self.group()?;
+                    Ok(Expression::Group(Rc::new(group)))
+                }
+            },
             Some(Token::Let) => {
                 let binding = self.binding()?;
                 Ok(Expression::Bind(Rc::new(binding)))
@@ -272,9 +203,15 @@ impl<'a> Parser<'a> {
                 self.sym = self.lexer.next();
                 Ok(Expression::Bool(false))
             }
-            Some(Token::Plus) | Some(Token::Minus) | Some(Token::Star) | Some(Token::Slash) | Some(Token::Greater) | Some(Token::Less) | Some(Token::LessEqual) | Some(Token::GreaterEqual) => {
-                let left =
-                    child.ok_or(ParseError::new(format!("missing left-hand expression")))?;
+            Some(Token::Plus)
+            | Some(Token::Minus)
+            | Some(Token::Star)
+            | Some(Token::Slash)
+            | Some(Token::Greater)
+            | Some(Token::Less)
+            | Some(Token::LessEqual)
+            | Some(Token::GreaterEqual) => {
+                let left = child.ok_or(ParseError::new(format!("missing left-hand expression")))?;
                 let binary = self.binary(left)?;
                 Ok(Expression::Binary(Rc::new(binary)))
             }
@@ -297,7 +234,7 @@ impl<'a> Parser<'a> {
         Ok(ConditionalExpr {
             condition,
             true_branch,
-            false_branch
+            false_branch,
         })
     }
 
@@ -573,4 +510,3 @@ fn parse_string_concatination() {
     let expression = parser.expression();
     assert_eq!(expression, Ok(expected));
 }
-
