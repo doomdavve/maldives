@@ -1,3 +1,4 @@
+use std::fmt;
 use std::rc::Rc;
 use std::str::FromStr;
 
@@ -32,6 +33,7 @@ pub enum Expression {
     Integer(i32),
     Bool(bool),
     Function(Rc<FunctionExpr>),
+    NativeFunction(Rc<NativeFunctionExpr>),
     Binary(Rc<BinaryExpr>),
     FunctionCall(Rc<FunctionCallExpr>),
     Bind(Rc<BindExpr>),
@@ -58,6 +60,7 @@ impl Expression {
             Expression::Binary(binary) => binary.operation.resolve_type(&binary.left, &binary.right),
             Expression::Group(group) => group.expr.resolve_type(),
             Expression::Conditional(_) => PrimitiveType::Any, // Check both braches and assert they are the same
+            Expression::NativeFunction(_) => PrimitiveType::Any, // One more thing left to do...
             Expression::Void => PrimitiveType::None
         }
     }
@@ -132,3 +135,20 @@ pub struct FunctionExpr {
 pub struct BlockExpr {
     pub list: Vec<Expression>,
 }
+
+pub struct NativeFunctionExpr {
+    pub function: fn(e: &Expression) -> Result<Expression, String>
+}
+
+impl PartialEq for NativeFunctionExpr {
+    fn eq(&self, _other: &Self) -> bool {
+        false
+    }
+}
+
+impl fmt::Debug for NativeFunctionExpr {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Native function")
+    }
+}
+

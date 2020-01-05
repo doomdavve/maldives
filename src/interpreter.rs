@@ -1,9 +1,12 @@
+use std::rc::Rc;
+
 use std::collections::HashMap;
 use std::error;
 use std::fmt;
 
 use crate::expression::Expression;
 use crate::expression::BinaryOperation;
+use crate::expression::NativeFunctionExpr;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Closure {
@@ -51,11 +54,28 @@ pub struct Interpreter {
     vars: SymbolTable,
 }
 
+fn native_println(e: &Expression) -> Result<Expression, String> {
+    match e {
+        Expression::String(s) => {
+            println!("{}", s);
+            Ok(Expression::Void)
+        }
+        _ => Err("Unexpected argument to println".to_string())
+    }
+}
+
+fn native_type(e: &Expression) -> Result<Expression, String> {
+    Ok(Expression::String(format!("{:?}", e.resolve_type())))
+}
+
 impl Interpreter {
     pub fn new() -> Interpreter {
-        Interpreter {
+        let mut interpreter = Interpreter {
             vars: SymbolTable::new(),
-        }
+        };
+        interpreter.vars.insert("println".to_string(), Closure::simple(Expression::NativeFunction(Rc::new(NativeFunctionExpr{ function: native_println }))));
+        interpreter.vars.insert("type".to_string(), Closure::simple(Expression::NativeFunction(Rc::new(NativeFunctionExpr{ function: native_type }))));
+        interpreter
     }
 
     fn error(&self, message: String) -> InterpreterError {
@@ -219,6 +239,7 @@ impl Interpreter {
                 }
                 Ok(closure.clone())
             }
+            Expression::NativeFunction(n) => Ok(Closure::simple(Expression::NativeFunction(n.clone()))),
             Expression::FunctionCall(fc) => {
                 let value = self.eval(&fc.expr, env)?;
                 match (value.expr, value.env) {
@@ -236,6 +257,19 @@ impl Interpreter {
                         debug!("Calling function with env: {:?}", &function_env);
                         let result = self.eval(&f.expr, &function_env)?;
                         Ok(result)
+                    }
+                    (Expression::NativeFunction(f), _) => {
+                        let native_function = f.function;
+                        match fc.arguments.as_slice() {
+                            [only_one] => {
+                                let arg = self.eval(&only_one, env)?;
+                                let res = native_function(&arg.expr).map_err(|message| self.error(message))?;
+                                Ok(Closure::simple(res))
+                            }
+                            _ =>  {
+                                Err(self.error(format!("unexpected number of argumens to native function")))
+                            }
+                        }
                     }
                     _ => Err(self.error(format!("unexpected {:?}, expected function", fc.expr))),
                 }
