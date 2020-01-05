@@ -64,7 +64,7 @@ impl Expression {
 }
 
 #[derive(Debug, PartialEq)]
-pub enum Operation { // call it BinaryOperation
+pub enum BinaryOperation {
     Sum,
     Difference,
     Multiply,
@@ -75,17 +75,17 @@ pub enum Operation { // call it BinaryOperation
     GreaterEqualThan,
 }
 
-impl Operation {
+impl BinaryOperation {
     // Should we pass in the symbol table here? Which one? :)
     pub fn resolve_type(&self, left: &Expression, right: &Expression) -> PrimitiveType {
         match self {
-            Operation::Sum => if left.resolve_type() == right.resolve_type() {
+            BinaryOperation::Sum => if left.resolve_type() == right.resolve_type() {
                 left.resolve_type()
             } else {
                 PrimitiveType::Any
             }
-            Operation::Difference | Operation::Multiply | Operation::Divide => PrimitiveType::Integer,
-            Operation::LessThan | Operation::GreaterThan | Operation::LessEqualThan | Operation::GreaterEqualThan => PrimitiveType::Bool
+            BinaryOperation::Difference | BinaryOperation::Multiply | BinaryOperation::Divide => PrimitiveType::Integer,
+            BinaryOperation::LessThan | BinaryOperation::GreaterThan | BinaryOperation::LessEqualThan | BinaryOperation::GreaterEqualThan => PrimitiveType::Bool
         }
     }
 }
@@ -116,7 +116,7 @@ pub struct ConditionalExpr {
 
 #[derive(Debug, PartialEq)]
 pub struct BinaryExpr {
-    pub operation: Operation,
+    pub operation: BinaryOperation,
     pub left: Expression,
     pub right: Expression,
 }

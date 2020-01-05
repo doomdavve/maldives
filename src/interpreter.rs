@@ -3,7 +3,7 @@ use std::error;
 use std::fmt;
 
 use crate::expression::Expression;
-use crate::expression::Operation;
+use crate::expression::BinaryOperation;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Closure {
@@ -91,7 +91,7 @@ impl Interpreter {
                 let l = self.eval(&b.left, env)?;
                 let r = self.eval(&b.right, env)?;
                 match b.operation {
-                    Operation::Sum => {
+                    BinaryOperation::Sum => {
                         match (l.expr, r.expr) {
                             (Expression::Integer(li), Expression::Integer(ri)) => {
                                 Ok(Closure::simple(Expression::Integer(li + ri)))
@@ -103,7 +103,7 @@ impl Interpreter {
                                 .error(format!("Unexpected terms in sum operator"))),
                         }
                     }
-                    Operation::Difference => match (l.expr, r.expr) {
+                    BinaryOperation::Difference => match (l.expr, r.expr) {
                         (Expression::Integer(li), Expression::Integer(ri)) => {
                             Ok(Closure::simple(Expression::Integer(li - ri)))
                         }
@@ -111,7 +111,7 @@ impl Interpreter {
                             "One or more non-integer terms to difference operator"
                         ))),
                     },
-                    Operation::Multiply => match (l.expr, r.expr) {
+                    BinaryOperation::Multiply => match (l.expr, r.expr) {
                         (Expression::Integer(li), Expression::Integer(ri)) => {
                             Ok(Closure::simple(Expression::Integer(li * ri)))
                         }
@@ -119,7 +119,7 @@ impl Interpreter {
                             "One or more non-integer terms to multiply operator"
                         ))),
                     },
-                    Operation::Divide => {
+                    BinaryOperation::Divide => {
                         // TODO: handle division by zero.
                         match (l.expr, r.expr) {
                             (Expression::Integer(li), Expression::Integer(ri)) => {
@@ -130,7 +130,7 @@ impl Interpreter {
                             ))),
                         }
                     }
-                    Operation::LessThan => match (l.expr, r.expr) {
+                    BinaryOperation::LessThan => match (l.expr, r.expr) {
                         (Expression::Integer(li), Expression::Integer(ri)) => {
                             Ok(Closure::simple(Expression::Bool(li < ri)))
                         }
@@ -139,7 +139,7 @@ impl Interpreter {
                                 .error(format!("One or more non-boolean terms to divide operator")))
                         }
                     },
-                    Operation::GreaterThan => match (l.expr, r.expr) {
+                    BinaryOperation::GreaterThan => match (l.expr, r.expr) {
                         (Expression::Integer(li), Expression::Integer(ri)) => {
                             Ok(Closure::simple(Expression::Bool(li > ri)))
                         }
@@ -148,7 +148,7 @@ impl Interpreter {
                                 .error(format!("One or more non-boolean terms to divide operator")))
                         }
                     },
-                    Operation::LessEqualThan => match (l.expr, r.expr) {
+                    BinaryOperation::LessEqualThan => match (l.expr, r.expr) {
                         (Expression::Integer(li), Expression::Integer(ri)) => {
                             Ok(Closure::simple(Expression::Bool(li <= ri)))
                         }
@@ -157,7 +157,7 @@ impl Interpreter {
                                 .error(format!("One or more non-boolean terms to divide operator")))
                         }
                     },
-                    Operation::GreaterEqualThan => match (l.expr, r.expr) {
+                    BinaryOperation::GreaterEqualThan => match (l.expr, r.expr) {
                         (Expression::Integer(li), Expression::Integer(ri)) => {
                             Ok(Closure::simple(Expression::Bool(li >= ri)))
                         }

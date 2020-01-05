@@ -3,7 +3,7 @@ use std::str::from_utf8_unchecked;
 
 use crate::expression::{
     BinaryExpr, BindExpr, BlockExpr, ConditionalExpr, Expression, FunctionCallExpr, FunctionExpr,
-    GroupExpr, Operation,
+    GroupExpr, BinaryOperation,
 };
 use crate::lexer::Lexer;
 use crate::parse_error::ParseError;
@@ -59,39 +59,39 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn operation(&mut self) -> Result<Operation, ParseError> {
+    fn operation(&mut self) -> Result<BinaryOperation, ParseError> {
         match self.sym {
             Some(Token::Plus) => {
                 self.sym = self.lexer.next();
-                Ok(Operation::Sum)
+                Ok(BinaryOperation::Sum)
             }
             Some(Token::Minus) => {
                 self.sym = self.lexer.next();
-                Ok(Operation::Difference)
+                Ok(BinaryOperation::Difference)
             }
             Some(Token::Slash) => {
                 self.sym = self.lexer.next();
-                Ok(Operation::Divide)
+                Ok(BinaryOperation::Divide)
             }
             Some(Token::Star) => {
                 self.sym = self.lexer.next();
-                Ok(Operation::Multiply)
+                Ok(BinaryOperation::Multiply)
             }
             Some(Token::Less) => {
                 self.sym = self.lexer.next();
-                Ok(Operation::LessThan)
+                Ok(BinaryOperation::LessThan)
             }
             Some(Token::Greater) => {
                 self.sym = self.lexer.next();
-                Ok(Operation::GreaterThan)
+                Ok(BinaryOperation::GreaterThan)
             }
             Some(Token::GreaterEqual) => {
                 self.sym = self.lexer.next();
-                Ok(Operation::GreaterEqualThan)
+                Ok(BinaryOperation::GreaterEqualThan)
             }
             Some(Token::LessEqual) => {
                 self.sym = self.lexer.next();
-                Ok(Operation::LessEqualThan)
+                Ok(BinaryOperation::LessEqualThan)
             }
             _ => Err(ParseError::new(format!(
                 "unexpected token {:?} found, expected operation such as '+'",
@@ -491,7 +491,7 @@ fn parse_nested_call_expr() {
 fn parse_infix() {
     let mut parser = Parser::new(Lexer::new("1 + 2"));
     let expected = Expression::Binary(Rc::new(BinaryExpr {
-        operation: Operation::Sum,
+        operation: BinaryOperation::Sum,
         left: Expression::Integer(1),
         right: Expression::Integer(2),
     }));
@@ -503,7 +503,7 @@ fn parse_infix() {
 fn parse_string_concatination() {
     let mut parser = Parser::new(Lexer::new("\"apa\" + \"banan\""));
     let expected = Expression::Binary(Rc::new(BinaryExpr {
-        operation: Operation::Sum,
+        operation: BinaryOperation::Sum,
         left: Expression::String("apa".to_string()),
         right: Expression::String("banan".to_string()),
     }));
