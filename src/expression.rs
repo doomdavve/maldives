@@ -3,26 +3,26 @@ use std::rc::Rc;
 use std::str::FromStr;
 
 #[derive(Debug, PartialEq)]
-pub enum PrimitiveType {
+pub enum ResolvedType {
     Integer,
     Bool,
     String,
     Function,
     Any,
-    None
+    None,
 }
 
-impl FromStr for PrimitiveType {
+impl FromStr for ResolvedType {
     type Err = ();
 
-    fn from_str(s: &str) -> Result<PrimitiveType, ()> {
+    fn from_str(s: &str) -> Result<ResolvedType, ()> {
         match s {
-            "int" => Ok(PrimitiveType::Integer),
-            "bool" => Ok(PrimitiveType::Bool),
-            "string" => Ok(PrimitiveType::String),
-            "fn" => Ok(PrimitiveType::Function),
-            "any" => Ok(PrimitiveType::Any),
-            "none" => Ok(PrimitiveType::None),
+            "int" => Ok(ResolvedType::Integer),
+            "bool" => Ok(ResolvedType::Bool),
+            "string" => Ok(ResolvedType::String),
+            "fn" => Ok(ResolvedType::Function),
+            "any" => Ok(ResolvedType::Any),
+            "none" => Ok(ResolvedType::None),
             _ => Err(()),
         }
     }
@@ -47,21 +47,27 @@ pub enum Expression {
 
 impl Expression {
     // Should we pass in the symbol table here? Which one? :)
-    pub fn resolve_type(&self) -> PrimitiveType {
+    pub fn resolve_type(&self) -> Result<ResolvedType, String> {
         match self {
-            Expression::Integer(_) => PrimitiveType::Integer,
-            Expression::String(_) => PrimitiveType::String,
-            Expression::Bool(_) => PrimitiveType::Bool,
-            Expression::Function(_) => PrimitiveType::Function,
-            Expression::Symbol(_) => PrimitiveType::Any, // Need the symbol table to tell
+            Expression::Integer(_) => Ok(ResolvedType::Integer),
+            Expression::String(_) => Ok(ResolvedType::String),
+            Expression::Bool(_) => Ok(ResolvedType::Bool),
+            Expression::Function(_) => Ok(ResolvedType::Function),
             Expression::Bind(bind) => bind.expr.resolve_type(),
-            Expression::Block(block) => block.list.last().map(|e| e.resolve_type()).unwrap_or(PrimitiveType::None),
+            Expression::Block(block) => block
+                .list
+                .last()
+                .map(|e| e.resolve_type())
+                .unwrap_or(Ok(ResolvedType::None)),
             Expression::FunctionCall(fc) => fc.expr.resolve_type(), // TODO: here we have work to do.
-            Expression::Binary(binary) => binary.operation.resolve_type(&binary.left, &binary.right),
+            Expression::Binary(binary) => {
+                binary.operation.resolve_type(&binary.left, &binary.right)
+            }
             Expression::Group(group) => group.expr.resolve_type(),
-            Expression::Conditional(_) => PrimitiveType::Any, // Check both braches and assert they are the same
-            Expression::NativeFunction(_) => PrimitiveType::Any, // One more thing left to do...
-            Expression::Void => PrimitiveType::None
+            Expression::Conditional(_) => Ok(ResolvedType::Any), // Check both braches and assert they are the same
+            Expression::NativeFunction(_) => Ok(ResolvedType::Any), // One more thing left to do...
+            Expression::Void => Ok(ResolvedType::None),
+            Expression::Symbol(_) => Ok(ResolvedType::Any), // Need the symbol table to tell
         }
     }
 }
@@ -80,15 +86,22 @@ pub enum BinaryOperation {
 
 impl BinaryOperation {
     // Should we pass in the symbol table here? Which one? :)
-    pub fn resolve_type(&self, left: &Expression, right: &Expression) -> PrimitiveType {
+    pub fn resolve_type(&self, left: &Expression, right: &Expression) -> Result<ResolvedType, String> {
         match self {
-            BinaryOperation::Sum => if left.resolve_type() == right.resolve_type() {
-                left.resolve_type()
-            } else {
-                PrimitiveType::Any
+            BinaryOperation::Sum => {
+                if left.resolve_type() == right.resolve_type() {
+                    left.resolve_type()
+                } else {
+                    Ok(ResolvedType::Any)
+                }
             }
-            BinaryOperation::Difference | BinaryOperation::Multiply | BinaryOperation::Divide => PrimitiveType::Integer,
-            BinaryOperation::LessThan | BinaryOperation::GreaterThan | BinaryOperation::LessEqualThan | BinaryOperation::GreaterEqualThan => PrimitiveType::Bool
+            BinaryOperation::Difference | BinaryOperation::Multiply | BinaryOperation::Divide => {
+                Ok(ResolvedType::Integer)
+            }
+            BinaryOperation::LessThan
+            | BinaryOperation::GreaterThan
+            | BinaryOperation::LessEqualThan
+            | BinaryOperation::GreaterEqualThan => Ok(ResolvedType::Bool),
         }
     }
 }
@@ -137,7 +150,7 @@ pub struct BlockExpr {
 }
 
 pub struct NativeFunctionExpr {
-    pub function: fn(e: &Expression) -> Result<Expression, String>
+    pub function: fn(e: &Expression) -> Result<Expression, String>,
 }
 
 impl PartialEq for NativeFunctionExpr {
@@ -151,4 +164,3 @@ impl fmt::Debug for NativeFunctionExpr {
         write!(f, "Native function")
     }
 }
-
