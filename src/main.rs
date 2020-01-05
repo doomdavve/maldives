@@ -183,3 +183,52 @@ fn eval_string_concatination() {
         eval_program("{ let a = \"apa\"; let b = \"banan\"; a + b }")
     );
 }
+
+#[cfg(test)]
+use typechecker::TypeChecker;
+use typechecker::ResolvedType;
+
+#[test]
+fn type_check_simple_integer() {
+    let mut parser = Parser::new(Lexer::new("10"));
+    let expression = parser.program().unwrap();
+    let mut type_checker = TypeChecker::new();
+    let res = type_checker.resolve_type(&expression);
+    assert_eq!(Ok(ResolvedType::Integer), res);
+}
+
+#[test]
+fn type_check_simple_string() {
+    let mut parser = Parser::new(Lexer::new("\"apa\""));
+    let expression = parser.program().unwrap();
+    let mut type_checker = TypeChecker::new();
+    let res = type_checker.resolve_type(&expression);
+    assert_eq!(Ok(ResolvedType::String), res);
+}
+
+#[test]
+fn type_check_simple_bool() {
+    let mut parser = Parser::new(Lexer::new("true"));
+    let expression = parser.program().unwrap();
+    let mut type_checker = TypeChecker::new();
+    let res = type_checker.resolve_type(&expression);
+    assert_eq!(Ok(ResolvedType::Bool), res);
+}
+
+#[test]
+fn type_check_function() {
+    let mut parser = Parser::new(Lexer::new("let a = fn() 10"));
+    let expression = parser.program().unwrap();
+    let mut type_checker = TypeChecker::new();
+    let res = type_checker.resolve_type(&expression);
+    assert_eq!(Ok(ResolvedType::Function), res);
+}
+
+#[test]
+fn type_check_function_call() {
+    let mut parser = Parser::new(Lexer::new("{ let a = fn() 10; a() }"));
+    let expression = parser.program().unwrap();
+    let mut type_checker = TypeChecker::new();
+    let res = type_checker.resolve_type(&expression);
+    assert_eq!(Ok(ResolvedType::Any), res);
+}

@@ -1,6 +1,13 @@
 use std::str::FromStr;
-use crate::expression::{Expression, BinaryOperation};
-#[derive(Debug, PartialEq)]
+use std::collections::HashMap;
+use std::error;
+use std::fmt;
+
+use crate::expression::{BinaryOperation, Expression};
+
+pub type TypeTable = HashMap<String, ResolvedType>;
+
+#[derive(Debug, PartialEq, Clone)]
 pub enum ResolvedType {
     Integer,
     Bool,
@@ -26,14 +33,47 @@ impl FromStr for ResolvedType {
     }
 }
 
-pub struct TypeChecker;
+pub struct TypeChecker {
+    vars: TypeTable,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct TypeCheckerError {
+    message: String
+}
+
+impl fmt::Display for TypeCheckerError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        writeln!(f, "TypeChecker error: {}", self.message)
+    }
+}
+
+impl error::Error for TypeCheckerError {
+    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
+        None
+    }
+}
+
+impl TypeCheckerError {
+    fn new(message: String) -> TypeCheckerError {
+        TypeCheckerError { message }
+    }
+}
+
 
 impl TypeChecker {
     pub fn new() -> TypeChecker {
-        TypeChecker {}
+        TypeChecker {
+            vars: TypeTable::new(),
+        }
     }
 
-    pub fn resolve_binary_operation_type(&mut self, operation: &BinaryOperation, left: &Expression, right: &Expression) -> Result<ResolvedType, String> {
+    pub fn resolve_binary_operation_type(
+        &mut self,
+        operation: &BinaryOperation,
+        left: &Expression,
+        right: &Expression,
+    ) -> Result<ResolvedType, TypeCheckerError> {
         match operation {
             BinaryOperation::Sum => {
                 let left_type = self.resolve_type(left)?;
@@ -41,7 +81,7 @@ impl TypeChecker {
                 if left_type == right_type {
                     Ok(left_type)
                 } else {
-                    Err("Left and right expressions have different types".to_string())
+                    Err(TypeCheckerError::new("Left and right expressions have different types".to_string()))
                 }
             }
             BinaryOperation::Difference | BinaryOperation::Multiply | BinaryOperation::Divide => {
@@ -54,20 +94,30 @@ impl TypeChecker {
         }
     }
 
-    // Should we pass in the symbol table here? Which one? :)
-    pub fn resolve_type(&mut self, expr: &Expression) -> Result<ResolvedType, String> {
+    pub fn resolve_type(&mut self, expr: &Expression) -> Result<ResolvedType, TypeCheckerError> {
         match expr {
             Expression::Integer(_) => Ok(ResolvedType::Integer),
             Expression::String(_) => Ok(ResolvedType::String),
             Expression::Bool(_) => Ok(ResolvedType::Bool),
-            Expression::Function(_) => Ok(ResolvedType::Function),
-            Expression::Bind(bind) => self.resolve_type(&bind.expr),
-            Expression::Block(block) => block
-                .list
-                .last()
-                .map(|e| self.resolve_type(e))
-                .unwrap_or(Ok(ResolvedType::None)),
-            Expression::FunctionCall(fc) => self.resolve_type(&fc.expr), // TODO: here we have work to do.
+            Expression::Function(function) => {
+                if let Some(sym) = &function.sym {
+                    self.vars.insert(String::from(sym), ResolvedType::Function);
+                }
+                Ok(ResolvedType::Function)
+            },
+            Expression::Bind(bind) => {
+                let resolved_type = self.resolve_type(&bind.expr)?;
+                self.vars.insert(String::from(&bind.sym), resolved_type.clone());
+                Ok(resolved_type)
+            }
+            Expression::Block(block) => {
+                let mut last = ResolvedType::None;
+                for expr in &block.list {
+                    last = self.resolve_type(&expr)?;
+                }
+                Ok(last)
+            }
+            Expression::FunctionCall(_) => Ok(ResolvedType::Any), // TODO: here we have work to do. If self.resolve_type(&fc.expr) would return Function(ResolvedType)...
             Expression::Binary(binary) => {
                 self.resolve_binary_operation_type(&binary.operation, &binary.left, &binary.right)
             }
@@ -75,7 +125,10 @@ impl TypeChecker {
             Expression::Conditional(_) => Ok(ResolvedType::Any), // Check both braches and assert they are the same
             Expression::NativeFunction(_) => Ok(ResolvedType::Any), // One more thing left to do...
             Expression::Void => Ok(ResolvedType::None),
-            Expression::Symbol(_) => Ok(ResolvedType::Any), // Need the symbol table to tell
+            Expression::Symbol(symbol) => {
+                let resolved_type = self.vars.get(symbol).ok_or_else(|| TypeCheckerError::new(format!("unknown symbol '{}'", symbol)))?;
+                Ok(resolved_type.clone())
+            }
         }
     }
 }

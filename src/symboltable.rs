@@ -17,6 +17,5 @@ impl Closure {
     }
 }
 
-
 pub type SymbolTable = HashMap<String, Closure>;
 
