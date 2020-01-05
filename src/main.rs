@@ -9,11 +9,13 @@ use rustyline::error::ReadlineError;
 use rustyline::Editor;
 
 mod expression;
-mod interpreter;
 mod lexer;
 mod parse_error;
 mod parser;
 mod token;
+mod symboltable;
+mod typechecker;
+mod interpreter;
 
 use interpreter::Interpreter;
 use lexer::Lexer;

@@ -1,29 +1,13 @@
 use std::rc::Rc;
-
-use std::collections::HashMap;
 use std::error;
 use std::fmt;
 
 use crate::expression::Expression;
 use crate::expression::BinaryOperation;
 use crate::expression::NativeFunctionExpr;
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct Closure {
-    expr: Expression,
-    env: Option<SymbolTable>,
-}
-
-impl Closure {
-    fn simple(expr: Expression) -> Closure {
-        Closure { expr, env: None }
-    }
-    fn complete(expr: Expression, env: Option<SymbolTable>) -> Closure {
-        Closure { expr, env: env }
-    }
-}
-
-type SymbolTable = HashMap<String, Closure>;
+use crate::symboltable::Closure;
+use crate::symboltable::SymbolTable;
+use crate::typechecker::TypeChecker;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct InterpreterError {
@@ -65,7 +49,8 @@ fn native_println(e: &Expression) -> Result<Expression, String> {
 }
 
 fn native_type(e: &Expression) -> Result<Expression, String> {
-    Ok(Expression::String(format!("{:?}", e.resolve_type())))
+    let mut type_checker = TypeChecker::new();
+    Ok(Expression::String(format!("{:?}", type_checker.resolve_type(e))))
 }
 
 impl Interpreter {
