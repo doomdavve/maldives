@@ -175,6 +175,7 @@ impl<'a> Lexer<'a> {
     }
 
     fn tokenize_structure(&self) -> (Option<Token<'a>>, usize) {
+        // TODO: Rewrite with pattern matching?
         return_if_5characters!(self, Token::False, b'f', b'a', b'l', b's', b'e');
         return_if_4characters!(self, Token::True, b't', b'r', b'u', b'e');
         return_if_4characters!(self, Token::Else, b'e', b'l', b's', b'e');
@@ -183,12 +184,15 @@ impl<'a> Lexer<'a> {
         return_if_2characters!(self, Token::Function, b'f', b'n');
         return_if_2characters!(self, Token::GreaterEqual, b'>', b'=');
         return_if_2characters!(self, Token::LessEqual, b'<', b'=');
+        return_if_2characters!(self, Token::RightArrow, b'-', b'>');
+        return_if_2characters!(self, Token::FatRightArrow, b'=', b'>');
         return_if_character!(self, Token::BraceLeft, b'{');
         return_if_character!(self, Token::BraceRight, b'}');
         return_if_character!(self, Token::ParenLeft, b'(');
         return_if_character!(self, Token::ParenRight, b')');
         return_if_character!(self, Token::BracketLeft, b'[');
         return_if_character!(self, Token::BracketRight, b']');
+        return_if_character!(self, Token::Colon, b':');
         return_if_character!(self, Token::SemiColon, b';');
         return_if_character!(self, Token::Comma, b',');
         return_if_character!(self, Token::Equal, b'=');

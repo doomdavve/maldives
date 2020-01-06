@@ -1,3 +1,5 @@
+use crate::expression::TypeDeclaration;
+use crate::expression::FunctionDeclaration;
 use std::rc::Rc;
 use std::str::from_utf8_unchecked;
 
@@ -108,27 +110,69 @@ impl<'a> Parser<'a> {
             None
         };
         self.expect(Token::ParenLeft)?;
-        let mut parameters: Vec<String> = Vec::new();
+        let mut parameters: Vec<(String, TypeDeclaration)> = Vec::new();
         if self.sym != Some(Token::ParenRight) {
             let parameter = self.symbol()?;
-            parameters.push(parameter);
+            self.expect(Token::Colon)?;
+            let parameter_type = self.type_declaration()?;
+            parameters.push((parameter, parameter_type));
             loop {
                 if self.accept(Token::Comma) {
                     let parameter = self.symbol()?;
-                    parameters.push(parameter);
+                    self.expect(Token::Colon)?;
+                    let parameter_type = self.type_declaration()?;
+                    parameters.push((parameter, parameter_type));
                 } else {
                     break;
                 }
             }
         }
         self.expect(Token::ParenRight)?;
+        self.expect(Token::RightArrow)?;
+        let return_type = self.type_declaration()?;
+        self.expect(Token::Equal)?;
         let expr = self.expression()?;
         let function = FunctionExpr {
             sym,
+            return_type,
             parameters,
             expr,
         };
         Ok(function)
+    }
+
+    fn type_declaration(&mut self) -> Result<TypeDeclaration, ParseError> {
+        if self.sym == Some(Token::ParenLeft) {
+            let function_declaration = self.function_declaration()?;
+            Ok(TypeDeclaration::Function(function_declaration))
+        } else {
+            let symbol = self.symbol()?;
+            Ok(TypeDeclaration::Symbol(symbol))
+        }
+    }
+
+    fn function_declaration(&mut self) -> Result<FunctionDeclaration, ParseError> {
+        self.expect(Token::ParenLeft)?;
+
+        let mut parameters: Vec<TypeDeclaration> = Vec::new();
+
+        if self.sym != Some(Token::ParenRight) {
+            let parameter_type = self.type_declaration()?;
+            parameters.push(parameter_type);
+            loop {
+                if self.accept(Token::Comma) {
+                    let parameter_type = self.type_declaration()?;
+                    parameters.push(parameter_type);
+                } else {
+                    break;
+                }
+            }
+        }
+
+        self.expect(Token::ParenRight)?;
+        self.expect(Token::FatRightArrow)?;
+        let return_type = self.symbol()?;
+        Ok(FunctionDeclaration { parameters, return_type })
     }
 
     fn expression(&mut self) -> Result<Expression, ParseError> {
@@ -408,11 +452,12 @@ fn parse_nested_function_call_as_expression() {
 
 #[test]
 fn parse_define_function() {
-    let mut parser = Parser::new(Lexer::new("fn identity(x) { x }"));
+    let mut parser = Parser::new(Lexer::new("fn identity(x: int) -> int = { x }"));
     let res = parser.expression();
     let expected = Expression::Function(Rc::new(FunctionExpr {
         sym: Some(String::from("identity")),
-        parameters: vec![String::from("x")],
+        return_type: TypeDeclaration::Symbol(String::from("int")),
+        parameters: vec![(String::from("x"), TypeDeclaration::Symbol(String::from("int")))],
         expr: Expression::Block(Rc::new(BlockExpr {
             list: vec![Expression::Symbol(String::from("x"))],
         })),

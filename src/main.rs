@@ -110,7 +110,7 @@ fn eval_assignment() {
 fn eval_anon_function() {
     assert_eq!(
         Ok(Expression::Integer(3)),
-        eval_program("{ let apa = fn () 3; apa() }")
+        eval_program("{ let apa = fn() -> int = 3; apa() }")
     );
 }
 
@@ -118,7 +118,17 @@ fn eval_anon_function() {
 fn eval_anon_function_with_arg() {
     assert_eq!(
         Ok(Expression::Integer(3)),
-        eval_program("{ let apa = fn (x) x; apa(3) }")
+        eval_program("{ let apa = fn(x: int) -> int = x; apa(3) }")
+    );
+}
+
+#[test]
+fn eval_anon_function_return_function() {
+    assert_eq!(
+        Ok(Expression::Integer(10)),
+        eval_program(
+            "{ let f = fn() -> () => int = fn () -> int = 10; f()() }"
+        )
     );
 }
 
@@ -127,7 +137,7 @@ fn eval_anon_function_as_arg() {
     assert_eq!(
         Ok(Expression::Integer(6)),
         eval_program(
-            "{ let apply = fn (x, arg) x(arg); let doubler = fn (i) i*2; apply(doubler, 3) }"
+            "{ let apply = fn (x: (int) => int, arg: int) -> int = x(arg); let doubler = fn (i: int) -> int = i*2; apply(doubler, 3) }"
         )
     );
 }
@@ -156,7 +166,7 @@ fn eval_infix_division() {
 fn eval_closure_1() {
     assert_eq!(
         Ok(Expression::Integer(12)),
-        eval_program("{ fn b() { let a = 12; fn () a }; b()() }")
+        eval_program("{ fn b() -> () => int = { let a = 12; fn () -> int = a }; b()() }")
     );
 }
 
@@ -164,7 +174,7 @@ fn eval_closure_1() {
 fn eval_closure_2() {
     assert_eq!(
         Ok(Expression::Integer(12)),
-        eval_program("{ let a = 1; fn b() { let a = 12; fn () a }; b()() }")
+        eval_program("{ let a = 1; fn b() -> () => int = { let a = 12; fn () -> int = a }; b()() }")
     );
 }
 
@@ -172,7 +182,7 @@ fn eval_closure_2() {
 fn eval_closure_3() {
     assert_eq!(
         Ok(Expression::Integer(12)),
-        eval_program("{ let a = 1; fn b() { let a = 12; fn () a }; b()() }")
+        eval_program("{ let a = 1; fn b() -> () => int = { let a = 12; fn () -> int = a }; b()() }")
     );
 }
 
@@ -218,7 +228,7 @@ fn type_check_simple_bool() {
 
 #[test]
 fn type_check_function() {
-    let mut parser = Parser::new(Lexer::new("let a = fn() 10"));
+    let mut parser = Parser::new(Lexer::new("let a = fn() -> int = 10"));
     let expression = parser.program().unwrap();
     let mut type_checker = TypeChecker::new();
     let res = type_checker.resolve_type(&expression);
@@ -227,7 +237,7 @@ fn type_check_function() {
 
 #[test]
 fn type_check_function_call() {
-    let mut parser = Parser::new(Lexer::new("{ let a = fn() 10; a() }"));
+    let mut parser = Parser::new(Lexer::new("{ let a = fn() -> int = 10; a() }"));
     let expression = parser.program().unwrap();
     let mut type_checker = TypeChecker::new();
     let res = type_checker.resolve_type(&expression);

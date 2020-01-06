@@ -235,7 +235,7 @@ impl Interpreter {
                             let val = self.eval(argument, env)?;
                             debug!("Mapping: {:?} -> {:?}", parameter, val);
                             self.vars.insert(
-                                String::from(parameter),
+                                String::from(&parameter.0),
                                 Closure::complete(val.expr.clone(), val.env.clone()),
                             );
                         }

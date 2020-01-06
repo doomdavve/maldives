@@ -24,6 +24,9 @@ pub enum Token<'a> {
     ParenRight,
     BracketLeft,
     BracketRight,
+    Colon,
     SemiColon,
-    Comma
+    Comma,
+    RightArrow,
+    FatRightArrow
 }

@@ -30,8 +30,16 @@ pub enum BinaryOperation {
     GreaterEqualThan,
 }
 
-impl BinaryOperation {
-    // Should we pass in the symbol table here? Which one? :)
+#[derive(Debug, PartialEq)]
+pub struct FunctionDeclaration {
+    pub return_type: String,
+    pub parameters: Vec<TypeDeclaration>
+}
+
+#[derive(Debug, PartialEq)]
+pub enum TypeDeclaration {
+    Symbol(String),
+    Function(FunctionDeclaration)
 }
 
 #[derive(Debug, PartialEq)]
@@ -68,7 +76,8 @@ pub struct BinaryExpr {
 #[derive(Debug, PartialEq)]
 pub struct FunctionExpr {
     pub sym: Option<String>,
-    pub parameters: Vec<String>,
+    pub return_type: TypeDeclaration,
+    pub parameters: Vec<(String, TypeDeclaration)>,
     pub expr: Expression,
 }
 
