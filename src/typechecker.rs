@@ -1,33 +1,33 @@
-use std::str::FromStr;
+use crate::expression::TypeDeclaration;
 use std::collections::HashMap;
 use std::error;
 use std::fmt;
+use std::rc::Rc;
 
 use crate::expression::{BinaryOperation, Expression};
 
 pub type TypeTable = HashMap<String, ResolvedType>;
+
+#[derive(Debug, PartialEq)]
+pub struct ResolvedFunctionType {
+    pub return_type: ResolvedType,
+    pub parameters: Vec<ResolvedType>,
+}
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum ResolvedType {
     Integer,
     Bool,
     String,
-    Function,
+    Function(Rc<ResolvedFunctionType>),
     Any,
     None,
 }
 
-impl FromStr for ResolvedType {
-    type Err = ();
-
-    fn from_str(s: &str) -> Result<ResolvedType, ()> {
-        match s {
-            "int" => Ok(ResolvedType::Integer),
-            "bool" => Ok(ResolvedType::Bool),
-            "string" => Ok(ResolvedType::String),
-            "fn" => Ok(ResolvedType::Function),
-            "any" => Ok(ResolvedType::Any),
-            "none" => Ok(ResolvedType::None),
+impl ResolvedType {
+    fn from_decl(decl: &TypeDeclaration) -> Result<ResolvedType, ()> {
+        match decl {
+            TypeDeclaration::Symbol(_s) => Ok(ResolvedType::Integer), // FIXME:!!!
             _ => Err(()),
         }
     }
@@ -39,7 +39,7 @@ pub struct TypeChecker {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct TypeCheckerError {
-    message: String
+    message: String,
 }
 
 impl fmt::Display for TypeCheckerError {
@@ -59,7 +59,6 @@ impl TypeCheckerError {
         TypeCheckerError { message }
     }
 }
-
 
 impl TypeChecker {
     pub fn new() -> TypeChecker {
@@ -81,7 +80,9 @@ impl TypeChecker {
                 if left_type == right_type {
                     Ok(left_type)
                 } else {
-                    Err(TypeCheckerError::new("Left and right expressions have different types".to_string()))
+                    Err(TypeCheckerError::new(
+                        "Left and right expressions have different types".to_string(),
+                    ))
                 }
             }
             BinaryOperation::Difference | BinaryOperation::Multiply | BinaryOperation::Divide => {
@@ -100,14 +101,33 @@ impl TypeChecker {
             Expression::String(_) => Ok(ResolvedType::String),
             Expression::Bool(_) => Ok(ResolvedType::Bool),
             Expression::Function(function) => {
-                if let Some(sym) = &function.sym {
-                    self.vars.insert(String::from(sym), ResolvedType::Function);
+                let resolved_return_type =
+                    ResolvedType::from_decl(&function.return_type).map_err(|_e| {
+                        TypeCheckerError::new("Could not resolve return type".to_string())
+                    })?;
+
+                let mut resolved_parameter_types: Vec<ResolvedType> = Vec::new();
+                for parameter in &function.parameters {
+                    resolved_parameter_types.push(ResolvedType::from_decl(&parameter.1).map_err(
+                        |_e| TypeCheckerError::new("Could not resolve parameter type".to_string()),
+                    )?);
                 }
-                Ok(ResolvedType::Function)
-            },
+
+                let resolved_function_type = ResolvedFunctionType {
+                    return_type: resolved_return_type,
+                    parameters: resolved_parameter_types,
+                };
+                let rft = Rc::new(resolved_function_type);
+                if let Some(sym) = &function.sym {
+                    self.vars
+                        .insert(String::from(sym), ResolvedType::Function(rft.clone()));
+                }
+                Ok(ResolvedType::Function(rft.clone()))
+            }
             Expression::Bind(bind) => {
                 let resolved_type = self.resolve_type(&bind.expr)?;
-                self.vars.insert(String::from(&bind.sym), resolved_type.clone());
+                self.vars
+                    .insert(String::from(&bind.sym), resolved_type.clone());
                 Ok(resolved_type)
             }
             Expression::Block(block) => {
@@ -126,7 +146,10 @@ impl TypeChecker {
             Expression::NativeFunction(_) => Ok(ResolvedType::Any), // One more thing left to do...
             Expression::Void => Ok(ResolvedType::None),
             Expression::Symbol(symbol) => {
-                let resolved_type = self.vars.get(symbol).ok_or_else(|| TypeCheckerError::new(format!("unknown symbol '{}'", symbol)))?;
+                let resolved_type = self
+                    .vars
+                    .get(symbol)
+                    .ok_or_else(|| TypeCheckerError::new(format!("unknown symbol '{}'", symbol)))?;
                 Ok(resolved_type.clone())
             }
         }

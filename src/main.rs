@@ -198,6 +198,10 @@ fn eval_string_concatination() {
 use typechecker::TypeChecker;
 #[cfg(test)]
 use typechecker::ResolvedType;
+#[cfg(test)]
+use typechecker::ResolvedFunctionType;
+#[cfg(test)]
+use std::rc::Rc;
 
 #[test]
 fn type_check_simple_integer() {
@@ -232,7 +236,11 @@ fn type_check_function() {
     let expression = parser.program().unwrap();
     let mut type_checker = TypeChecker::new();
     let res = type_checker.resolve_type(&expression);
-    assert_eq!(Ok(ResolvedType::Function), res);
+    let expected = ResolvedType::Function(Rc::new(ResolvedFunctionType {
+        return_type: ResolvedType::Integer,
+        parameters: Vec::new(),
+    }));
+    assert_eq!(Ok(expected) , res);
 }
 
 #[test]
