@@ -186,6 +186,7 @@ fn eval_string_concatination() {
 
 #[cfg(test)]
 use typechecker::TypeChecker;
+#[cfg(test)]
 use typechecker::ResolvedType;
 
 #[test]
