@@ -171,7 +171,7 @@ impl<'a> Parser<'a> {
 
         self.expect(Token::ParenRight)?;
         self.expect(Token::FatRightArrow)?;
-        let return_type = self.symbol()?;
+        let return_type = Rc::new(self.type_declaration()?);
         Ok(FunctionDeclaration { parameters, return_type })
     }
 

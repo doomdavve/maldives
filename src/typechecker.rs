@@ -27,8 +27,20 @@ pub enum ResolvedType {
 impl ResolvedType {
     fn from_decl(decl: &TypeDeclaration) -> Result<ResolvedType, ()> {
         match decl {
-            TypeDeclaration::Symbol(_s) => Ok(ResolvedType::Integer), // FIXME:!!!
-            _ => Err(()),
+            TypeDeclaration::Symbol(s) => {
+                match s.as_ref() {
+                    "int" => Ok(ResolvedType::Integer),
+                    "bool" => Ok(ResolvedType::Bool),
+                    "string" => Ok(ResolvedType::String),
+                    "any" => Ok(ResolvedType::Any),
+                    "none" => Ok(ResolvedType::None),
+                    _ => Err(())
+                }
+            }
+            TypeDeclaration::Function(_f) => {
+                // Not implemented yet.
+                Err(())
+            }
         }
     }
 }

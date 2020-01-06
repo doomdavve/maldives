@@ -1,9 +1,9 @@
-use std::rc::Rc;
 use std::error;
 use std::fmt;
+use std::rc::Rc;
 
-use crate::expression::Expression;
 use crate::expression::BinaryOperation;
+use crate::expression::Expression;
 use crate::expression::NativeFunctionExpr;
 use crate::symboltable::Closure;
 use crate::symboltable::SymbolTable;
@@ -44,13 +44,18 @@ fn native_println(e: &Expression) -> Result<Expression, String> {
             println!("{}", s);
             Ok(Expression::Void)
         }
-        _ => Err("Unexpected argument to println".to_string())
+        _ => Err("Unexpected argument to println".to_string()),
     }
 }
 
 fn native_type(e: &Expression) -> Result<Expression, String> {
     let mut type_checker = TypeChecker::new();
-    Ok(Expression::String(format!("{:?}", type_checker.resolve_type(e))))
+    Ok(Expression::String(format!(
+        "{:?}",
+        type_checker
+            .resolve_type(e)
+            .map_err(|_e| String::from("Type checker failed"))?
+    )))
 }
 
 impl Interpreter {
@@ -58,8 +63,18 @@ impl Interpreter {
         let mut interpreter = Interpreter {
             vars: SymbolTable::new(),
         };
-        interpreter.vars.insert("println".to_string(), Closure::simple(Expression::NativeFunction(Rc::new(NativeFunctionExpr{ function: native_println }))));
-        interpreter.vars.insert("type".to_string(), Closure::simple(Expression::NativeFunction(Rc::new(NativeFunctionExpr{ function: native_type }))));
+        interpreter.vars.insert(
+            "println".to_string(),
+            Closure::simple(Expression::NativeFunction(Rc::new(NativeFunctionExpr {
+                function: native_println,
+            }))),
+        );
+        interpreter.vars.insert(
+            "type".to_string(),
+            Closure::simple(Expression::NativeFunction(Rc::new(NativeFunctionExpr {
+                function: native_type,
+            }))),
+        );
         interpreter
     }
 
@@ -96,18 +111,15 @@ impl Interpreter {
                 let l = self.eval(&b.left, env)?;
                 let r = self.eval(&b.right, env)?;
                 match b.operation {
-                    BinaryOperation::Sum => {
-                        match (l.expr, r.expr) {
-                            (Expression::Integer(li), Expression::Integer(ri)) => {
-                                Ok(Closure::simple(Expression::Integer(li + ri)))
-                            }
-                            (Expression::String(li), Expression::String(ri)) => {
-                                Ok(Closure::simple(Expression::String(li + &ri)))
-                            }
-                            _ => Err(self
-                                .error(format!("Unexpected terms in sum operator"))),
+                    BinaryOperation::Sum => match (l.expr, r.expr) {
+                        (Expression::Integer(li), Expression::Integer(ri)) => {
+                            Ok(Closure::simple(Expression::Integer(li + ri)))
                         }
-                    }
+                        (Expression::String(li), Expression::String(ri)) => {
+                            Ok(Closure::simple(Expression::String(li + &ri)))
+                        }
+                        _ => Err(self.error(format!("Unexpected terms in sum operator"))),
+                    },
                     BinaryOperation::Difference => match (l.expr, r.expr) {
                         (Expression::Integer(li), Expression::Integer(ri)) => {
                             Ok(Closure::simple(Expression::Integer(li - ri)))
@@ -224,7 +236,9 @@ impl Interpreter {
                 }
                 Ok(closure.clone())
             }
-            Expression::NativeFunction(n) => Ok(Closure::simple(Expression::NativeFunction(n.clone()))),
+            Expression::NativeFunction(n) => {
+                Ok(Closure::simple(Expression::NativeFunction(n.clone())))
+            }
             Expression::FunctionCall(fc) => {
                 let value = self.eval(&fc.expr, env)?;
                 match (value.expr, value.env) {
@@ -248,12 +262,13 @@ impl Interpreter {
                         match fc.arguments.as_slice() {
                             [only_one] => {
                                 let arg = self.eval(&only_one, env)?;
-                                let res = native_function(&arg.expr).map_err(|message| self.error(message))?;
+                                let res = native_function(&arg.expr)
+                                    .map_err(|message| self.error(message))?;
                                 Ok(Closure::simple(res))
                             }
-                            _ =>  {
-                                Err(self.error(format!("unexpected number of argumens to native function")))
-                            }
+                            _ => Err(self.error(format!(
+                                "unexpected number of argumens to native function"
+                            ))),
                         }
                     }
                     _ => Err(self.error(format!("unexpected {:?}, expected function", fc.expr))),

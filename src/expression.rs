@@ -32,7 +32,7 @@ pub enum BinaryOperation {
 
 #[derive(Debug, PartialEq)]
 pub struct FunctionDeclaration {
-    pub return_type: String,
+    pub return_type: Rc<TypeDeclaration>,
     pub parameters: Vec<TypeDeclaration>
 }
 
