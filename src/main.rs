@@ -9,13 +9,13 @@ use rustyline::error::ReadlineError;
 use rustyline::Editor;
 
 mod expression;
+mod interpreter;
 mod lexer;
 mod parse_error;
 mod parser;
-mod token;
 mod symboltable;
+mod token;
 mod typechecker;
-mod interpreter;
 
 use interpreter::Interpreter;
 use lexer::Lexer;
@@ -122,9 +122,7 @@ fn eval_anon_function_with_arg() {
 fn eval_anon_function_return_function() {
     assert_eq!(
         Ok(Expression::Integer(10)),
-        eval_program(
-            "{ let f = fn() -> () => int = fn () -> int = 10; f()() }"
-        )
+        eval_program("{ let f = fn() -> () => int = fn () -> int = 10; f()() }")
     );
 }
 
@@ -170,7 +168,9 @@ fn eval_closure_1() {
 fn eval_closure_2() {
     assert_eq!(
         Ok(Expression::Integer(12)),
-        eval_program("{ let a = 1; fn b() -> () => int = { let a = 12; fn () -> int = a }; b()() }")
+        eval_program(
+            "{ let a = 1; fn b() -> () => int = { let a = 12; fn () -> int = a }; b()() }"
+        )
     );
 }
 
@@ -178,7 +178,9 @@ fn eval_closure_2() {
 fn eval_closure_3() {
     assert_eq!(
         Ok(Expression::Integer(12)),
-        eval_program("{ let a = 1; fn b() -> () => int = { let a = 12; fn () -> int = a }; b()() }")
+        eval_program(
+            "{ let a = 1; fn b() -> () => int = { let a = 12; fn () -> int = a }; b()() }"
+        )
     );
 }
 
@@ -191,13 +193,13 @@ fn eval_string_concatination() {
 }
 
 #[cfg(test)]
-use typechecker::TypeChecker;
-#[cfg(test)]
-use typechecker::ResolvedType;
+use std::rc::Rc;
 #[cfg(test)]
 use typechecker::ResolvedFunctionType;
 #[cfg(test)]
-use std::rc::Rc;
+use typechecker::ResolvedType;
+#[cfg(test)]
+use typechecker::TypeChecker;
 
 #[test]
 fn type_check_simple_integer() {
@@ -236,7 +238,7 @@ fn type_check_function() {
         return_type: ResolvedType::Integer,
         parameters: Vec::new(),
     }));
-    assert_eq!(Ok(expected) , res);
+    assert_eq!(Ok(expected), res);
 }
 
 #[test]
