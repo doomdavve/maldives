@@ -55,11 +55,7 @@ fn main() {
                     }
                 }
             }
-            Err(ReadlineError::Interrupted) => {
-                println!("Exit.");
-                break;
-            }
-            Err(ReadlineError::Eof) => {
+            Err(ReadlineError::Interrupted) | Err(ReadlineError::Eof) => {
                 println!("Exit.");
                 break;
             }
