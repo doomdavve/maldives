@@ -1,11 +1,11 @@
-use crate::expression::TypeDeclaration;
 use crate::expression::FunctionDeclaration;
+use crate::expression::TypeDeclaration;
 use std::rc::Rc;
 use std::str::from_utf8_unchecked;
 
 use crate::expression::{
-    BinaryExpr, BindExpr, BlockExpr, ConditionalExpr, Expression, FunctionCallExpr, FunctionExpr,
-    GroupExpr, BinaryOperation,
+    BinaryExpr, BinaryOperation, BindExpr, BlockExpr, ConditionalExpr, Expression,
+    FunctionCallExpr, FunctionExpr, GroupExpr,
 };
 use crate::lexer::Lexer;
 use crate::parse_error::ParseError;
@@ -170,9 +170,12 @@ impl<'a> Parser<'a> {
         }
 
         self.expect(Token::ParenRight)?;
-        self.expect(Token::FatRightArrow)?;
+        self.expect(Token::RightArrow)?;
         let return_type = Rc::new(self.type_declaration()?);
-        Ok(FunctionDeclaration { parameters, return_type })
+        Ok(FunctionDeclaration {
+            parameters,
+            return_type,
+        })
     }
 
     fn expression(&mut self) -> Result<Expression, ParseError> {
@@ -457,7 +460,10 @@ fn parse_define_function() {
     let expected = Expression::Function(Rc::new(FunctionExpr {
         sym: Some(String::from("identity")),
         return_type: TypeDeclaration::Symbol(String::from("int")),
-        parameters: vec![(String::from("x"), TypeDeclaration::Symbol(String::from("int")))],
+        parameters: vec![(
+            String::from("x"),
+            TypeDeclaration::Symbol(String::from("int")),
+        )],
         expr: Expression::Block(Rc::new(BlockExpr {
             list: vec![Expression::Symbol(String::from("x"))],
         })),

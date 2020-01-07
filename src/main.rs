@@ -122,7 +122,7 @@ fn eval_anon_function_with_arg() {
 fn eval_anon_function_return_function() {
     assert_eq!(
         Ok(Expression::Integer(10)),
-        eval_program("{ let f = fn() -> () => int = fn () -> int = 10; f()() }")
+        eval_program("{ let f = fn() -> () -> int = fn () -> int = 10; f()() }")
     );
 }
 
@@ -131,7 +131,7 @@ fn eval_anon_function_as_arg() {
     assert_eq!(
         Ok(Expression::Integer(6)),
         eval_program(
-            "{ let apply = fn (x: (int) => int, arg: int) -> int = x(arg); let doubler = fn (i: int) -> int = i*2; apply(doubler, 3) }"
+            "{ let apply = fn (x: (int) -> int, arg: int) -> int = x(arg); let doubler = fn (i: int) -> int = i*2; apply(doubler, 3) }"
         )
     );
 }
@@ -160,7 +160,7 @@ fn eval_infix_division() {
 fn eval_closure_1() {
     assert_eq!(
         Ok(Expression::Integer(12)),
-        eval_program("{ fn b() -> () => int = { let a = 12; fn () -> int = a }; b()() }")
+        eval_program("{ fn b() -> () -> int = { let a = 12; fn () -> int = a }; b()() }")
     );
 }
 
@@ -169,7 +169,7 @@ fn eval_closure_2() {
     assert_eq!(
         Ok(Expression::Integer(12)),
         eval_program(
-            "{ let a = 1; fn b() -> () => int = { let a = 12; fn () -> int = a }; b()() }"
+            "{ let a = 1; fn b() -> () -> int = { let a = 12; fn () -> int = a }; b()() }"
         )
     );
 }
@@ -179,7 +179,7 @@ fn eval_closure_3() {
     assert_eq!(
         Ok(Expression::Integer(12)),
         eval_program(
-            "{ let a = 1; fn b() -> () => int = { let a = 12; fn () -> int = a }; b()() }"
+            "{ let a = 1; fn b() -> () -> int = { let a = 12; fn () -> int = a }; b()() }"
         )
     );
 }

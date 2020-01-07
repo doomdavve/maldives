@@ -28,5 +28,4 @@ pub enum Token<'a> {
     SemiColon,
     Comma,
     RightArrow,
-    FatRightArrow
 }

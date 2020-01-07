@@ -143,27 +143,26 @@ impl<'a> Lexer<'a> {
                     escape_next = match_character(self.buffer, n, b'\\');
                 } else {
                     escape_next = false;
-                    n+=1;
+                    n += 1;
                 }
 
                 if match_character(self.buffer, n, b'"') {
                     break;
                 } else {
-                    n+=1;
+                    n += 1;
                 }
             }
             // TODO: Error handling missing here.
             let string_end = n;
             let str = Token::String(&self.buffer[string_start..string_end]);
             if match_character(self.buffer, n, b'"') {
-                n+=1;
+                n += 1;
             }
             (Some(str), n)
         } else {
             (None, self.start)
         }
     }
-
 
     fn tokenize_symbol(&self) -> (Option<Token<'a>>, usize) {
         let (symbol, n) = eat_symbol(self.buffer, self.start);
@@ -185,7 +184,6 @@ impl<'a> Lexer<'a> {
         return_if_2characters!(self, Token::GreaterEqual, b'>', b'=');
         return_if_2characters!(self, Token::LessEqual, b'<', b'=');
         return_if_2characters!(self, Token::RightArrow, b'-', b'>');
-        return_if_2characters!(self, Token::FatRightArrow, b'=', b'>');
         return_if_character!(self, Token::BraceLeft, b'{');
         return_if_character!(self, Token::BraceRight, b'}');
         return_if_character!(self, Token::ParenLeft, b'(');
@@ -255,12 +253,7 @@ fn tokenize_if() {
 #[test]
 fn tokenize_string() {
     let tokens: Vec<Token> = Lexer::new("\"this is a string\"").collect();
-    assert_eq!(
-        tokens,
-        vec![
-            Token::String("this is a string".as_bytes()),
-        ]
-    );
+    assert_eq!(tokens, vec![Token::String("this is a string".as_bytes()),]);
 }
 
 #[test]
@@ -268,12 +261,9 @@ fn tokenize_string_with_escaping() {
     let tokens: Vec<Token> = Lexer::new("\"this is a \\\"string\\\"\"").collect();
     assert_eq!(
         tokens,
-        vec![
-            Token::String("this is a \\\"string\\\"".as_bytes()),
-        ]
+        vec![Token::String("this is a \\\"string\\\"".as_bytes()),]
     );
 }
-
 
 #[test]
 fn tokenize_if_with_bool_literals() {
@@ -289,4 +279,3 @@ fn tokenize_if_with_bool_literals() {
         ]
     );
 }
-
