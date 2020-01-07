@@ -249,3 +249,21 @@ fn type_check_function_call() {
     let res = type_checker.resolve_type(&expression);
     assert_eq!(Ok(ResolvedType::Any), res);
 }
+
+#[test]
+fn type_check_function_call_returning_function() {
+    let mut parser = Parser::new(Lexer::new(
+        "{ fn make_identity_fn() -> (int) -> int = fn(x: int) -> int = x }",
+    ));
+    let expression = parser.program().unwrap();
+    let mut type_checker = TypeChecker::new();
+    let res = type_checker.resolve_type(&expression);
+    let expected = ResolvedType::Function(Rc::new(ResolvedFunctionType {
+        return_type: ResolvedType::Function(Rc::new(ResolvedFunctionType {
+            return_type: ResolvedType::Integer,
+            parameters: vec![ResolvedType::Integer],
+        })),
+        parameters: vec![],
+    }));
+    assert_eq!(Ok(expected), res);
+}

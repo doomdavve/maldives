@@ -27,19 +27,24 @@ pub enum ResolvedType {
 impl ResolvedType {
     fn from_decl(decl: &TypeDeclaration) -> Result<ResolvedType, ()> {
         match decl {
-            TypeDeclaration::Symbol(s) => {
-                match s.as_ref() {
-                    "int" => Ok(ResolvedType::Integer),
-                    "bool" => Ok(ResolvedType::Bool),
-                    "string" => Ok(ResolvedType::String),
-                    "any" => Ok(ResolvedType::Any),
-                    "none" => Ok(ResolvedType::None),
-                    _ => Err(())
+            TypeDeclaration::Symbol(s) => match s.as_ref() {
+                "int" => Ok(ResolvedType::Integer),
+                "bool" => Ok(ResolvedType::Bool),
+                "string" => Ok(ResolvedType::String),
+                "any" => Ok(ResolvedType::Any),
+                "none" => Ok(ResolvedType::None),
+                _ => Err(()),
+            },
+            TypeDeclaration::Function(f) => {
+                let return_type = ResolvedType::from_decl(&f.return_type)?;
+                let mut parameters: Vec<ResolvedType> = Vec::new();
+                for parameter in &f.parameters {
+                    parameters.push(ResolvedType::from_decl(&parameter)?)
                 }
-            }
-            TypeDeclaration::Function(_f) => {
-                // Not implemented yet.
-                Err(())
+                Ok(ResolvedType::Function(Rc::new(ResolvedFunctionType {
+                    return_type,
+                    parameters,
+                })))
             }
         }
     }

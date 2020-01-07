@@ -33,13 +33,13 @@ pub enum BinaryOperation {
 #[derive(Debug, PartialEq)]
 pub struct FunctionDeclaration {
     pub return_type: Rc<TypeDeclaration>,
-    pub parameters: Vec<TypeDeclaration>
+    pub parameters: Vec<TypeDeclaration>,
 }
 
 #[derive(Debug, PartialEq)]
 pub enum TypeDeclaration {
     Symbol(String),
-    Function(FunctionDeclaration)
+    Function(FunctionDeclaration),
 }
 
 #[derive(Debug, PartialEq)]
