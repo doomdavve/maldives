@@ -130,8 +130,14 @@ impl<'a> Parser<'a> {
         self.expect(Token::ParenRight)?;
         self.expect(Token::RightArrow)?;
         let return_type = self.type_declaration()?;
-        self.expect(Token::Equal)?;
-        let expr = self.expression()?;
+
+        let expr = if self.sym == Some(Token::BraceLeft) {
+            Expression::Block(Rc::new(self.block()?))
+        } else {
+            self.expect(Token::Equal)?;
+            self.expression()?
+        };
+
         let function = FunctionExpr {
             sym,
             return_type,
@@ -393,6 +399,68 @@ fn parse_function_call() {
     let expected = Expression::FunctionCall(Rc::new(FunctionCallExpr {
         expr: Expression::Symbol(String::from("sqrt")),
         arguments: vec![Expression::Integer(4)],
+    }));
+    assert_eq!(res, Ok(expected));
+}
+
+#[test]
+fn parse_function_declaration() {
+    let mut parser = Parser::new(Lexer::new("fn double(x: int) -> int = x + x"));
+    let res = parser.expression();
+    let expected = Expression::Function(Rc::new(FunctionExpr {
+        sym: Some("double".to_string()),
+        return_type: TypeDeclaration::Symbol("int".to_string()),
+        parameters: vec![("x".to_string(), TypeDeclaration::Symbol("int".to_string()))],
+        expr: Expression::Binary(Rc::new(BinaryExpr {
+            operation: BinaryOperation::Sum,
+            left: Expression::Symbol("x".to_string()),
+            right: Expression::Symbol("x".to_string()),
+        })),
+    }));
+    assert_eq!(res, Ok(expected));
+}
+
+#[test]
+fn parse_function_declaration_no_equal() {
+    let mut parser = Parser::new(Lexer::new("fn double(x: int) -> int x + x"));
+    let res = parser.expression();
+    assert!(res.is_err());
+}
+
+#[test]
+fn parse_function_declaration_block() {
+    let mut parser = Parser::new(Lexer::new("fn double(x: int) -> int { x + x }"));
+    let res = parser.expression();
+    let expected = Expression::Function(Rc::new(FunctionExpr {
+        sym: Some("double".to_string()),
+        return_type: TypeDeclaration::Symbol("int".to_string()),
+        parameters: vec![("x".to_string(), TypeDeclaration::Symbol("int".to_string()))],
+        expr: Expression::Block(Rc::new(BlockExpr {
+            list: vec![Expression::Binary(Rc::new(BinaryExpr {
+                operation: BinaryOperation::Sum,
+                left: Expression::Symbol("x".to_string()),
+                right: Expression::Symbol("x".to_string()),
+            }))],
+        })),
+    }));
+    assert_eq!(res, Ok(expected));
+}
+
+#[test]
+fn parse_function_declaration_block_2() {
+    let mut parser = Parser::new(Lexer::new("fn double(x: int) -> int = { x + x }"));
+    let res = parser.expression();
+    let expected = Expression::Function(Rc::new(FunctionExpr {
+        sym: Some("double".to_string()),
+        return_type: TypeDeclaration::Symbol("int".to_string()),
+        parameters: vec![("x".to_string(), TypeDeclaration::Symbol("int".to_string()))],
+        expr: Expression::Block(Rc::new(BlockExpr {
+            list: vec![Expression::Binary(Rc::new(BinaryExpr {
+                operation: BinaryOperation::Sum,
+                left: Expression::Symbol("x".to_string()),
+                right: Expression::Symbol("x".to_string()),
+            }))],
+        })),
     }));
     assert_eq!(res, Ok(expected));
 }
