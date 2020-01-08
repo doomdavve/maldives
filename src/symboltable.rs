@@ -13,9 +13,27 @@ impl Closure {
         Closure { expr, env: None }
     }
     pub fn complete(expr: Expression, env: Option<SymbolTable>) -> Closure {
-        Closure { expr, env: env }
+        Closure { expr, env }
     }
 }
 
-pub type SymbolTable = HashMap<String, Closure>;
+#[derive(Debug, Clone, PartialEq)]
+pub struct SymbolTable {
+    map: HashMap<String, Closure>,
+}
 
+impl SymbolTable {
+    pub fn new() -> SymbolTable {
+        SymbolTable {
+            map: HashMap::new(),
+        }
+    }
+
+    pub fn bind(&mut self, symbol: String, closure: Closure) {
+        self.map.insert(symbol, closure);
+    }
+
+    pub fn lookup(&self, symbol: &String) -> Option<&Closure> {
+        self.map.get(symbol)
+    }
+}

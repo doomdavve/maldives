@@ -7,19 +7,25 @@ extern crate env_logger;
 
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
+use std::rc::Rc;
 
 mod expression;
 mod interpreter;
 mod lexer;
+mod native;
 mod parse_error;
 mod parser;
 mod symboltable;
 mod token;
 mod typechecker;
 
+use expression::Expression;
+use expression::NativeFunctionExpr;
 use interpreter::Interpreter;
 use lexer::Lexer;
 use parser::Parser;
+use symboltable::Closure;
+use symboltable::SymbolTable;
 
 use std::path::Path;
 
@@ -32,7 +38,20 @@ fn main() {
     if rl.load_history(&history_file_path).is_err() {
         println!("No previous history.");
     }
-    let mut interpreter = Interpreter::new();
+    let mut root = SymbolTable::new();
+    root.bind(
+        "println".to_string(),
+        Closure::simple(Expression::NativeFunction(Rc::new(NativeFunctionExpr {
+            function: native::native_println,
+        }))),
+    );
+    root.bind(
+        "type".to_string(),
+        Closure::simple(Expression::NativeFunction(Rc::new(NativeFunctionExpr {
+            function: native::native_type,
+        }))),
+    );
+
     loop {
         let readline = rl.readline("> ");
         match readline {
@@ -43,7 +62,7 @@ fn main() {
                     match Parser::new(tokens).program() {
                         Ok(program) => {
                             debug!("Parsed program: {:?}", program);
-                            let res = interpreter.eval_global(&program);
+                            let res = Interpreter::eval_global(&program, &mut root);
                             match res {
                                 Ok(a) => println!("{:?}", a),
                                 Err(e) => println!("{}", e),
@@ -68,16 +87,13 @@ fn main() {
     rl.save_history(&history_file_path).unwrap();
 }
 
-#[cfg(test)]
-use expression::Expression;
-
 #[test]
 fn eval_simple() {
     let mut parser = Parser::new(Lexer::new("apa"));
     let expression = parser.program().unwrap();
-    let mut interpreter = Interpreter::new();
-    interpreter.set("apa".to_string(), Expression::Integer(4));
-    let res = interpreter.eval_global(&expression);
+    let mut root = SymbolTable::new();
+    root.bind("apa".to_string(), Closure::simple(Expression::Integer(4)));
+    let res = Interpreter::eval_global(&expression, &mut root);
     assert_eq!(Ok(Expression::Integer(4)), res);
 }
 
@@ -85,8 +101,8 @@ fn eval_simple() {
 fn eval_program(contents: &str) -> std::result::Result<Expression, interpreter::InterpreterError> {
     let mut parser = Parser::new(Lexer::new(contents));
     let expression = parser.program().unwrap();
-    let mut interpreter = Interpreter::new();
-    interpreter.eval_global(&expression)
+    let mut root = SymbolTable::new();
+    Interpreter::eval_global(&expression, &mut root)
 }
 
 #[test]
@@ -192,8 +208,6 @@ fn eval_string_concatination() {
     );
 }
 
-#[cfg(test)]
-use std::rc::Rc;
 #[cfg(test)]
 use typechecker::ResolvedFunctionType;
 #[cfg(test)]

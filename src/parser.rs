@@ -351,9 +351,15 @@ impl<'a> Parser<'a> {
     fn binding(&mut self) -> Result<BindExpr, ParseError> {
         self.expect(Token::Let)?;
         let sym = self.symbol()?;
+        let sym_type = if self.accept(Token::Colon) {
+            Some(self.symbol()?)
+        } else {
+            None
+        };
         self.expect(Token::Equal)?;
         Ok(BindExpr {
             sym,
+            sym_type,
             expr: self.expression()?,
         })
     }
@@ -574,11 +580,12 @@ fn parse_block() {
 
 #[test]
 fn parse_bind() {
-    let lexer = Lexer::new("let a = 4");
+    let lexer = Lexer::new("let a: int = 4");
     let mut parser = Parser::new(lexer);
     let res = parser.binding();
     let expected = || BindExpr {
         sym: String::from("a"),
+        sym_type: Some(String::from("int")),
         expr: Expression::Integer(4),
     };
     assert_eq!(res, Ok(expected()));
