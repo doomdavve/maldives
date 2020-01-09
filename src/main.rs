@@ -15,9 +15,12 @@ mod lexer;
 mod native;
 mod parse_error;
 mod parser;
+mod resolvedtype;
 mod symboltable;
 mod token;
+mod typecaster;
 mod typechecker;
+mod typedexpression;
 
 use expression::Expression;
 use expression::NativeFunctionExpr;
@@ -44,12 +47,21 @@ fn main() {
         "println".to_string(),
         Closure::simple(Expression::NativeFunction(Rc::new(NativeFunctionExpr {
             function: native::native_println,
+            eager: true,
         }))),
     );
     root.bind(
         "type".to_string(),
         Closure::simple(Expression::NativeFunction(Rc::new(NativeFunctionExpr {
             function: native::native_type,
+            eager: false,
+        }))),
+    );
+    root.bind(
+        "typecast".to_string(),
+        Closure::simple(Expression::NativeFunction(Rc::new(NativeFunctionExpr {
+            function: native::native_typecast,
+            eager: false,
         }))),
     );
 
@@ -212,9 +224,9 @@ fn eval_string_concatination() {
 }
 
 #[cfg(test)]
-use typechecker::ResolvedFunctionType;
+use resolvedtype::ResolvedFunctionType;
 #[cfg(test)]
-use typechecker::ResolvedType;
+use resolvedtype::ResolvedType;
 
 #[test]
 fn type_check_simple_integer() {

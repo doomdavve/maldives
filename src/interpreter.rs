@@ -9,7 +9,7 @@ use crate::symboltable::SymbolTable;
 #[derive(Debug, Clone, PartialEq)]
 pub struct InterpreterError {
     message: String,
-    env: SymbolTable,
+    env: SymbolTable<Expression>,
 }
 
 impl fmt::Display for InterpreterError {
@@ -26,7 +26,7 @@ impl error::Error for InterpreterError {
 }
 
 impl InterpreterError {
-    fn new(message: String, env: &SymbolTable) -> InterpreterError {
+    fn new(message: String, env: &SymbolTable<Expression>) -> InterpreterError {
         InterpreterError {
             message,
             env: env.clone(),
@@ -39,13 +39,16 @@ pub struct Interpreter;
 impl Interpreter {
     pub fn eval_expression(
         expression: &Expression,
-        env: &mut SymbolTable,
+        env: &mut SymbolTable<Expression>,
     ) -> Result<Expression, InterpreterError> {
         let closure = Interpreter::eval(expression, env)?;
         Ok(closure.expr)
     }
 
-    fn eval(expression: &Expression, env: &mut SymbolTable) -> Result<Closure, InterpreterError> {
+    fn eval(
+        expression: &Expression,
+        env: &mut SymbolTable<Expression>,
+    ) -> Result<Closure<Expression>, InterpreterError> {
         debug!("Evaulating {:?} with vars: {:?}", expression, env);
 
         match expression {
@@ -216,8 +219,12 @@ impl Interpreter {
                         let native_function = f.function;
                         match fc.arguments.as_slice() {
                             [only_one] => {
-                                let arg = Interpreter::eval(&only_one, env)?;
-                                let res = native_function(&arg.expr)
+                                let arg = if f.eager {
+                                    Interpreter::eval(&only_one, env)?.expr
+                                } else {
+                                    only_one.clone()
+                                };
+                                let res = native_function(&arg)
                                     .map_err(|message| InterpreterError::new(message, env))?;
                                 Ok(Closure::simple(res))
                             }

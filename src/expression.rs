@@ -18,7 +18,7 @@ pub enum Expression {
     Void,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub enum BinaryOperation {
     Sum,
     Difference,
@@ -89,6 +89,7 @@ pub struct BlockExpr {
 
 pub struct NativeFunctionExpr {
     pub function: fn(e: &Expression) -> Result<Expression, String>,
+    pub eager: bool,
 }
 
 impl PartialEq for NativeFunctionExpr {
