@@ -45,7 +45,7 @@ pub enum TypeDeclaration {
 #[derive(Debug, PartialEq)]
 pub struct BindExpr {
     pub sym: String,
-    pub sym_type: Option<String>,
+    pub sym_type: Option<TypeDeclaration>,
     pub expr: Expression,
 }
 

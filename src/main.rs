@@ -26,6 +26,7 @@ use lexer::Lexer;
 use parser::Parser;
 use symboltable::Closure;
 use symboltable::SymbolTable;
+use typechecker::TypeChecker;
 
 use std::path::Path;
 
@@ -62,9 +63,11 @@ fn main() {
                     match Parser::new(tokens).program() {
                         Ok(program) => {
                             debug!("Parsed program: {:?}", program);
-                            let res = Interpreter::eval_expression(&program, &mut root);
-                            match res {
-                                Ok(a) => println!("{:?}", a),
+                            match TypeChecker::new().resolve_type(&program) {
+                                Ok(_) => match Interpreter::eval_expression(&program, &mut root) {
+                                    Ok(a) => println!("{:?}", a),
+                                    Err(e) => println!("{}", e),
+                                },
                                 Err(e) => println!("{}", e),
                             }
                         }
@@ -212,8 +215,6 @@ fn eval_string_concatination() {
 use typechecker::ResolvedFunctionType;
 #[cfg(test)]
 use typechecker::ResolvedType;
-#[cfg(test)]
-use typechecker::TypeChecker;
 
 #[test]
 fn type_check_simple_integer() {

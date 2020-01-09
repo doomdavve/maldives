@@ -25,6 +25,13 @@ pub enum ResolvedType {
 }
 
 impl ResolvedType {
+    fn from_optional_decl(optional_decl: &Option<TypeDeclaration>) -> Result<ResolvedType, ()> {
+        match optional_decl {
+            Some(decl) => ResolvedType::from_decl(decl),
+            None => Ok(ResolvedType::Any),
+        }
+    }
+
     fn from_decl(decl: &TypeDeclaration) -> Result<ResolvedType, ()> {
         match decl {
             TypeDeclaration::Symbol(s) => match s.as_ref() {
@@ -142,7 +149,12 @@ impl TypeChecker {
                 Ok(ResolvedType::Function(rft.clone()))
             }
             Expression::Bind(bind) => {
-                let resolved_type = self.resolve_type(&bind.expr)?;
+                let resolved_type = TypeChecker::match_type(
+                    ResolvedType::from_optional_decl(&bind.sym_type).map_err(|_e| {
+                        TypeCheckerError::new("Could not resolve type".to_string())
+                    })?,
+                    self.resolve_type(&bind.expr)?,
+                )?;
                 self.vars
                     .insert(String::from(&bind.sym), resolved_type.clone());
                 Ok(resolved_type)
@@ -170,5 +182,12 @@ impl TypeChecker {
                 Ok(resolved_type.clone())
             }
         }
+    }
+
+    fn match_type(
+        _specified_type: ResolvedType,
+        resolved_type: ResolvedType,
+    ) -> Result<ResolvedType, TypeCheckerError> {
+        Ok(resolved_type)
     }
 }

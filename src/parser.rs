@@ -352,7 +352,7 @@ impl<'a> Parser<'a> {
         self.expect(Token::Let)?;
         let sym = self.symbol()?;
         let sym_type = if self.accept(Token::Colon) {
-            Some(self.symbol()?)
+            Some(self.type_declaration()?)
         } else {
             None
         };
@@ -585,7 +585,7 @@ fn parse_bind() {
     let res = parser.binding();
     let expected = || BindExpr {
         sym: String::from("a"),
-        sym_type: Some(String::from("int")),
+        sym_type: Some(TypeDeclaration::Symbol(String::from("int"))),
         expr: Expression::Integer(4),
     };
     assert_eq!(res, Ok(expected()));
