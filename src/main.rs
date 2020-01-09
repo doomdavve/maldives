@@ -62,7 +62,7 @@ fn main() {
                     match Parser::new(tokens).program() {
                         Ok(program) => {
                             debug!("Parsed program: {:?}", program);
-                            let res = Interpreter::eval_global(&program, &mut root);
+                            let res = Interpreter::eval_expression(&program, &mut root);
                             match res {
                                 Ok(a) => println!("{:?}", a),
                                 Err(e) => println!("{}", e),
@@ -93,7 +93,7 @@ fn eval_simple() {
     let expression = parser.program().unwrap();
     let mut root = SymbolTable::new();
     root.bind("apa".to_string(), Closure::simple(Expression::Integer(4)));
-    let res = Interpreter::eval_global(&expression, &mut root);
+    let res = Interpreter::eval_expression(&expression, &mut root);
     assert_eq!(Ok(Expression::Integer(4)), res);
 }
 
@@ -102,7 +102,7 @@ fn eval_program(contents: &str) -> std::result::Result<Expression, interpreter::
     let mut parser = Parser::new(Lexer::new(contents));
     let expression = parser.program().unwrap();
     let mut root = SymbolTable::new();
-    Interpreter::eval_global(&expression, &mut root)
+    Interpreter::eval_expression(&expression, &mut root)
 }
 
 #[test]

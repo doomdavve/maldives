@@ -37,7 +37,7 @@ impl InterpreterError {
 pub struct Interpreter;
 
 impl Interpreter {
-    pub fn eval_global(
+    pub fn eval_expression(
         expression: &Expression,
         env: &mut SymbolTable,
     ) -> Result<Expression, InterpreterError> {
