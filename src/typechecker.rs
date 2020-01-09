@@ -185,9 +185,18 @@ impl TypeChecker {
     }
 
     fn match_type(
-        _specified_type: ResolvedType,
+        specified_type: ResolvedType,
         resolved_type: ResolvedType,
     ) -> Result<ResolvedType, TypeCheckerError> {
-        Ok(resolved_type)
+        match specified_type {
+            ResolvedType::Any => Ok(resolved_type),
+            _ => {
+                if specified_type == resolved_type {
+                    Ok(resolved_type)
+                } else {
+                    Err(TypeCheckerError::new(format!("Type mismatch")))
+                }
+            }
+        }
     }
 }
