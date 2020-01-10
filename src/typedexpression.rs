@@ -1,4 +1,4 @@
-//use std::fmt;
+use std::fmt;
 use std::rc::Rc;
 
 use crate::resolvedtype::ResolvedType;
@@ -32,6 +32,12 @@ impl TypedExpression {
         TypedExpression {
             resolved_type: ResolvedType::String,
             node: TypedExpressionNode::String(s),
+        }
+    }
+    pub fn symbol(s: String, resolved_type: ResolvedType) -> TypedExpression {
+        TypedExpression {
+            resolved_type,
+            node: TypedExpressionNode::Symbol(s),
         }
     }
     pub fn group(expr: TypedExpression) -> TypedExpression {
@@ -86,20 +92,52 @@ impl TypedExpression {
             node: TypedExpressionNode::Bind(Rc::new(TypedBindExpr { sym: symbol, expr })),
         }
     }
+
+    pub fn function(sym: Option<String>, return_type: ResolvedType, parameters: Vec<(String, ResolvedType)>, expr: TypedExpression) -> TypedExpression {
+        TypedExpression {
+            resolved_type: return_type,
+            node: TypedExpressionNode::Function(Rc::new( TypedFunctionExpr {
+                sym,
+                parameters,
+                expr
+            }))
+        }
+    }
+
+    pub fn call(expr: TypedExpression, return_type: ResolvedType, arguments: Vec<TypedExpression>) -> TypedExpression {
+        TypedExpression {
+            resolved_type: return_type,
+            node: TypedExpressionNode::FunctionCall(Rc::new( TypedFunctionCallExpr {
+                arguments,
+                expr
+            }))
+        }
+    }
+
+    pub fn native_function(f: fn(e: &TypedExpression) -> Result<TypedExpression, String>) -> TypedExpression {
+        TypedExpression {
+            resolved_type: ResolvedType::None,
+            node: TypedExpressionNode::NativeFunction(Rc::new(TypedNativeFunctionExpr {
+                function: f,
+                call_by_value: true,
+            }))
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum TypedExpressionNode {
     Integer(i32),
     Bool(bool),
-    //    Function(Rc<FunctionExpr>),
-    //    NativeFunction(Rc<NativeFunctionExpr>),
+    Function(Rc<TypedFunctionExpr>),
+    NativeFunction(Rc<TypedNativeFunctionExpr>),
     BinaryOperation(Rc<TypedBinaryOperationExpr>),
-    //    FunctionCall(Rc<FunctionCallExpr>),
+    FunctionCall(Rc<TypedFunctionCallExpr>),
     Bind(Rc<TypedBindExpr>),
     Block(Rc<TypedBlockExpr>),
     Group(Rc<TypedGroupExpr>),
     String(String),
+    Symbol(String),
     Conditional(Rc<TypedConditionalExpr>),
     Void,
 }
@@ -117,31 +155,6 @@ pub enum TypedBinaryOperation {
     GreaterEqualThan,
 }
 
-//#[derive(Debug, PartialEq)]
-//pub enum BinaryOperation {
-//    Sum,
-//    Difference,
-//    Multiply,
-//    Divide,
-//    LessThan,
-//    GreaterThan,
-//    LessEqualThan,
-//    GreaterEqualThan,
-//}
-//
-//#[derive(Debug, PartialEq)]
-//pub struct FunctionDeclaration {
-//    pub return_type: Rc<TypeDeclaration>,
-//    pub parameters: Vec<TypeDeclaration>,
-//}
-//
-//#[derive(Debug, PartialEq)]
-//pub enum TypeDeclaration {
-//    Symbol(String),
-//    Function(FunctionDeclaration),
-//}
-//
-
 #[derive(Debug, PartialEq)]
 pub struct TypedBindExpr {
     pub sym: String,
@@ -152,13 +165,12 @@ pub struct TypedBindExpr {
 pub struct TypedGroupExpr {
     pub expr: TypedExpression,
 }
-//
-//#[derive(Debug, PartialEq)]
-//pub struct FunctionCallExpr {
-//    pub expr: TypedExpression,
-//    pub arguments: Vec<TypedExpression>,
-//}
-//
+
+#[derive(Debug, PartialEq)]
+pub struct TypedFunctionCallExpr {
+    pub expr: TypedExpression,
+    pub arguments: Vec<TypedExpression>,
+}
 
 #[derive(Debug, PartialEq)]
 pub struct TypedConditionalExpr {
@@ -173,33 +185,33 @@ pub struct TypedBinaryOperationExpr {
     pub left: TypedExpression,
     pub right: TypedExpression,
 }
-//
-//#[derive(Debug, PartialEq)]
-//pub struct FunctionExpr {
-//    pub sym: Option<String>,
-//    pub return_type: TypeDeclaration,
-//    pub parameters: Vec<(String, TypeDeclaration)>,
-//    pub expr: TypedExpression,
-//}
-//
+
+#[derive(Debug, PartialEq)]
+pub struct TypedFunctionExpr {
+    pub sym: Option<String>,
+    pub parameters: Vec<(String, ResolvedType)>,
+    pub expr: TypedExpression,
+}
+
 #[derive(Debug, PartialEq)]
 pub struct TypedBlockExpr {
     pub list: Vec<TypedExpression>,
 }
-//
-//pub struct NativeFunctionExpr {
-//    pub function: fn(e: &TypedExpression) -> Result<TypedExpression, String>,
-//}
-//
-//impl PartialEq for NativeFunctionExpr {
-//    fn eq(&self, _other: &Self) -> bool {
-//        false
-//    }
-//}
-//
-//impl fmt::Debug for NativeFunctionExpr {
-//    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-//        write!(f, "Native function")
-//    }
-//}
-//
+
+pub struct TypedNativeFunctionExpr {
+    pub function: fn(e: &TypedExpression) -> Result<TypedExpression, String>,
+    pub call_by_value: bool,
+}
+
+impl PartialEq for TypedNativeFunctionExpr {
+    fn eq(&self, _other: &Self) -> bool {
+        false
+    }
+}
+
+impl fmt::Debug for TypedNativeFunctionExpr {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Native function")
+    }
+}
+

@@ -7,7 +7,6 @@ extern crate env_logger;
 
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
-use std::rc::Rc;
 
 mod expression;
 mod interpreter;
@@ -18,18 +17,15 @@ mod parser;
 mod resolvedtype;
 mod symboltable;
 mod token;
-mod typecaster;
-mod typechecker;
 mod typedexpression;
+mod typeresolver;
 
-use expression::Expression;
-use expression::NativeFunctionExpr;
 use interpreter::Interpreter;
 use lexer::Lexer;
 use parser::Parser;
 use symboltable::Closure;
 use symboltable::SymbolTable;
-use typechecker::TypeChecker;
+use typedexpression::TypedExpression;
 
 use std::path::Path;
 
@@ -45,41 +41,26 @@ fn main() {
     let mut root = SymbolTable::new();
     root.bind(
         "println".to_string(),
-        Closure::simple(Expression::NativeFunction(Rc::new(NativeFunctionExpr {
-            function: native::native_println,
-            eager: true,
-        }))),
-    );
-    root.bind(
-        "type".to_string(),
-        Closure::simple(Expression::NativeFunction(Rc::new(NativeFunctionExpr {
-            function: native::native_type,
-            eager: false,
-        }))),
-    );
-    root.bind(
-        "typecast".to_string(),
-        Closure::simple(Expression::NativeFunction(Rc::new(NativeFunctionExpr {
-            function: native::native_typecast,
-            eager: false,
-        }))),
+        Closure::simple(TypedExpression::native_function(native_println)),
     );
 
     loop {
         let readline = rl.readline("> ");
         match readline {
             Ok(line) => {
-                if line != "" {
+                if &line != "" {
                     rl.add_history_entry(line.as_str());
                     let tokens = Lexer::new(line.as_str());
                     match Parser::new(tokens).program() {
                         Ok(program) => {
                             debug!("Parsed program: {:?}", program);
-                            match TypeChecker::new().resolve_type(&program) {
-                                Ok(_) => match Interpreter::eval_expression(&program, &mut root) {
-                                    Ok(a) => println!("{:?}", a),
-                                    Err(e) => println!("{}", e),
-                                },
+                            match TypeResolver::resolve_in_env(&program, &root) {
+                                Ok(resolved) => {
+                                    match Interpreter::eval_expression(&resolved, &mut root) {
+                                        Ok(a) => println!("{:?}", a),
+                                        Err(e) => println!("{}", e),
+                                    }
+                                }
                                 Err(e) => println!("{}", e),
                             }
                         }
@@ -102,41 +83,58 @@ fn main() {
     rl.save_history(&history_file_path).unwrap();
 }
 
+#[cfg(test)]
+use std::rc::Rc;
+
+#[cfg(test)]
+use typeresolver::TypeResolverError;
+
 #[test]
 fn eval_simple() {
     let mut parser = Parser::new(Lexer::new("apa"));
-    let expression = parser.program().unwrap();
     let mut root = SymbolTable::new();
-    root.bind("apa".to_string(), Closure::simple(Expression::Integer(4)));
+    root.bind(
+        "apa".to_string(),
+        Closure::simple(TypedExpression::integer(4)),
+    );
+    let expression = TypeResolver::resolve_in_env(&parser.program().unwrap(), &mut root).unwrap();
     let res = Interpreter::eval_expression(&expression, &mut root);
-    assert_eq!(Ok(Expression::Integer(4)), res);
+    assert_eq!(Ok(TypedExpression::integer(4)), res);
 }
 
 #[cfg(test)]
-fn eval_program(contents: &str) -> std::result::Result<Expression, interpreter::InterpreterError> {
+fn type_check_program(
+    contents: &str,
+    mut root: &SymbolTable,
+) -> Result<TypedExpression, TypeResolverError> {
     let mut parser = Parser::new(Lexer::new(contents));
-    let expression = parser.program().unwrap();
+    TypeResolver::resolve_in_env(&parser.program().unwrap(), &mut root)
+}
+
+#[cfg(test)]
+fn eval_program(contents: &str) -> Result<TypedExpression, interpreter::InterpreterError> {
     let mut root = SymbolTable::new();
+    let expression = type_check_program(contents, &mut root).unwrap();
     Interpreter::eval_expression(&expression, &mut root)
 }
 
 #[test]
 fn eval_simple_assignment() {
     assert_eq!(
-        Ok(Expression::Integer(3)),
+        Ok(TypedExpression::integer(3)),
         eval_program("{ let apa = 3; apa }")
     );
 }
 
 #[test]
 fn eval_assignment() {
-    assert_eq!(Ok(Expression::Integer(3)), eval_program("let apa = 3"));
+    assert_eq!(Ok(TypedExpression::integer(3)), eval_program("let apa = 3"));
 }
 
 #[test]
 fn eval_anon_function() {
     assert_eq!(
-        Ok(Expression::Integer(3)),
+        Ok(TypedExpression::integer(3)),
         eval_program("{ let apa = fn() -> int = 3; apa() }")
     );
 }
@@ -144,7 +142,7 @@ fn eval_anon_function() {
 #[test]
 fn eval_anon_function_with_arg() {
     assert_eq!(
-        Ok(Expression::Integer(3)),
+        Ok(TypedExpression::integer(3)),
         eval_program("{ let apa = fn(x: int) -> int = x; apa(3) }")
     );
 }
@@ -152,7 +150,7 @@ fn eval_anon_function_with_arg() {
 #[test]
 fn eval_anon_function_return_function() {
     assert_eq!(
-        Ok(Expression::Integer(10)),
+        Ok(TypedExpression::integer(10)),
         eval_program("{ let f = fn() -> () -> int = fn () -> int = 10; f()() }")
     );
 }
@@ -160,7 +158,7 @@ fn eval_anon_function_return_function() {
 #[test]
 fn eval_anon_function_as_arg() {
     assert_eq!(
-        Ok(Expression::Integer(6)),
+        Ok(TypedExpression::integer(6)),
         eval_program(
             "{ let apply = fn (x: (int) -> int, arg: int) -> int = x(arg); let doubler = fn (i: int) -> int = i*2; apply(doubler, 3) }"
         )
@@ -169,28 +167,34 @@ fn eval_anon_function_as_arg() {
 
 #[test]
 fn eval_infix() {
-    assert_eq!(Ok(Expression::Integer(5)), eval_program("3 + 2"));
+    assert_eq!(Ok(TypedExpression::integer(5)), eval_program("3 + 2"));
 }
 
 #[test]
 fn eval_infix_in_succession() {
-    assert_eq!(Ok(Expression::Integer(15)), eval_program("3 + 2 + 10"));
+    assert_eq!(Ok(TypedExpression::integer(15)), eval_program("3 + 2 + 10"));
 }
 
 #[test]
 fn eval_infix_operators_grouping() {
-    assert_eq!(Ok(Expression::Integer(60)), eval_program("(3 + 3) * 10"));
+    assert_eq!(
+        Ok(TypedExpression::integer(60)),
+        eval_program("(3 + 3) * 10")
+    );
 }
 
 #[test]
 fn eval_infix_division() {
-    assert_eq!(Ok(Expression::Integer(545)), eval_program("125895 / 231"));
+    assert_eq!(
+        Ok(TypedExpression::integer(545)),
+        eval_program("125895 / 231")
+    );
 }
 
 #[test]
 fn eval_closure_1() {
     assert_eq!(
-        Ok(Expression::Integer(12)),
+        Ok(TypedExpression::integer(12)),
         eval_program("{ fn b() -> () -> int = { let a = 12; fn () -> int = a }; b()() }")
     );
 }
@@ -198,7 +202,7 @@ fn eval_closure_1() {
 #[test]
 fn eval_closure_2() {
     assert_eq!(
-        Ok(Expression::Integer(12)),
+        Ok(TypedExpression::integer(12)),
         eval_program(
             "{ let a = 1; fn b() -> () -> int = { let a = 12; fn () -> int = a }; b()() }"
         )
@@ -208,7 +212,7 @@ fn eval_closure_2() {
 #[test]
 fn eval_closure_3() {
     assert_eq!(
-        Ok(Expression::Integer(12)),
+        Ok(TypedExpression::integer(12)),
         eval_program(
             "{ let a = 1; fn b() -> () -> int = { let a = 12; fn () -> int = a }; b()() }"
         )
@@ -216,13 +220,15 @@ fn eval_closure_3() {
 }
 
 #[test]
-fn eval_string_concatination() {
+fn eval_string_concatenation() {
     assert_eq!(
-        Ok(Expression::String("apabanan".to_string())),
+        Ok(TypedExpression::string("apabanan".to_string())),
         eval_program("{ let a = \"apa\"; let b = \"banan\"; a + b }")
     );
 }
 
+use crate::native::native_println;
+use crate::typeresolver::TypeResolver;
 #[cfg(test)]
 use resolvedtype::ResolvedFunctionType;
 #[cfg(test)]
@@ -230,61 +236,45 @@ use resolvedtype::ResolvedType;
 
 #[test]
 fn type_check_simple_integer() {
-    let mut parser = Parser::new(Lexer::new("10"));
-    let expression = parser.program().unwrap();
-    let mut type_checker = TypeChecker::new();
-    let res = type_checker.resolve_type(&expression);
-    assert_eq!(Ok(ResolvedType::Integer), res);
+    let res = type_check_program("10", &SymbolTable::new()).unwrap();
+    assert_eq!(ResolvedType::Integer, res.resolved_type);
 }
 
 #[test]
 fn type_check_simple_string() {
-    let mut parser = Parser::new(Lexer::new("\"apa\""));
-    let expression = parser.program().unwrap();
-    let mut type_checker = TypeChecker::new();
-    let res = type_checker.resolve_type(&expression);
-    assert_eq!(Ok(ResolvedType::String), res);
+    let res = type_check_program("\"apa\"", &SymbolTable::new()).unwrap();
+    assert_eq!(ResolvedType::String, res.resolved_type);
 }
 
 #[test]
 fn type_check_simple_bool() {
-    let mut parser = Parser::new(Lexer::new("true"));
-    let expression = parser.program().unwrap();
-    let mut type_checker = TypeChecker::new();
-    let res = type_checker.resolve_type(&expression);
-    assert_eq!(Ok(ResolvedType::Bool), res);
+    let res = type_check_program("true", &SymbolTable::new()).unwrap();
+    assert_eq!(ResolvedType::Bool, res.resolved_type);
 }
 
 #[test]
 fn type_check_function() {
-    let mut parser = Parser::new(Lexer::new("let a = fn() -> int = 10"));
-    let expression = parser.program().unwrap();
-    let mut type_checker = TypeChecker::new();
-    let res = type_checker.resolve_type(&expression);
+    let res = type_check_program("let a = fn() -> int = 10", &SymbolTable::new()).unwrap();
     let expected = ResolvedType::Function(Rc::new(ResolvedFunctionType {
         return_type: ResolvedType::Integer,
         parameters: Vec::new(),
     }));
-    assert_eq!(Ok(expected), res);
+    assert_eq!(expected, res.resolved_type);
 }
 
 #[test]
 fn type_check_function_call() {
-    let mut parser = Parser::new(Lexer::new("{ let a = fn() -> int = 10; a() }"));
-    let expression = parser.program().unwrap();
-    let mut type_checker = TypeChecker::new();
-    let res = type_checker.resolve_type(&expression);
-    assert_eq!(Ok(ResolvedType::Any), res);
+    let res = type_check_program("{ let a = fn() -> int = 10; a() }", &SymbolTable::new()).unwrap();
+    assert_eq!(ResolvedType::Integer, res.resolved_type);
 }
 
 #[test]
 fn type_check_function_call_returning_function() {
-    let mut parser = Parser::new(Lexer::new(
+    let res = type_check_program(
         "{ fn make_identity_fn() -> (int) -> int = fn(x: int) -> int = x }",
-    ));
-    let expression = parser.program().unwrap();
-    let mut type_checker = TypeChecker::new();
-    let res = type_checker.resolve_type(&expression);
+        &SymbolTable::new(),
+    )
+    .unwrap();
     let expected = ResolvedType::Function(Rc::new(ResolvedFunctionType {
         return_type: ResolvedType::Function(Rc::new(ResolvedFunctionType {
             return_type: ResolvedType::Integer,
@@ -292,5 +282,11 @@ fn type_check_function_call_returning_function() {
         })),
         parameters: vec![],
     }));
-    assert_eq!(Ok(expected), res);
+    assert_eq!(expected, res.resolved_type);
+}
+
+#[test]
+fn test_check_function_call_args() {
+    let res = type_check_program("{ fn f(i:int)=i; f(true) }", &SymbolTable::new());
+    assert!(res.is_err());
 }

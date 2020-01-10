@@ -128,8 +128,12 @@ impl<'a> Parser<'a> {
             }
         }
         self.expect(Token::ParenRight)?;
-        self.expect(Token::RightArrow)?;
-        let return_type = self.type_declaration()?;
+
+        let return_type = if self.accept(Token::RightArrow) {
+            Some(self.type_declaration()?)
+        } else {
+            None
+        };
 
         let expr = if self.sym == Some(Token::BraceLeft) {
             Expression::Block(Rc::new(self.block()?))
@@ -415,7 +419,7 @@ fn parse_function_declaration() {
     let res = parser.expression();
     let expected = Expression::Function(Rc::new(FunctionExpr {
         sym: Some("double".to_string()),
-        return_type: TypeDeclaration::Symbol("int".to_string()),
+        return_type: Some(TypeDeclaration::Symbol("int".to_string())),
         parameters: vec![("x".to_string(), TypeDeclaration::Symbol("int".to_string()))],
         expr: Expression::Binary(Rc::new(BinaryExpr {
             operation: BinaryOperation::Sum,
@@ -439,7 +443,7 @@ fn parse_function_declaration_block() {
     let res = parser.expression();
     let expected = Expression::Function(Rc::new(FunctionExpr {
         sym: Some("double".to_string()),
-        return_type: TypeDeclaration::Symbol("int".to_string()),
+        return_type: Some(TypeDeclaration::Symbol("int".to_string())),
         parameters: vec![("x".to_string(), TypeDeclaration::Symbol("int".to_string()))],
         expr: Expression::Block(Rc::new(BlockExpr {
             list: vec![Expression::Binary(Rc::new(BinaryExpr {
@@ -458,7 +462,7 @@ fn parse_function_declaration_block_2() {
     let res = parser.expression();
     let expected = Expression::Function(Rc::new(FunctionExpr {
         sym: Some("double".to_string()),
-        return_type: TypeDeclaration::Symbol("int".to_string()),
+        return_type: Some(TypeDeclaration::Symbol("int".to_string())),
         parameters: vec![("x".to_string(), TypeDeclaration::Symbol("int".to_string()))],
         expr: Expression::Block(Rc::new(BlockExpr {
             list: vec![Expression::Binary(Rc::new(BinaryExpr {
@@ -533,7 +537,7 @@ fn parse_define_function() {
     let res = parser.expression();
     let expected = Expression::Function(Rc::new(FunctionExpr {
         sym: Some(String::from("identity")),
-        return_type: TypeDeclaration::Symbol(String::from("int")),
+        return_type: Some(TypeDeclaration::Symbol(String::from("int"))),
         parameters: vec![(
             String::from("x"),
             TypeDeclaration::Symbol(String::from("int")),

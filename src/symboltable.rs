@@ -1,37 +1,38 @@
 use std::collections::HashMap;
+use crate::typedexpression::TypedExpression;
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct Closure<T> {
-    pub expr: T,
-    pub env: Option<SymbolTable<T>>,
+pub struct Closure {
+    pub expr: TypedExpression,
+    pub env: Option<SymbolTable>,
 }
 
-impl<T> Closure<T> {
-    pub fn simple(expr: T) -> Closure<T> {
+impl Closure {
+    pub fn simple(expr: TypedExpression) -> Closure {
         Closure { expr, env: None }
     }
-    pub fn complete(expr: T, env: Option<SymbolTable<T>>) -> Closure<T> {
+    pub fn complete(expr: TypedExpression, env: Option<SymbolTable>) -> Closure {
         Closure { expr, env }
     }
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct SymbolTable<T> {
-    map: HashMap<String, Closure<T>>,
+pub struct SymbolTable {
+    pub map: HashMap<String, Closure>,
 }
 
-impl<T> SymbolTable<T> {
-    pub fn new() -> SymbolTable<T> {
-        SymbolTable::<T> {
+impl SymbolTable {
+    pub fn new() -> SymbolTable {
+        SymbolTable {
             map: HashMap::new(),
         }
     }
 
-    pub fn bind(&mut self, symbol: String, closure: Closure<T>) {
+    pub fn bind(&mut self, symbol: String, closure: Closure) {
         self.map.insert(symbol, closure);
     }
 
-    pub fn lookup(&self, symbol: &String) -> Option<&Closure<T>> {
+    pub fn lookup(&self, symbol: &String) -> Option<&Closure> {
         self.map.get(symbol)
     }
 }

@@ -19,13 +19,6 @@ pub enum ResolvedType {
 }
 
 impl ResolvedType {
-    pub fn from_optional_decl(optional_decl: &Option<TypeDeclaration>) -> Option<ResolvedType> {
-        match optional_decl {
-            Some(decl) => ResolvedType::from_decl(decl),
-            None => Some(ResolvedType::Any),
-        }
-    }
-
     pub fn from_decl(decl: &TypeDeclaration) -> Option<ResolvedType> {
         match decl {
             TypeDeclaration::Symbol(s) => match s.as_ref() {
@@ -48,5 +41,12 @@ impl ResolvedType {
                 })))
             }
         }
+    }
+
+    pub fn function(return_type: ResolvedType, parameters: Vec<ResolvedType>) -> ResolvedType {
+        ResolvedType::Function(Rc::new(ResolvedFunctionType {
+            return_type,
+            parameters,
+        }))
     }
 }

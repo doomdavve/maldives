@@ -1,15 +1,15 @@
 use std::error;
 use std::fmt;
 
-use crate::expression::BinaryOperation;
-use crate::expression::Expression;
-use crate::symboltable::Closure;
-use crate::symboltable::SymbolTable;
+use crate::typedexpression::TypedBinaryOperation;
+use crate::typedexpression::TypedExpression;
+use crate::typedexpression::TypedExpressionNode;
+use crate::symboltable::{SymbolTable, Closure};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct InterpreterError {
     message: String,
-    env: SymbolTable<Expression>,
+    env: SymbolTable,
 }
 
 impl fmt::Display for InterpreterError {
@@ -26,7 +26,7 @@ impl error::Error for InterpreterError {
 }
 
 impl InterpreterError {
-    fn new(message: String, env: &SymbolTable<Expression>) -> InterpreterError {
+    fn new(message: String, env: &SymbolTable) -> InterpreterError {
         InterpreterError {
             message,
             env: env.clone(),
@@ -38,60 +38,57 @@ pub struct Interpreter;
 
 impl Interpreter {
     pub fn eval_expression(
-        expression: &Expression,
-        env: &mut SymbolTable<Expression>,
-    ) -> Result<Expression, InterpreterError> {
-        let closure = Interpreter::eval(expression, env)?;
+        expr: &TypedExpression,
+        env: &mut SymbolTable,
+    ) -> Result<TypedExpression, InterpreterError> {
+        let closure = Interpreter::eval(expr, env)?;
         Ok(closure.expr)
     }
 
     fn eval(
-        expression: &Expression,
-        env: &mut SymbolTable<Expression>,
-    ) -> Result<Closure<Expression>, InterpreterError> {
-        debug!("Evaulating {:?} with vars: {:?}", expression, env);
+        expr: &TypedExpression,
+        env: &mut SymbolTable,
+    ) -> Result<Closure, InterpreterError> {
+        debug!("Evaulating {:?} with vars: {:?}", expr, env);
 
-        match expression {
-            Expression::Void => Ok(Closure::simple(Expression::Void)),
-            Expression::Binary(b) => {
+        match &expr.node {
+            TypedExpressionNode::Void => Ok(Closure::simple(TypedExpression::void())),
+            TypedExpressionNode::BinaryOperation(b) => {
                 let l = Interpreter::eval(&b.left, env)?;
                 let r = Interpreter::eval(&b.right, env)?;
                 match b.operation {
-                    BinaryOperation::Sum => match (l.expr, r.expr) {
-                        (Expression::Integer(li), Expression::Integer(ri)) => {
-                            Ok(Closure::simple(Expression::Integer(li + ri)))
-                        }
-                        (Expression::String(li), Expression::String(ri)) => {
-                            Ok(Closure::simple(Expression::String(li + &ri)))
+                    TypedBinaryOperation::Sum => match (l.expr.node, r.expr.node) {
+                        (TypedExpressionNode::Integer(li), TypedExpressionNode::Integer(ri)) => {
+                            Ok(Closure::simple(TypedExpression::integer(li + ri)))
                         }
                         _ => Err(InterpreterError::new(
                             format!("Unexpected terms in sum operator"),
                             env,
                         )),
                     },
-                    BinaryOperation::Difference => match (l.expr, r.expr) {
-                        (Expression::Integer(li), Expression::Integer(ri)) => {
-                            Ok(Closure::simple(Expression::Integer(li - ri)))
+                    TypedBinaryOperation::Difference => match (l.expr.node, r.expr.node) {
+                        (TypedExpressionNode::Integer(li), TypedExpressionNode::Integer(ri)) => {
+                            Ok(Closure::simple(TypedExpression::integer(li - ri)))
                         }
                         _ => Err(InterpreterError::new(
                             format!("One or more non-integer terms to difference operator"),
                             env,
                         )),
                     },
-                    BinaryOperation::Multiply => match (l.expr, r.expr) {
-                        (Expression::Integer(li), Expression::Integer(ri)) => {
-                            Ok(Closure::simple(Expression::Integer(li * ri)))
+                    TypedBinaryOperation::Multiply => match (l.expr.node, r.expr.node) {
+                        (TypedExpressionNode::Integer(li), TypedExpressionNode::Integer(ri)) => {
+                            Ok(Closure::simple(TypedExpression::integer(li * ri)))
                         }
                         _ => Err(InterpreterError::new(
                             format!("One or more non-integer terms to multiply operator"),
                             env,
                         )),
                     },
-                    BinaryOperation::Divide => {
+                    TypedBinaryOperation::Divide => {
                         // TODO: handle division by zero.
-                        match (l.expr, r.expr) {
-                            (Expression::Integer(li), Expression::Integer(ri)) => {
-                                Ok(Closure::simple(Expression::Integer(li / ri)))
+                        match (l.expr.node, r.expr.node) {
+                            (TypedExpressionNode::Integer(li), TypedExpressionNode::Integer(ri)) => {
+                                Ok(Closure::simple(TypedExpression::integer(li / ri)))
                             }
                             _ => Err(InterpreterError::new(
                                 format!("One or more non-integer terms to divide operator"),
@@ -99,69 +96,78 @@ impl Interpreter {
                             )),
                         }
                     }
-                    BinaryOperation::LessThan => match (l.expr, r.expr) {
-                        (Expression::Integer(li), Expression::Integer(ri)) => {
-                            Ok(Closure::simple(Expression::Bool(li < ri)))
+                    TypedBinaryOperation::LessThan => match (l.expr.node, r.expr.node) {
+                        (TypedExpressionNode::Integer(li), TypedExpressionNode::Integer(ri)) => {
+                            Ok(Closure::simple(TypedExpression::bool(li < ri)))
                         }
                         _ => Err(InterpreterError::new(
                             format!("One or more non-boolean terms to divide operator"),
                             env,
                         )),
                     },
-                    BinaryOperation::GreaterThan => match (l.expr, r.expr) {
-                        (Expression::Integer(li), Expression::Integer(ri)) => {
-                            Ok(Closure::simple(Expression::Bool(li > ri)))
+                    TypedBinaryOperation::GreaterThan => match (l.expr.node, r.expr.node) {
+                        (TypedExpressionNode::Integer(li), TypedExpressionNode::Integer(ri)) => {
+                            Ok(Closure::simple(TypedExpression::bool(li > ri)))
                         }
                         _ => Err(InterpreterError::new(
                             format!("One or more non-boolean terms to divide operator"),
                             env,
                         )),
                     },
-                    BinaryOperation::LessEqualThan => match (l.expr, r.expr) {
-                        (Expression::Integer(li), Expression::Integer(ri)) => {
-                            Ok(Closure::simple(Expression::Bool(li <= ri)))
+                    TypedBinaryOperation::LessEqualThan => match (l.expr.node, r.expr.node) {
+                        (TypedExpressionNode::Integer(li), TypedExpressionNode::Integer(ri)) => {
+                            Ok(Closure::simple(TypedExpression::bool(li <= ri)))
                         }
                         _ => Err(InterpreterError::new(
                             format!("One or more non-boolean terms to divide operator"),
                             env,
                         )),
                     },
-                    BinaryOperation::GreaterEqualThan => match (l.expr, r.expr) {
-                        (Expression::Integer(li), Expression::Integer(ri)) => {
-                            Ok(Closure::simple(Expression::Bool(li >= ri)))
+                    TypedBinaryOperation::GreaterEqualThan => match (l.expr.node, r.expr.node) {
+                        (TypedExpressionNode::Integer(li), TypedExpressionNode::Integer(ri)) => {
+                            Ok(Closure::simple(TypedExpression::bool(li >= ri)))
                         }
                         _ => Err(InterpreterError::new(
                             format!("One or more non-boolean terms to divide operator"),
                             env,
                         )),
                     },
+                    TypedBinaryOperation::Concat => match (l.expr.node, r.expr.node) {
+                        (TypedExpressionNode::String(li), TypedExpressionNode::String(ri)) => {
+                            Ok(Closure::simple(TypedExpression::string(li + &ri)))
+                        }
+                        _ => Err(InterpreterError::new(
+                            format!("One or more non-string terms to concatenation operator"),
+                            env,
+                        )),
+                    }
                 }
             }
-            Expression::Conditional(c) => {
+            TypedExpressionNode::Conditional(c) => {
                 let premise = Interpreter::eval(&c.condition, env)?;
-                match (premise.expr, c.false_branch.as_ref()) {
-                    (Expression::Bool(true), _) => Ok(Interpreter::eval(&c.true_branch, env)?),
-                    (Expression::Bool(false), Some(false_branch)) => {
+                match (premise.expr.node, c.false_branch.as_ref()) {
+                    (TypedExpressionNode::Bool(true), _) => Ok(Interpreter::eval(&c.true_branch, env)?),
+                    (TypedExpressionNode::Bool(false), Some(false_branch)) => {
                         Ok(Interpreter::eval(&false_branch, env)?)
                     }
-                    (Expression::Bool(false), _) => Ok(Closure::simple(Expression::Void)),
+                    (TypedExpressionNode::Bool(false), _) => Ok(Closure::simple(TypedExpression::void())),
                     _ => Err(InterpreterError::new(
                         format!("Unexpected result of conditional"),
                         env,
                     )),
                 }
             }
-            Expression::Group(g) => Interpreter::eval(&g.expr, env),
-            Expression::Bool(b) => Ok(Closure::simple(Expression::Bool(*b))),
-            Expression::Integer(i) => Ok(Closure::simple(Expression::Integer(*i))),
-            Expression::String(s) => Ok(Closure::simple(Expression::String(s.to_string()))),
-            Expression::Symbol(s) => {
+            TypedExpressionNode::Group(g) => Interpreter::eval(&g.expr, env),
+            TypedExpressionNode::Bool(b) => Ok(Closure::simple(TypedExpression::bool(*b))),
+            TypedExpressionNode::Integer(i) => Ok(Closure::simple(TypedExpression::integer(*i))),
+            TypedExpressionNode::String(s) => Ok(Closure::simple(TypedExpression::string(s.to_string()))),
+            TypedExpressionNode::Symbol(s) => {
                 let value = env
                     .lookup(s)
                     .ok_or_else(|| InterpreterError::new(format!("unknown symbol '{}'", s), env))?;
                 Ok(Closure::complete(value.expr.clone(), value.env.clone()))
             }
-            Expression::Bind(b) => {
+            TypedExpressionNode::Bind(b) => {
                 let val = Interpreter::eval(&b.expr, env)?;
                 env.bind(
                     String::from(&b.sym),
@@ -172,17 +178,17 @@ impl Interpreter {
                 );
                 Ok(val)
             }
-            Expression::Block(b) => {
-                let mut last = Ok(Closure::simple(Expression::Void));
+            TypedExpressionNode::Block(b) => {
+                let mut last = Ok(Closure::simple(TypedExpression::void()));
                 let mut scope = env.clone();
                 for expr in &b.list {
                     last = Interpreter::eval(&expr, &mut scope);
                 }
                 last
             }
-            Expression::Function(f) => {
+            TypedExpressionNode::Function(f) => {
                 let closure = Closure {
-                    expr: expression.clone(),
+                    expr: expr.clone(),
                     env: Some(env.clone()),
                 };
                 if let Some(sym) = &f.sym {
@@ -190,17 +196,18 @@ impl Interpreter {
                 }
                 Ok(closure.clone())
             }
-            Expression::NativeFunction(n) => {
-                Ok(Closure::simple(Expression::NativeFunction(n.clone())))
+            TypedExpressionNode::NativeFunction(_) => {
+                Ok(Closure::simple(expr.clone()))
             }
-            Expression::FunctionCall(fc) => {
+            TypedExpressionNode::FunctionCall(fc) => {
                 let value = Interpreter::eval(&fc.expr, env)?;
-                match (value.expr, value.env) {
-                    (Expression::Function(f), Some(function_env)) => {
+                match (value.expr.node, value.env) {
+                    (TypedExpressionNode::Function(f), Some(function_env)) => {
                         debug!("Parameters: {:?}", f.parameters);
                         let mut call_env = function_env.clone();
                         for (idx, parameter) in f.parameters.iter().enumerate() {
-                            let argument = fc.arguments.get(idx).unwrap_or(&Expression::Void);
+                            let void = TypedExpression::void();
+                            let argument = fc.arguments.get(idx).unwrap_or(&void);
                             let val = Interpreter::eval(argument, env)?;
                             debug!(
                                 "Mapping: {:?} -> {:?} in calling environment",
@@ -215,11 +222,11 @@ impl Interpreter {
                         let result = Interpreter::eval(&f.expr, &mut call_env)?;
                         Ok(result)
                     }
-                    (Expression::NativeFunction(f), _) => {
+                    (TypedExpressionNode::NativeFunction(f), _) => {
                         let native_function = f.function;
                         match fc.arguments.as_slice() {
                             [only_one] => {
-                                let arg = if f.eager {
+                                let arg = if f.call_by_value {
                                     Interpreter::eval(&only_one, env)?.expr
                                 } else {
                                     only_one.clone()
@@ -229,7 +236,7 @@ impl Interpreter {
                                 Ok(Closure::simple(res))
                             }
                             _ => Err(InterpreterError::new(
-                                format!("unexpected number of argumens to native function"),
+                                format!("unexpected number of arguments to native function"),
                                 env,
                             )),
                         }
