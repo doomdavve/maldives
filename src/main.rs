@@ -5,6 +5,10 @@ extern crate rustyline;
 extern crate log;
 extern crate env_logger;
 
+use std::env;
+use std::fs;
+use std::path::Path;
+
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 
@@ -25,25 +29,59 @@ use lexer::Lexer;
 use parser::Parser;
 use symboltable::Closure;
 use symboltable::SymbolTable;
-use typedexpression::TypedExpression;
+use typedexpression::{TypedExpression, TypedExpressionNode};
 
-use std::path::Path;
-
-fn main() {
+fn main() -> Result<(), String> {
     env_logger::init();
 
+    let args: Vec<String> = env::args().collect();
+    match if args.len() > 1 { Some(&args[1]) } else { None } {
+        Some(filename) => load_file(filename),
+        None => repl(),
+    }?;
+
+    Ok(())
+}
+
+fn load_file(filename: &str) -> Result<i32, String> {
+    let mut root = root_symboltable();
+    let contents = fs::read_to_string(filename).expect("Something went wrong reading the file");
+    let tokens = Lexer::new(&contents);
+    match Parser::new(tokens).program() {
+        Ok(program) => {
+            debug!("Parsed program: {:?}", program);
+            match TypeResolver::resolve_in_env(&program, &root) {
+                Ok(resolved) => match Interpreter::eval_expression(&resolved, &mut root) {
+                    Ok(a) => match a.node {
+                        TypedExpressionNode::Integer(i) => Ok(i),
+                        _ => Ok(0),
+                    },
+                    Err(e) => Err(e.message),
+                },
+                Err(e) => Err(e.message),
+            }
+        }
+        Err(e) => Err(e.message),
+    }
+}
+
+fn root_symboltable() -> SymbolTable {
+    let mut root = SymbolTable::new();
+    root.bind(
+        "println".to_string(),
+        Closure::simple(TypedExpression::native_function(native_println)),
+    );
+    root
+}
+
+fn repl() -> Result<i32, String> {
     let mut rl = Editor::<()>::new();
     let homedir = dirs::home_dir().unwrap();
     let history_file_path = Path::new(&homedir).join(".maldives_history");
     if rl.load_history(&history_file_path).is_err() {
         println!("No previous history.");
     }
-    let mut root = SymbolTable::new();
-    root.bind(
-        "println".to_string(),
-        Closure::simple(TypedExpression::native_function(native_println)),
-    );
-
+    let mut root = root_symboltable();
     loop {
         let readline = rl.readline("> ");
         match readline {
@@ -81,6 +119,7 @@ fn main() {
         }
     }
     rl.save_history(&history_file_path).unwrap();
+    Ok(0)
 }
 
 #[cfg(test)]

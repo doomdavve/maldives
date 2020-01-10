@@ -62,7 +62,6 @@ impl TypeResolver {
         for (key, value) in &env.map {
             type_table.bind(key.clone(), value.expr.resolved_type.clone())
         }
-
         TypeResolver::resolve(expression, &mut type_table)
     }
 
@@ -71,6 +70,7 @@ impl TypeResolver {
         env: &mut TypeTable,
     ) -> Result<TypedExpression, TypeResolverError> {
         match expression {
+            Expression::Void => Ok(TypedExpression::void()),
             Expression::Integer(i) => Ok(TypedExpression::integer(*i)),
             Expression::Bool(b) => Ok(TypedExpression::bool(*b)),
             Expression::String(s) => Ok(TypedExpression::string(s.to_string())),
@@ -270,8 +270,6 @@ impl TypeResolver {
                     if let Some(sym) = &f.sym {
                         env.bind(String::from(sym), resolved_type.clone());
                     }
-
-                    // FIXME: Bind all
                     Ok(function)
                 } else {
                     Err(TypeResolverError::new(format!(
@@ -282,8 +280,6 @@ impl TypeResolver {
 
             Expression::FunctionCall(fc) => {
                 let expr = TypeResolver::resolve(&fc.expr, env)?;
-
-                // FIXME: Parameter checking left to do here.
                 let return_type = match &expr.resolved_type {
                     ResolvedType::Function(f) => {
                         let mut typed_arguments = Vec::<TypedExpression>::new();

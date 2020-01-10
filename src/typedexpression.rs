@@ -1,7 +1,7 @@
 use std::fmt;
 use std::rc::Rc;
 
-use crate::resolvedtype::ResolvedType;
+use crate::resolvedtype::{ResolvedFunctionType, ResolvedType};
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct TypedExpression {
@@ -93,34 +93,48 @@ impl TypedExpression {
         }
     }
 
-    pub fn function(sym: Option<String>, return_type: ResolvedType, parameters: Vec<(String, ResolvedType)>, expr: TypedExpression) -> TypedExpression {
+    pub fn function(
+        sym: Option<String>,
+        return_type: ResolvedType,
+        parameters: Vec<(String, ResolvedType)>,
+        expr: TypedExpression,
+    ) -> TypedExpression {
         TypedExpression {
             resolved_type: return_type,
-            node: TypedExpressionNode::Function(Rc::new( TypedFunctionExpr {
+            node: TypedExpressionNode::Function(Rc::new(TypedFunctionExpr {
                 sym,
                 parameters,
-                expr
-            }))
+                expr,
+            })),
         }
     }
 
-    pub fn call(expr: TypedExpression, return_type: ResolvedType, arguments: Vec<TypedExpression>) -> TypedExpression {
+    pub fn call(
+        expr: TypedExpression,
+        return_type: ResolvedType,
+        arguments: Vec<TypedExpression>,
+    ) -> TypedExpression {
         TypedExpression {
             resolved_type: return_type,
-            node: TypedExpressionNode::FunctionCall(Rc::new( TypedFunctionCallExpr {
+            node: TypedExpressionNode::FunctionCall(Rc::new(TypedFunctionCallExpr {
                 arguments,
-                expr
-            }))
+                expr,
+            })),
         }
     }
 
-    pub fn native_function(f: fn(e: &TypedExpression) -> Result<TypedExpression, String>) -> TypedExpression {
+    pub fn native_function(
+        f: fn(e: &TypedExpression) -> Result<TypedExpression, String>,
+    ) -> TypedExpression {
         TypedExpression {
-            resolved_type: ResolvedType::None,
+            resolved_type: ResolvedType::Function(Rc::new(ResolvedFunctionType {
+                return_type: ResolvedType::None,
+                parameters: vec![ResolvedType::String],
+            })),
             node: TypedExpressionNode::NativeFunction(Rc::new(TypedNativeFunctionExpr {
                 function: f,
                 call_by_value: true,
-            }))
+            })),
         }
     }
 }
@@ -214,4 +228,3 @@ impl fmt::Debug for TypedNativeFunctionExpr {
         write!(f, "Native function")
     }
 }
-

@@ -1,14 +1,14 @@
 use std::error;
 use std::fmt;
 
+use crate::symboltable::{Closure, SymbolTable};
 use crate::typedexpression::TypedBinaryOperation;
 use crate::typedexpression::TypedExpression;
 use crate::typedexpression::TypedExpressionNode;
-use crate::symboltable::{SymbolTable, Closure};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct InterpreterError {
-    message: String,
+    pub message: String,
     env: SymbolTable,
 }
 
@@ -45,12 +45,8 @@ impl Interpreter {
         Ok(closure.expr)
     }
 
-    fn eval(
-        expr: &TypedExpression,
-        env: &mut SymbolTable,
-    ) -> Result<Closure, InterpreterError> {
+    fn eval(expr: &TypedExpression, env: &mut SymbolTable) -> Result<Closure, InterpreterError> {
         debug!("Evaulating {:?} with vars: {:?}", expr, env);
-
         match &expr.node {
             TypedExpressionNode::Void => Ok(Closure::simple(TypedExpression::void())),
             TypedExpressionNode::BinaryOperation(b) => {
@@ -87,9 +83,10 @@ impl Interpreter {
                     TypedBinaryOperation::Divide => {
                         // TODO: handle division by zero.
                         match (l.expr.node, r.expr.node) {
-                            (TypedExpressionNode::Integer(li), TypedExpressionNode::Integer(ri)) => {
-                                Ok(Closure::simple(TypedExpression::integer(li / ri)))
-                            }
+                            (
+                                TypedExpressionNode::Integer(li),
+                                TypedExpressionNode::Integer(ri),
+                            ) => Ok(Closure::simple(TypedExpression::integer(li / ri))),
                             _ => Err(InterpreterError::new(
                                 format!("One or more non-integer terms to divide operator"),
                                 env,
@@ -140,17 +137,21 @@ impl Interpreter {
                             format!("One or more non-string terms to concatenation operator"),
                             env,
                         )),
-                    }
+                    },
                 }
             }
             TypedExpressionNode::Conditional(c) => {
                 let premise = Interpreter::eval(&c.condition, env)?;
                 match (premise.expr.node, c.false_branch.as_ref()) {
-                    (TypedExpressionNode::Bool(true), _) => Ok(Interpreter::eval(&c.true_branch, env)?),
+                    (TypedExpressionNode::Bool(true), _) => {
+                        Ok(Interpreter::eval(&c.true_branch, env)?)
+                    }
                     (TypedExpressionNode::Bool(false), Some(false_branch)) => {
                         Ok(Interpreter::eval(&false_branch, env)?)
                     }
-                    (TypedExpressionNode::Bool(false), _) => Ok(Closure::simple(TypedExpression::void())),
+                    (TypedExpressionNode::Bool(false), _) => {
+                        Ok(Closure::simple(TypedExpression::void()))
+                    }
                     _ => Err(InterpreterError::new(
                         format!("Unexpected result of conditional"),
                         env,
@@ -160,7 +161,9 @@ impl Interpreter {
             TypedExpressionNode::Group(g) => Interpreter::eval(&g.expr, env),
             TypedExpressionNode::Bool(b) => Ok(Closure::simple(TypedExpression::bool(*b))),
             TypedExpressionNode::Integer(i) => Ok(Closure::simple(TypedExpression::integer(*i))),
-            TypedExpressionNode::String(s) => Ok(Closure::simple(TypedExpression::string(s.to_string()))),
+            TypedExpressionNode::String(s) => {
+                Ok(Closure::simple(TypedExpression::string(s.to_string())))
+            }
             TypedExpressionNode::Symbol(s) => {
                 let value = env
                     .lookup(s)
@@ -196,9 +199,7 @@ impl Interpreter {
                 }
                 Ok(closure.clone())
             }
-            TypedExpressionNode::NativeFunction(_) => {
-                Ok(Closure::simple(expr.clone()))
-            }
+            TypedExpressionNode::NativeFunction(_) => Ok(Closure::simple(expr.clone())),
             TypedExpressionNode::FunctionCall(fc) => {
                 let value = Interpreter::eval(&fc.expr, env)?;
                 match (value.expr.node, value.env) {

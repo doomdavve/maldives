@@ -3,7 +3,7 @@ use std::fmt;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ParseError {
-    message: String
+    pub message: String,
 }
 
 impl fmt::Display for ParseError {
@@ -20,7 +20,6 @@ impl error::Error for ParseError {
 
 impl ParseError {
     pub fn new(message: String) -> ParseError {
-        ParseError{ message }
+        ParseError { message }
     }
 }
-
