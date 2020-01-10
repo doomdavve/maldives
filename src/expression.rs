@@ -13,6 +13,7 @@ pub enum Expression {
     Symbol(String),
     String(String),
     Conditional(Rc<ConditionalExpr>),
+    Void,
 }
 
 #[derive(Debug, PartialEq, Copy, Clone)]

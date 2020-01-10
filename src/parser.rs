@@ -272,6 +272,7 @@ impl<'a> Parser<'a> {
                 let binary = self.binary(left)?;
                 Ok(Expression::Binary(Rc::new(binary)))
             }
+            Some(Token::BraceRight) => Ok(Expression::Void),
             _ => Err(ParseError::new(format!(
                 "unexpected token {:?} found, expected sub expression",
                 self.sym
@@ -369,7 +370,18 @@ impl<'a> Parser<'a> {
     }
 
     pub fn program(&mut self) -> Result<Expression, ParseError> {
-        self.expression()
+        let mut list: Vec<Expression> = Vec::new();
+        if self.sym != None {
+            list.push(self.expression()?);
+            loop {
+                if self.accept(Token::SemiColon) {
+                    list.push(self.expression()?);
+                } else {
+                    break;
+                }
+            }
+        }
+        Ok(Expression::Block(Rc::new(BlockExpr { list })))
     }
 }
 
