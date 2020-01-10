@@ -295,8 +295,6 @@ impl TypeResolver {
                         let mut mismatch = typed_arguments.len() != f.parameters.len();
                         if !mismatch {
                             for (arg, param) in typed_arguments.iter().zip(&f.parameters) {
-                                println!("arg: {:?}", arg);
-                                println!("param: {:?}", param);
                                 if &arg.resolved_type != param {
                                     mismatch = true;
                                     break;
