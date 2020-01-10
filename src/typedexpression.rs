@@ -80,6 +80,12 @@ impl TypedExpression {
             node: TypedExpressionNode::Block(Rc::new(TypedBlockExpr { list })),
         }
     }
+    pub fn bind(symbol: String, expr: TypedExpression) -> TypedExpression {
+        TypedExpression {
+            resolved_type: expr.resolved_type.clone(),
+            node: TypedExpressionNode::Bind(Rc::new(TypedBindExpr { sym: symbol, expr })),
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -90,7 +96,7 @@ pub enum TypedExpressionNode {
     //    NativeFunction(Rc<NativeFunctionExpr>),
     BinaryOperation(Rc<TypedBinaryOperationExpr>),
     //    FunctionCall(Rc<FunctionCallExpr>),
-    //    Bind(Rc<BindExpr>),
+    Bind(Rc<TypedBindExpr>),
     Block(Rc<TypedBlockExpr>),
     Group(Rc<TypedGroupExpr>),
     String(String),
@@ -135,13 +141,13 @@ pub enum TypedBinaryOperation {
 //    Function(FunctionDeclaration),
 //}
 //
-//#[derive(Debug, PartialEq)]
-//pub struct BindExpr {
-//    pub sym: String,
-//    pub sym_type: Option<TypeDeclaration>,
-//    pub expr: TypedExpression,
-//}
-//
+
+#[derive(Debug, PartialEq)]
+pub struct TypedBindExpr {
+    pub sym: String,
+    pub expr: TypedExpression,
+}
+
 #[derive(Debug, PartialEq)]
 pub struct TypedGroupExpr {
     pub expr: TypedExpression,

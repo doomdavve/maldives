@@ -180,21 +180,6 @@ impl TypeCaster {
                 } else {
                     Err(TypeCasterError::new("stuff".to_string(), env))
                 }
-                //
-                //
-                //
-                //                match (premise.resolved_type, c.true_branch,
-                //
-                //                       c.false_branch.as_ref()) {
-                //                    (Expression::Bool(true), _) => Ok(TypeCaster::cast(&c.true_branch, env)?),
-                //                    (Expression::Bool(false), Some(false_branch)) => {
-                //                        Ok(TypeCaster::cast(&false_branch, env)?)
-                //                    }
-                //                    (Expression::Bool(false), _) => Ok(Closure::simple(Expression::Void)),
-                //                    _ => Err(TypeCasterError::new(
-                //                        format!("Unexpected result of conditional"),
-                //                        env,
-                //                    )),
             }
             Expression::Block(b) => {
                 let mut list = Vec::new();
@@ -203,134 +188,28 @@ impl TypeCaster {
                 }
                 Ok(Closure::simple(TypedExpression::block(list)))
             }
-
+            Expression::Bind(bind) => {
+                let closure = TypeCaster::cast(&bind.expr, env)?;
+                let resolved_sym_type: Option<ResolvedType> = match bind.sym_type.clone() {
+                    Some(decl) => ResolvedType::from_decl(&decl),
+                    None => Some(closure.expr.resolved_type.clone()),
+                };
+                if resolved_sym_type == Some(closure.expr.resolved_type.clone()) {
+                    Ok(Closure::simple(TypedExpression::bind(
+                        String::from(&bind.sym),
+                        closure.expr,
+                    )))
+                } else {
+                    Err(TypeCasterError::new(
+                        format!(
+                            "Type mismatch: Can't bind symbol '{}' of type '{:?}' to expression of type {:?}",
+                            &bind.sym, resolved_sym_type, closure.expr.resolved_type.clone()
+                        ),
+                        env,
+                    ))
+                }
+            }
             _ => Err(TypeCasterError::new("Unimplemented".to_string(), env)),
-            //            Expression::Binary(b) => {
-            //                let l = TypeCaster::cast(&b.left, env)?;
-            //                let r = TypeCaster::cast(&b.right, env)?;
-            //                match b.operation {
-            //                    BinaryOperation::Sum => match (l.expr, r.expr) {
-            //                        (Expression::Integer(li), Expression::Integer(ri)) => {
-            //                            Ok(Closure::simple(Expression::Integer(li + ri)))
-            //                        }
-            //                        (Expression::String(li), Expression::String(ri)) => {
-            //                            Ok(Closure::simple(Expression::String(li + &ri)))
-            //                        }
-            //                        _ => Err(TypeCasterError::new(
-            //                            format!("Unexpected terms in sum operator"),
-            //                            env,
-            //                        )),
-            //                    },
-            //                    BinaryOperation::Difference => match (l.expr, r.expr) {
-            //                        (Expression::Integer(li), Expression::Integer(ri)) => {
-            //                            Ok(Closure::simple(Expression::Integer(li - ri)))
-            //                        }
-            //                        _ => Err(TypeCasterError::new(
-            //                            format!("One or more non-integer terms to difference operator"),
-            //                            env,
-            //                        )),
-            //                    },
-            //                    BinaryOperation::Multiply => match (l.expr, r.expr) {
-            //                        (Expression::Integer(li), Expression::Integer(ri)) => {
-            //                            Ok(Closure::simple(Expression::Integer(li * ri)))
-            //                        }
-            //                        _ => Err(TypeCasterError::new(
-            //                            format!("One or more non-integer terms to multiply operator"),
-            //                            env,
-            //                        )),
-            //                    },
-            //                    BinaryOperation::Divide => {
-            //                        // TODO: handle division by zero.
-            //                        match (l.expr, r.expr) {
-            //                            (Expression::Integer(li), Expression::Integer(ri)) => {
-            //                                Ok(Closure::simple(Expression::Integer(li / ri)))
-            //                            }
-            //                            _ => Err(TypeCasterError::new(
-            //                                format!("One or more non-integer terms to divide operator"),
-            //                                env,
-            //                            )),
-            //                        }
-            //                    }
-            //                    BinaryOperation::LessThan => match (l.expr, r.expr) {
-            //                        (Expression::Integer(li), Expression::Integer(ri)) => {
-            //                            Ok(Closure::simple(Expression::Bool(li < ri)))
-            //                        }
-            //                        _ => Err(TypeCasterError::new(
-            //                            format!("One or more non-boolean terms to divide operator"),
-            //                            env,
-            //                        )),
-            //                    },
-            //                    BinaryOperation::GreaterThan => match (l.expr, r.expr) {
-            //                        (Expression::Integer(li), Expression::Integer(ri)) => {
-            //                            Ok(Closure::simple(Expression::Bool(li > ri)))
-            //                        }
-            //                        _ => Err(TypeCasterError::new(
-            //                            format!("One or more non-boolean terms to divide operator"),
-            //                            env,
-            //                        )),
-            //                    },
-            //                    BinaryOperation::LessEqualThan => match (l.expr, r.expr) {
-            //                        (Expression::Integer(li), Expression::Integer(ri)) => {
-            //                            Ok(Closure::simple(Expression::Bool(li <= ri)))
-            //                        }
-            //                        _ => Err(TypeCasterError::new(
-            //                            format!("One or more non-boolean terms to divide operator"),
-            //                            env,
-            //                        )),
-            //                    },
-            //                    BinaryOperation::GreaterEqualThan => match (l.expr, r.expr) {
-            //                        (Expression::Integer(li), Expression::Integer(ri)) => {
-            //                            Ok(Closure::simple(Expression::Bool(li >= ri)))
-            //                        }
-            //                        _ => Err(TypeCasterError::new(
-            //                            format!("One or more non-boolean terms to divide operator"),
-            //                            env,
-            //                        )),
-            //                    },
-            //                }
-            //            }
-            //            Expression::Conditional(c) => {
-            //                let premise = TypeCaster::cast(&c.condition, env)?;
-            //                match (premise.expr, c.false_branch.as_ref()) {
-            //                    (Expression::Bool(true), _) => Ok(TypeCaster::cast(&c.true_branch, env)?),
-            //                    (Expression::Bool(false), Some(false_branch)) => {
-            //                        Ok(TypeCaster::cast(&false_branch, env)?)
-            //                    }
-            //                    (Expression::Bool(false), _) => Ok(Closure::simple(Expression::Void)),
-            //                    _ => Err(TypeCasterError::new(
-            //                        format!("Unexpected result of conditional"),
-            //                        env,
-            //                    )),
-            //                }
-            //            }
-            //            Expression::Group(g) => TypeCaster::cast(&g.expr, env),
-            //            Expression::Integer(i) => Ok(Closure::simple(Expression::Integer(*i))),
-            //            Expression::String(s) => Ok(Closure::simple(Expression::String(s.to_string()))),
-            //            Expression::Symbol(s) => {
-            //                let value = env
-            //                    .lookup(s)
-            //                    .ok_or_else(|| TypeCasterError::new(format!("unknown symbol '{}'", s), env))?;
-            //                Ok(Closure::complete(value.expr.clone(), value.env.clone()))
-            //            }
-            //            Expression::Bind(b) => {
-            //                let val = TypeCaster::cast(&b.expr, env)?;
-            //                env.bind(
-            //                    String::from(&b.sym),
-            //                    Closure {
-            //                        expr: val.expr.clone(),
-            //                        env: val.env.clone(),
-            //                    },
-            //                );
-            //                Ok(val)
-            //            }
-            //            Expression::Block(b) => {
-            //                let mut last = Ok(Closure::simple(Expression::Void));
-            //                let mut scope = env.clone();
-            //                for expr in &b.list {
-            //                    last = TypeCaster::cast(&expr, &mut scope);
-            //                }
-            //                last
-            //            }
             //            Expression::Function(f) => {
             //                let closure = Closure {
             //                    expr: expression.clone(),

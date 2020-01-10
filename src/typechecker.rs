@@ -76,16 +76,18 @@ impl TypeChecker {
             Expression::String(_) => Ok(ResolvedType::String),
             Expression::Bool(_) => Ok(ResolvedType::Bool),
             Expression::Function(function) => {
-                let resolved_return_type =
-                    ResolvedType::from_decl(&function.return_type).map_err(|_e| {
+                let resolved_return_type = ResolvedType::from_decl(&function.return_type)
+                    .ok_or_else(|| {
                         TypeCheckerError::new("Could not resolve return type".to_string())
                     })?;
 
                 let mut resolved_parameter_types: Vec<ResolvedType> = Vec::new();
                 for parameter in &function.parameters {
-                    resolved_parameter_types.push(ResolvedType::from_decl(&parameter.1).map_err(
-                        |_e| TypeCheckerError::new("Could not resolve parameter type".to_string()),
-                    )?);
+                    resolved_parameter_types.push(
+                        ResolvedType::from_decl(&parameter.1).ok_or_else(|| {
+                            TypeCheckerError::new("Could not resolve parameter type".to_string())
+                        })?,
+                    );
                 }
 
                 let resolved_function_type = ResolvedFunctionType {
@@ -101,7 +103,7 @@ impl TypeChecker {
             }
             Expression::Bind(bind) => {
                 let resolved_type = TypeChecker::match_type(
-                    ResolvedType::from_optional_decl(&bind.sym_type).map_err(|_e| {
+                    ResolvedType::from_optional_decl(&bind.sym_type).ok_or_else(|| {
                         TypeCheckerError::new("Could not resolve type".to_string())
                     })?,
                     self.resolve_type(&bind.expr)?,

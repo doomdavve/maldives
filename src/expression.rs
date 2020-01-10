@@ -30,13 +30,13 @@ pub enum BinaryOperation {
     GreaterEqualThan,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct FunctionDeclaration {
     pub return_type: Rc<TypeDeclaration>,
     pub parameters: Vec<TypeDeclaration>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum TypeDeclaration {
     Symbol(String),
     Function(FunctionDeclaration),
