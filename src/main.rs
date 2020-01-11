@@ -96,7 +96,7 @@ fn repl() -> Result<i32, String> {
                             match TypeResolver::resolve_in_env(&program, &root) {
                                 Ok(resolved) => {
                                     match Interpreter::eval_expression(&resolved, &mut root) {
-                                        Ok(a) => println!("{:?}", a),
+                                        Ok(a) => println!("{}", a),
                                         Err(e) => println!("{}", e),
                                     }
                                 }

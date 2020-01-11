@@ -1,11 +1,24 @@
-use crate::expression::TypeDeclaration;
-
+use std::fmt;
 use std::rc::Rc;
+
+use crate::expression::TypeDeclaration;
 
 #[derive(Debug, PartialEq)]
 pub struct ResolvedFunctionType {
     pub return_type: ResolvedType,
     pub parameters: Vec<ResolvedType>,
+}
+
+impl fmt::Display for ResolvedFunctionType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let parameters: Vec<String> = self
+            .parameters
+            .clone()
+            .into_iter()
+            .map(|i| i.to_string())
+            .collect();
+        write!(f, "({}) -> {}", parameters.join(", "), self.return_type)
+    }
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -16,6 +29,19 @@ pub enum ResolvedType {
     Function(Rc<ResolvedFunctionType>),
     Any,
     None,
+}
+
+impl fmt::Display for ResolvedType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match &self {
+            ResolvedType::Integer => write!(f, "int"),
+            ResolvedType::Bool => write!(f, "bool"),
+            ResolvedType::String => write!(f, "string"),
+            ResolvedType::Function(resolved_fn) => write!(f, "{}", resolved_fn),
+            ResolvedType::Any => write!(f, "any"),
+            ResolvedType::None => write!(f, "none"),
+        }
+    }
 }
 
 impl ResolvedType {
