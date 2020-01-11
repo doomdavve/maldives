@@ -19,6 +19,7 @@ mod native;
 mod parse_error;
 mod parser;
 mod resolvedtype;
+mod string;
 mod symboltable;
 mod token;
 mod typedexpression;

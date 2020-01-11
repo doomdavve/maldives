@@ -21,6 +21,25 @@ fn eat_whitespace(s: &[u8], mut i: usize) -> usize {
     i
 }
 
+fn eat_comment(s: &[u8], i: usize) -> usize {
+    let at_line_comment = match_character(s, i, b'/') && match_character(s, i + 1, b'/');
+    if !at_line_comment {
+        return i;
+    }
+    eat_line(s, i + 2)
+}
+
+fn eat_whitespace_and_comments(s: &[u8], mut i: usize) -> usize {
+    loop {
+        let iteration_start = i;
+        i = eat_whitespace(s, i);
+        i = eat_comment(s, i);
+        if i == iteration_start {
+            break i;
+        }
+    }
+}
+
 fn is_alphabetic(c: u8) -> bool {
     (b'a' <= c && c <= b'z') || (b'A' <= c && c <= b'Z') || b'_' == c || b'-' == c
 }
@@ -38,6 +57,16 @@ fn eat_symbol(s: &[u8], mut i: usize) -> (&[u8], usize) {
         i += 1;
     }
     (&s[start..i], i)
+}
+
+fn eat_line(s: &[u8], mut i: usize) -> usize {
+    while i < s.len() && s[i] != b'\n' {
+        i += 1;
+    }
+    if i < s.len() && s[i] == b'\n' {
+        i += 1;
+    }
+    i
 }
 
 fn match_character(s: &[u8], i: usize, c: u8) -> bool {
@@ -222,7 +251,7 @@ impl<'a> Iterator for Lexer<'a> {
             return None;
         }
 
-        self.start = eat_whitespace(self.buffer, self.start);
+        self.start = eat_whitespace_and_comments(self.buffer, self.start);
 
         return_if_match!(self, self.tokenize_number());
         return_if_match!(self, self.tokenize_string());
@@ -231,6 +260,36 @@ impl<'a> Iterator for Lexer<'a> {
 
         None
     }
+}
+
+#[test]
+fn tokenize_with_comments() {
+    let tokens: Vec<Token> = Lexer::new(
+        "
+
+// This is a line comment
+    
+// And one more with some trailing whitespace before it. After comes code:
+
+
+if 2>1 1 // end of line should be ignored too
+else 0
+
+// more comments to be ignored",
+    )
+    .collect();
+    assert_eq!(
+        tokens,
+        vec![
+            Token::If,
+            Token::Integer(2),
+            Token::Greater,
+            Token::Integer(1),
+            Token::Integer(1),
+            Token::Else,
+            Token::Integer(0)
+        ]
+    );
 }
 
 #[test]

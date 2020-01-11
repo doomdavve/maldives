@@ -1,5 +1,6 @@
 use crate::expression::FunctionDeclaration;
 use crate::expression::TypeDeclaration;
+use crate::string::interpret_escaped_string;
 use std::rc::Rc;
 use std::str::from_utf8_unchecked;
 
@@ -217,8 +218,8 @@ impl<'a> Parser<'a> {
                 Ok(Expression::Symbol(symbol_name))
             }
             Some(Token::String(s)) => {
-                // Remove escaping in this copy step
-                let string = unsafe { from_utf8_unchecked(s) }.to_string();
+                let string = interpret_escaped_string(unsafe { from_utf8_unchecked(s) })
+                    .map_err(|e| ParseError::new(e.to_string()))?;
                 self.sym = self.lexer.next();
                 Ok(Expression::String(string))
             }
