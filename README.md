@@ -5,20 +5,20 @@ Toy interpreter for a toy language
 
 ```
 > let a = 10
-Integer(10)
+TypedExpression { resolved_type: Integer, node: Integer(10) }
 > { let a = 20; a }
-Integer(20)
+TypedExpression { resolved_type: Integer, node: Integer(20) }
 > a
-Integer(10)
+TypedExpression { resolved_type: Integer, node: Integer(10) }
 > let c = { let a = 20; fn b() -> int = a; b }
-Function(FunctionExpr { sym: Some("b"), return_type: Symbol("int"), parameters: [], expr: Symbol("a") })
+TypedExpression { resolved_type: Function(ResolvedFunctionType { return_type: Integer, parameters: [] }), node: Function(TypedFunctionExpr { sym: Some("b"), parameters: [], expr: TypedExpression { resolved_type: Integer, node: Symbol("a") } }) }
 > c()
-Integer(20)
+TypedExpression { resolved_type: Integer, node: Integer(20) }
 > a
-Integer(10)
+TypedExpression { resolved_type: Integer, node: Integer(10) }
 ```
 
-The sample run above shows off lexical binding and closures.
+The sample above shows off lexical binding and closures.
 
 #### Near term TODO
 
