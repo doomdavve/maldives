@@ -19,3 +19,16 @@ Integer(10)
 ```
 
 The sample run above shows off lexical binding and closures.
+
+#### Near term TODO
+
+ - [X] Lexical scoping
+ - [X] Strings
+ - [X] Factor out Expression from parser
+ - [X] Write/print to somewhere (println)
+ - [X] Add types to expressions
+ - [ ] Add equal operator
+ - [ ] Pretty print expressions
+ - [ ] Add Loops
+ - [ ] Add Arrays
+ - [ ] Add structures
