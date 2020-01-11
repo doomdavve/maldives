@@ -27,6 +27,7 @@ pub enum BinaryOperation {
     GreaterThan,
     LessEqualThan,
     GreaterEqualThan,
+    Equal,
 }
 
 #[derive(Debug, PartialEq, Clone)]

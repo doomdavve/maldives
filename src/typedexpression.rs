@@ -178,6 +178,7 @@ pub enum TypedBinaryOperation {
     GreaterThan,
     LessEqualThan,
     GreaterEqualThan,
+    Equal,
 }
 
 #[derive(Debug, PartialEq)]

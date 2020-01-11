@@ -96,6 +96,10 @@ impl<'a> Parser<'a> {
                 self.sym = self.lexer.next();
                 Ok(BinaryOperation::LessEqualThan)
             }
+            Some(Token::EqualEqual) => {
+                self.sym = self.lexer.next();
+                Ok(BinaryOperation::Equal)
+            }
             _ => Err(ParseError::new(format!(
                 "unexpected token {:?} found, expected operation such as '+'",
                 self.sym
@@ -204,6 +208,7 @@ impl<'a> Parser<'a> {
             || self.sym == Some(Token::LessEqual)
             || self.sym == Some(Token::Greater)
             || self.sym == Some(Token::GreaterEqual)
+            || self.sym == Some(Token::EqualEqual)
         {
             expr = self.expression_wrap(Some(expr))?
         }
@@ -268,7 +273,8 @@ impl<'a> Parser<'a> {
             | Some(Token::Greater)
             | Some(Token::Less)
             | Some(Token::LessEqual)
-            | Some(Token::GreaterEqual) => {
+            | Some(Token::GreaterEqual)
+            | Some(Token::EqualEqual) => {
                 let left = child.ok_or(ParseError::new(format!("missing left-hand expression")))?;
                 let binary = self.binary(left)?;
                 Ok(Expression::Binary(Rc::new(binary)))

@@ -27,7 +27,8 @@ The sample above shows off lexical binding and closures.
  - [X] Factor out Expression from parser
  - [X] Write/print to somewhere (println)
  - [X] Add types to expressions
- - [ ] Add equal operator
+ - [X] Add equal operator
+ - [ ] Operator precedence
  - [ ] Pretty print expressions
  - [ ] Add Loops
  - [ ] Add Arrays

@@ -141,6 +141,15 @@ impl Interpreter {
                             env,
                         )),
                     },
+                    TypedBinaryOperation::Equal => match (l.expr.node, r.expr.node) {
+                        (TypedExpressionNode::Integer(li), TypedExpressionNode::Integer(ri)) => {
+                            Ok(Closure::simple(TypedExpression::bool(li == ri)))
+                        }
+                        _ => Err(InterpreterError::new(
+                            format!("One or more non-integer terms to equal operator"),
+                            env,
+                        )),
+                    },
                 }
             }
             TypedExpressionNode::Conditional(c) => {

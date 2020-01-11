@@ -175,6 +175,14 @@ impl TypeResolver {
                         left,
                         right,
                     )),
+                    (BinaryOperation::Equal, ResolvedType::Integer, ResolvedType::Integer) => {
+                        Ok(TypedExpression::binary_operation(
+                            TypedBinaryOperation::Equal,
+                            ResolvedType::Bool,
+                            left,
+                            right,
+                        ))
+                    }
 
                     _ => Err(TypeResolverError::new(format!("dbg: {:?}", expression))),
                 }

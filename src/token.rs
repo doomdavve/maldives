@@ -9,6 +9,7 @@ pub enum Token<'a> {
     Else,
     Let,
     Equal,
+    EqualEqual,
     Greater,
     Less,
     GreaterEqual,
