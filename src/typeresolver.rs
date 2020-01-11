@@ -211,6 +211,13 @@ impl TypeResolver {
                 }
                 Ok(TypedExpression::block(list))
             }
+            Expression::Program(program) => {
+                let mut list = Vec::new();
+                for expr in &program.list {
+                    list.push(TypeResolver::resolve(&expr, env)?);
+                }
+                Ok(TypedExpression::program(list))
+            }
             Expression::Bind(bind) => {
                 let expr = TypeResolver::resolve(&bind.expr, env)?;
                 let resolved_sym_type: Option<ResolvedType> = match bind.sym_type.clone() {

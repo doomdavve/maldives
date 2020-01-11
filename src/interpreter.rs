@@ -45,7 +45,10 @@ impl Interpreter {
         Ok(closure.expr)
     }
 
-    fn eval(expr: &TypedExpression, env: &mut SymbolTable) -> Result<Closure, InterpreterError> {
+    fn eval(
+        expr: &TypedExpression,
+        mut env: &mut SymbolTable,
+    ) -> Result<Closure, InterpreterError> {
         debug!("Evaulating {:?} with vars: {:?}", expr, env);
         match &expr.node {
             TypedExpressionNode::Void => Ok(Closure::simple(TypedExpression::void())),
@@ -186,6 +189,13 @@ impl Interpreter {
                 let mut scope = env.clone();
                 for expr in &b.list {
                     last = Interpreter::eval(&expr, &mut scope);
+                }
+                last
+            }
+            TypedExpressionNode::Program(program) => {
+                let mut last = Ok(Closure::simple(TypedExpression::void()));
+                for expr in &program.list {
+                    last = Interpreter::eval(&expr, &mut env);
                 }
                 last
             }

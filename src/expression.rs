@@ -9,6 +9,7 @@ pub enum Expression {
     FunctionCall(Rc<FunctionCallExpr>),
     Bind(Rc<BindExpr>),
     Block(Rc<BlockExpr>),
+    Program(Rc<BlockExpr>),
     Group(Rc<GroupExpr>),
     Symbol(String),
     String(String),

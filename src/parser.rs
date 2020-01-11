@@ -189,7 +189,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn expression(&mut self) -> Result<Expression, ParseError> {
+    pub fn expression(&mut self) -> Result<Expression, ParseError> {
         self.expression_wrap(None)
     }
 
@@ -382,7 +382,7 @@ impl<'a> Parser<'a> {
                 }
             }
         }
-        Ok(Expression::Block(Rc::new(BlockExpr { list })))
+        Ok(Expression::Program(Rc::new(BlockExpr { list })))
     }
 }
 

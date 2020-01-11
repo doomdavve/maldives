@@ -86,6 +86,16 @@ impl TypedExpression {
             node: TypedExpressionNode::Block(Rc::new(TypedBlockExpr { list })),
         }
     }
+    pub fn program(list: Vec<TypedExpression>) -> TypedExpression {
+        let block_resolved_type = list
+            .last()
+            .map(|last| last.resolved_type.clone())
+            .unwrap_or_else(|| ResolvedType::None);
+        TypedExpression {
+            resolved_type: block_resolved_type,
+            node: TypedExpressionNode::Program(Rc::new(TypedBlockExpr { list })),
+        }
+    }
     pub fn bind(symbol: String, expr: TypedExpression) -> TypedExpression {
         TypedExpression {
             resolved_type: expr.resolved_type.clone(),
@@ -149,6 +159,7 @@ pub enum TypedExpressionNode {
     FunctionCall(Rc<TypedFunctionCallExpr>),
     Bind(Rc<TypedBindExpr>),
     Block(Rc<TypedBlockExpr>),
+    Program(Rc<TypedBlockExpr>),
     Group(Rc<TypedGroupExpr>),
     String(String),
     Symbol(String),
