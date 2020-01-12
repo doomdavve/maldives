@@ -31,6 +31,13 @@ impl<'a> Parser<'a> {
         self.sym = self.lexer.next()
     }
 
+    fn sym_as_str(&self) -> String {
+        self.sym
+            .as_ref()
+            .map(|t| t.to_string())
+            .unwrap_or_else(|| String::from("<none>"))
+    }
+
     fn accept(&mut self, s: Token) -> bool {
         if self.sym == Some(s) {
             self.sym = self.lexer.next();
@@ -44,7 +51,21 @@ impl<'a> Parser<'a> {
         if self.accept(s) {
             Ok(())
         } else {
-            Err(ParseError::new(format!("unexpected token {:?}", self.sym)))
+            Err(ParseError::new(format!(
+                "unexpected token '{}'",
+                self.sym_as_str()
+            )))
+        }
+    }
+
+    fn expect_none(&mut self) -> Result<(), ParseError> {
+        if self.sym == None {
+            Ok(())
+        } else {
+            Err(ParseError::new(format!(
+                "unexpected token '{}'",
+                self.sym_as_str()
+            )))
         }
     }
 
@@ -56,8 +77,8 @@ impl<'a> Parser<'a> {
                 Ok(symbol_name)
             }
             _ => Err(ParseError::new(format!(
-                "unexpected token {:?} found, expected symbol",
-                self.sym
+                "unexpected token {} found, expected symbol",
+                self.sym_as_str()
             ))),
         }
     }
@@ -101,8 +122,8 @@ impl<'a> Parser<'a> {
                 Ok(BinaryOperation::Equal)
             }
             _ => Err(ParseError::new(format!(
-                "unexpected token {:?} found, expected operation such as '+'",
-                self.sym
+                "unexpected token {} found, expected operation such as '+'",
+                self.sym_as_str()
             ))),
         }
     }
@@ -281,8 +302,8 @@ impl<'a> Parser<'a> {
             }
             Some(Token::BraceRight) => Ok(Expression::Void),
             _ => Err(ParseError::new(format!(
-                "unexpected token {:?} found, expected sub expression",
-                self.sym
+                "unexpected token {} found, expected sub expression",
+                self.sym_as_str()
             ))),
         }
     }
@@ -388,6 +409,8 @@ impl<'a> Parser<'a> {
                 }
             }
         }
+
+        self.expect_none()?;
         Ok(Expression::Program(Rc::new(BlockExpr { list })))
     }
 }

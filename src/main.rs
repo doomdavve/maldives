@@ -104,7 +104,7 @@ fn repl() -> Result<i32, String> {
                             }
                         }
                         Err(e) => {
-                            println!("Failed to parse: {:?}", e);
+                            println!("{}", e.message);
                         }
                     }
                 }
