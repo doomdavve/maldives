@@ -28,6 +28,7 @@ mod typeresolver;
 use interpreter::Interpreter;
 use lexer::Lexer;
 use parser::Parser;
+use resolvedtype::ResolvedType;
 use symboltable::Closure;
 use symboltable::SymbolTable;
 use typedexpression::{TypedExpression, TypedExpressionNode};
@@ -70,7 +71,21 @@ fn root_symboltable() -> SymbolTable {
     let mut root = SymbolTable::new();
     root.bind(
         "println".to_string(),
-        Closure::simple(TypedExpression::native_function(native_println)),
+        Closure::simple(TypedExpression::native_function(
+            native_println,
+            ResolvedType::None,
+            ResolvedType::String,
+            true,
+        )),
+    );
+    root.bind(
+        "dbg".to_string(),
+        Closure::simple(TypedExpression::native_function(
+            native_dbg,
+            ResolvedType::None,
+            ResolvedType::Any,
+            false,
+        )),
     );
     root
 }
@@ -96,7 +111,10 @@ fn repl() -> Result<i32, String> {
                             match TypeResolver::resolve_in_env(&program, &root) {
                                 Ok(resolved) => {
                                     match Interpreter::eval_expression(&resolved, &mut root) {
-                                        Ok(a) => println!("{}", a),
+                                        Ok(a) => match a.resolved_type {
+                                            ResolvedType::None => {}
+                                            _ => println!("{}", a),
+                                        },
                                         Err(e) => println!("{}", e),
                                     }
                                 }
@@ -267,12 +285,11 @@ fn eval_string_concatenation() {
     );
 }
 
+use crate::native::native_dbg;
 use crate::native::native_println;
 use crate::typeresolver::TypeResolver;
 #[cfg(test)]
 use resolvedtype::ResolvedFunctionType;
-#[cfg(test)]
-use resolvedtype::ResolvedType;
 
 #[test]
 fn type_check_simple_integer() {

@@ -146,15 +146,18 @@ impl TypedExpression {
 
     pub fn native_function(
         f: fn(e: &TypedExpression) -> Result<TypedExpression, String>,
+        return_type: ResolvedType,
+        arg_type: ResolvedType,
+        call_by_value: bool,
     ) -> TypedExpression {
         TypedExpression {
             resolved_type: ResolvedType::Function(Rc::new(ResolvedFunctionType {
-                return_type: ResolvedType::None,
-                parameters: vec![ResolvedType::String],
+                return_type,
+                parameters: vec![arg_type],
             })),
             node: TypedExpressionNode::NativeFunction(Rc::new(TypedNativeFunctionExpr {
                 function: f,
-                call_by_value: true,
+                call_by_value,
             })),
         }
     }
