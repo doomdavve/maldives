@@ -128,6 +128,16 @@ impl TypeResolver {
                             right,
                         ))
                     }
+                    (
+                        BinaryOperation::ToThePowerOf,
+                        ResolvedType::Integer,
+                        ResolvedType::Integer,
+                    ) => Ok(TypedExpression::binary_operation(
+                        TypedBinaryOperation::ToThePowerOf,
+                        ResolvedType::Integer,
+                        left,
+                        right,
+                    )),
                     (BinaryOperation::Divide, ResolvedType::Integer, ResolvedType::Integer) => {
                         Ok(TypedExpression::binary_operation(
                             TypedBinaryOperation::Divide,

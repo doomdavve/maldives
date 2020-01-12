@@ -17,6 +17,11 @@ pub struct Parser<'a> {
     lexer: Lexer<'a>,
 }
 
+enum Assoc {
+    Left,
+    Right,
+}
+
 impl<'a> Parser<'a> {
     pub fn new(mut lexer: Lexer<'a>) -> Parser<'a> {
         Parser {
@@ -100,6 +105,10 @@ impl<'a> Parser<'a> {
             Some(Token::Star) => {
                 self.sym = self.lexer.next();
                 Ok(BinaryOperation::Multiply)
+            }
+            Some(Token::StarStar) => {
+                self.sym = self.lexer.next();
+                Ok(BinaryOperation::ToThePowerOf)
             }
             Some(Token::Less) => {
                 self.sym = self.lexer.next();
@@ -215,35 +224,54 @@ impl<'a> Parser<'a> {
     }
 
     pub fn expression(&mut self) -> Result<Expression, ParseError> {
-        self.expression_wrap(None)
+        self.expression_wrap(0)
     }
 
-    fn expression_wrap(
-        &mut self,
-        predecessor: Option<Expression>,
-    ) -> Result<Expression, ParseError> {
-        let mut expr = self.expression_sub(predecessor)?;
-        while self.sym == Some(Token::ParenLeft)
-            || self.sym == Some(Token::Plus)
-            || self.sym == Some(Token::Minus)
-            || self.sym == Some(Token::Star)
-            || self.sym == Some(Token::Slash)
-            || self.sym == Some(Token::Less)
-            || self.sym == Some(Token::LessEqual)
-            || self.sym == Some(Token::Greater)
-            || self.sym == Some(Token::GreaterEqual)
-            || self.sym == Some(Token::EqualEqual)
-        {
-            expr = self.expression_wrap(Some(expr))?
+    fn next_min_prec(&self) -> (Option<i32>, Assoc) {
+        match self.sym {
+            Some(Token::Plus) | Some(Token::Minus) => (Some(1), Assoc::Left),
+            Some(Token::Star) | Some(Token::Slash) => (Some(2), Assoc::Left),
+            Some(Token::StarStar) => (Some(3), Assoc::Right),
+            Some(Token::Less)
+            | Some(Token::LessEqual)
+            | Some(Token::Greater)
+            | Some(Token::GreaterEqual)
+            | Some(Token::EqualEqual) => (Some(0), Assoc::Left),
+            _ => (None, Assoc::Left),
+        }
+    }
+
+    fn expression_wrap(&mut self, min_prec: i32) -> Result<Expression, ParseError> {
+        let mut expr = self.expression_sub()?;
+        loop {
+            match self.next_min_prec() {
+                (Some(prec), assoc) => {
+                    if prec < min_prec {
+                        break;
+                    }
+                    let next_min_prec = match assoc {
+                        Assoc::Left => prec + 1,
+                        Assoc::Right => prec,
+                    };
+                    let operation = self.operation()?;
+                    let right = self.expression_wrap(next_min_prec)?;
+                    expr = Expression::Binary(Rc::new(BinaryExpr {
+                        operation,
+                        left: expr,
+                        right,
+                    }))
+                }
+                _ => {
+                    break;
+                }
+            }
         }
         Ok(expr)
     }
 
-    fn expression_sub(
-        &mut self,
-        predecessor: Option<Expression>,
-    ) -> Result<Expression, ParseError> {
-        match self.sym {
+    // FIXME: rename to expression_atom
+    fn expression_sub(&mut self) -> Result<Expression, ParseError> {
+        let mut atom = match self.sym {
             Some(Token::Symbol(s)) => {
                 let symbol_name = unsafe { from_utf8_unchecked(s) }.to_string();
                 self.sym = self.lexer.next();
@@ -263,16 +291,10 @@ impl<'a> Parser<'a> {
                 let conditional = self.conditional()?;
                 Ok(Expression::Conditional(Rc::new(conditional)))
             }
-            Some(Token::ParenLeft) => match predecessor {
-                Some(function_expr) => {
-                    let call = self.function_call(function_expr)?;
-                    Ok(Expression::FunctionCall(Rc::new(call)))
-                }
-                None => {
-                    let group = self.group()?;
-                    Ok(Expression::Group(Rc::new(group)))
-                }
-            },
+            Some(Token::ParenLeft) => {
+                let group = self.group()?;
+                Ok(Expression::Group(Rc::new(group)))
+            }
             Some(Token::Let) => {
                 let binding = self.binding()?;
                 Ok(Expression::Bind(Rc::new(binding)))
@@ -293,25 +315,19 @@ impl<'a> Parser<'a> {
                 self.sym = self.lexer.next();
                 Ok(Expression::Bool(false))
             }
-            Some(Token::Plus)
-            | Some(Token::Minus)
-            | Some(Token::Star)
-            | Some(Token::Slash)
-            | Some(Token::Greater)
-            | Some(Token::Less)
-            | Some(Token::LessEqual)
-            | Some(Token::GreaterEqual)
-            | Some(Token::EqualEqual) => {
-                let left =
-                    predecessor.ok_or(ParseError::new(format!("missing left-hand expression")))?;
-                let binary = self.binary(left)?;
-                Ok(Expression::Binary(Rc::new(binary)))
-            }
             Some(Token::BraceRight) => Ok(Expression::Void),
             _ => Err(ParseError::new(format!(
                 "unexpected token {} found, expected sub expression",
                 self.sym_as_str()
             ))),
+        }?;
+
+        loop {
+            if self.sym != Some(Token::ParenLeft) {
+                break Ok(atom);
+            }
+            let call = self.function_call(atom)?;
+            atom = Expression::FunctionCall(Rc::new(call))
         }
     }
 
@@ -336,16 +352,6 @@ impl<'a> Parser<'a> {
         let expr = self.expression()?;
         self.expect(Token::ParenRight)?;
         Ok(GroupExpr { expr })
-    }
-
-    fn binary(&mut self, left: Expression) -> Result<BinaryExpr, ParseError> {
-        let operation = self.operation()?;
-        let right = self.expression()?;
-        Ok(BinaryExpr {
-            operation,
-            left,
-            right,
-        })
     }
 
     fn function_call(&mut self, expr: Expression) -> Result<FunctionCallExpr, ParseError> {

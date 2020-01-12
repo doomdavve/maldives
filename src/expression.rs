@@ -22,6 +22,7 @@ pub enum BinaryOperation {
     Sum,
     Difference,
     Multiply,
+    ToThePowerOf,
     Divide,
     LessThan,
     GreaterThan,

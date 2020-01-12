@@ -285,6 +285,14 @@ fn eval_string_concatenation() {
     );
 }
 
+#[test]
+fn test_check_operator_precedence() {
+    assert_eq!(
+        Ok(TypedExpression::bool(true)),
+        eval_program("77 == 1 + 8**2 + 2 * (3 + 3)")
+    );
+}
+
 use crate::native::native_dbg;
 use crate::native::native_println;
 use crate::typeresolver::TypeResolver;

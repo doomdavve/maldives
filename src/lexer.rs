@@ -214,6 +214,7 @@ impl<'a> Lexer<'a> {
         return_if_2characters!(self, Token::LessEqual, b'<', b'=');
         return_if_2characters!(self, Token::RightArrow, b'-', b'>');
         return_if_2characters!(self, Token::EqualEqual, b'=', b'=');
+        return_if_2characters!(self, Token::StarStar, b'*', b'*');
         return_if_character!(self, Token::BraceLeft, b'{');
         return_if_character!(self, Token::BraceRight, b'}');
         return_if_character!(self, Token::ParenLeft, b'(');

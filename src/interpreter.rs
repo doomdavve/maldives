@@ -1,3 +1,4 @@
+use std::convert::TryInto;
 use std::error;
 use std::fmt;
 
@@ -83,6 +84,18 @@ impl Interpreter {
                             env,
                         )),
                     },
+                    TypedBinaryOperation::ToThePowerOf => match (l.expr.node, r.expr.node) {
+                        (TypedExpressionNode::Integer(li), TypedExpressionNode::Integer(ri)) => {
+                            Ok(Closure::simple(TypedExpression::integer(
+                                li.pow(ri.try_into().unwrap()),
+                            )))
+                        }
+                        _ => Err(InterpreterError::new(
+                            format!("Unexpected terms in power operator"),
+                            env,
+                        )),
+                    },
+
                     TypedBinaryOperation::Divide => {
                         // TODO: handle division by zero.
                         match (l.expr.node, r.expr.node) {
