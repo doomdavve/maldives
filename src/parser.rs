@@ -218,8 +218,11 @@ impl<'a> Parser<'a> {
         self.expression_wrap(None)
     }
 
-    fn expression_wrap(&mut self, child: Option<Expression>) -> Result<Expression, ParseError> {
-        let mut expr = self.expression_sub(child)?;
+    fn expression_wrap(
+        &mut self,
+        predecessor: Option<Expression>,
+    ) -> Result<Expression, ParseError> {
+        let mut expr = self.expression_sub(predecessor)?;
         while self.sym == Some(Token::ParenLeft)
             || self.sym == Some(Token::Plus)
             || self.sym == Some(Token::Minus)
@@ -236,7 +239,10 @@ impl<'a> Parser<'a> {
         Ok(expr)
     }
 
-    fn expression_sub(&mut self, child: Option<Expression>) -> Result<Expression, ParseError> {
+    fn expression_sub(
+        &mut self,
+        predecessor: Option<Expression>,
+    ) -> Result<Expression, ParseError> {
         match self.sym {
             Some(Token::Symbol(s)) => {
                 let symbol_name = unsafe { from_utf8_unchecked(s) }.to_string();
@@ -257,7 +263,7 @@ impl<'a> Parser<'a> {
                 let conditional = self.conditional()?;
                 Ok(Expression::Conditional(Rc::new(conditional)))
             }
-            Some(Token::ParenLeft) => match child {
+            Some(Token::ParenLeft) => match predecessor {
                 Some(function_expr) => {
                     let call = self.function_call(function_expr)?;
                     Ok(Expression::FunctionCall(Rc::new(call)))
@@ -296,7 +302,8 @@ impl<'a> Parser<'a> {
             | Some(Token::LessEqual)
             | Some(Token::GreaterEqual)
             | Some(Token::EqualEqual) => {
-                let left = child.ok_or(ParseError::new(format!("missing left-hand expression")))?;
+                let left =
+                    predecessor.ok_or(ParseError::new(format!("missing left-hand expression")))?;
                 let binary = self.binary(left)?;
                 Ok(Expression::Binary(Rc::new(binary)))
             }
