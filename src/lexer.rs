@@ -40,6 +40,14 @@ fn eat_whitespace_and_comments(s: &[u8], mut i: usize) -> usize {
     }
 }
 
+fn eat_shebang(s: &[u8], i: usize) -> usize {
+    let at_hashbang = match_character(s, i, b'#') && match_character(s, i + 1, b'!');
+    if !at_hashbang {
+        return i;
+    }
+    eat_line(s, i + 2)
+}
+
 fn is_alphabetic(c: u8) -> bool {
     (b'a' <= c && c <= b'z') || (b'A' <= c && c <= b'Z') || b'_' == c || b'-' == c
 }
@@ -129,9 +137,10 @@ macro_rules! return_if_5characters {
 
 impl<'a> Lexer<'a> {
     pub fn new(buffer: &'a str) -> Lexer<'a> {
+        let bytes = buffer.as_bytes();
         Lexer {
-            buffer: buffer.as_bytes(),
-            start: 0,
+            buffer: bytes,
+            start: eat_shebang(bytes, 0),
         }
     }
 
