@@ -214,6 +214,8 @@ impl<'a> Lexer<'a> {
     fn tokenize_structure(&self) -> (Option<Token<'a>>, usize) {
         // TODO: Rewrite with pattern matching?
         return_if_5characters!(self, Token::False, b'f', b'a', b'l', b's', b'e');
+        return_if_5characters!(self, Token::Break, b'b', b'r', b'e', b'a', b'k');
+        return_if_4characters!(self, Token::Loop, b'l', b'o', b'o', b'p');
         return_if_4characters!(self, Token::True, b't', b'r', b'u', b'e');
         return_if_4characters!(self, Token::Else, b'e', b'l', b's', b'e');
         return_if_3characters!(self, Token::Let, b'l', b'e', b't');

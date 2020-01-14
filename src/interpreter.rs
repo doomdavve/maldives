@@ -207,12 +207,43 @@ impl Interpreter {
                 Ok(val)
             }
             TypedExpressionNode::Block(b) => {
-                let mut last = Ok(Closure::simple(TypedExpression::void()));
+                let mut last = Closure::simple(TypedExpression::void());
                 let mut scope = env.clone();
                 for expr in &b.list {
-                    last = Interpreter::eval(&expr, &mut scope);
+                    last = Interpreter::eval(&expr, &mut scope)?;
+                    match &last.expr.node {
+                        TypedExpressionNode::Break(break_expr) => {
+                            Some(Closure::simple(break_expr.expr.clone()));
+                            break;
+                        }
+                        _ => (),
+                    }
                 }
-                last
+                Ok(last)
+            }
+            TypedExpressionNode::Loop(b) => {
+                let mut last: Option<Closure> = None;
+                let mut scope = env.clone();
+                while last.is_none() {
+                    for expr in &b.list {
+                        let res = Interpreter::eval(&expr, &mut scope)?;
+                        last = match res.expr.node {
+                            TypedExpressionNode::Break(break_expr) => {
+                                Some(Closure::simple(break_expr.expr.clone()))
+                            }
+                            _ => None,
+                        }
+                    }
+                }
+                last.ok_or(InterpreterError::new("internal error".to_string(), env))
+            }
+            TypedExpressionNode::Break(b) => {
+                let expr = &b.expr;
+                let closure = Interpreter::eval(&expr, &mut env)?;
+                Ok(Closure::complete(
+                    TypedExpression::r#break(closure.expr),
+                    closure.env,
+                ))
             }
             TypedExpressionNode::Program(program) => {
                 let mut last = Ok(Closure::simple(TypedExpression::void()));
@@ -231,6 +262,7 @@ impl Interpreter {
                 }
                 Ok(closure.clone())
             }
+
             TypedExpressionNode::NativeFunction(_) => Ok(Closure::simple(expr.clone())),
             TypedExpressionNode::FunctionCall(fc) => {
                 let value = Interpreter::eval(&fc.expr, env)?;

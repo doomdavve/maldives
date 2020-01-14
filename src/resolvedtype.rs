@@ -29,6 +29,8 @@ pub enum ResolvedType {
     Function(Rc<ResolvedFunctionType>),
     Any,
     None,
+    Never,
+    Break(Box<ResolvedType>),
 }
 
 impl fmt::Display for ResolvedType {
@@ -40,6 +42,8 @@ impl fmt::Display for ResolvedType {
             ResolvedType::Function(resolved_fn) => write!(f, "{}", resolved_fn),
             ResolvedType::Any => write!(f, "any"),
             ResolvedType::None => write!(f, "none"),
+            ResolvedType::Never => write!(f, "never"),
+            ResolvedType::Break(break_expression) => write!(f, "break <{}>", break_expression),
         }
     }
 }
@@ -53,6 +57,7 @@ impl ResolvedType {
                 "string" => Some(ResolvedType::String),
                 "any" => Some(ResolvedType::Any),
                 "none" => Some(ResolvedType::None),
+                "!" => Some(ResolvedType::Never),
                 _ => None,
             },
             TypeDeclaration::Function(f) => {

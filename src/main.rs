@@ -293,6 +293,14 @@ fn test_check_operator_precedence() {
     );
 }
 
+#[test]
+fn test_check_loop_and_break() {
+    assert_eq!(
+        Ok(TypedExpression::integer(46368)),
+        eval_program("let a = 1; let b = 1; loop { let c = a; let a = a + b; let b = c; if a > 30000 break a }")
+    );
+}
+
 use crate::native::native_dbg;
 use crate::native::native_println;
 use crate::typeresolver::TypeResolver;

@@ -33,6 +33,8 @@ pub enum Token<'a> {
     SemiColon,
     Comma,
     RightArrow,
+    Loop,
+    Break,
 }
 
 impl<'a> fmt::Display for Token<'a> {
@@ -68,6 +70,8 @@ impl<'a> fmt::Display for Token<'a> {
             Token::SemiColon => write!(f, ";"),
             Token::Comma => write!(f, ","),
             Token::RightArrow => write!(f, "->"),
+            Token::Loop => write!(f, "loop"),
+            Token::Break => write!(f, "break"),
         }
     }
 }

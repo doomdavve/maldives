@@ -9,11 +9,13 @@ pub enum Expression {
     FunctionCall(Rc<FunctionCallExpr>),
     Bind(Rc<BindExpr>),
     Block(Rc<BlockExpr>),
+    Loop(Rc<LoopExpr>),
     Program(Rc<BlockExpr>),
     Group(Rc<GroupExpr>),
     Symbol(String),
     String(String),
     Conditional(Rc<ConditionalExpr>),
+    Break(Rc<BreakExpr>),
     Void,
 }
 
@@ -86,4 +88,14 @@ pub struct FunctionExpr {
 #[derive(Debug, PartialEq)]
 pub struct BlockExpr {
     pub list: Vec<Expression>,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct LoopExpr {
+    pub list: Vec<Expression>,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct BreakExpr {
+    pub expr: Expression,
 }

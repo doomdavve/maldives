@@ -37,6 +37,39 @@ infix parsing, getting half-way there and *then* reading about
 parser](https://en.wikipedia.org/wiki/Operator-precedence_parser
 "Wikipedia's page"). It's a beautiful algorithm.
 
+#### Loop and break
+
+```
+> let a = 1; let b = 1; println(loop { let c = a; let a = a + b; let b = c; if a > 30000 {break a; } else println(a) })
+2
+3
+5
+8
+13
+21
+34
+55
+89
+144
+233
+377
+610
+987
+1597
+2584
+4181
+6765
+10946
+17711
+28657
+46368
+```
+
+It's not the most pretty program I've written but it computes the
+first numbers (ignoring F_0, F_1, F_2) of the Fibonacci sequence.
+Besides looking confusing, it also shows the loop expression that may
+contain break statements.
+
 #### Near term TODO
 
  - [X] Lexical scoping
@@ -47,6 +80,7 @@ parser](https://en.wikipedia.org/wiki/Operator-precedence_parser
  - [X] Add equal operator
  - [X] Pretty print expressions
  - [X] Operator precedence
- - [ ] Add Loops
+ - [X] Add loop
+ - [ ] Differentiate between let and assign
  - [ ] Add Arrays
  - [ ] Add structures

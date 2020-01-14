@@ -5,8 +5,8 @@ use std::rc::Rc;
 use std::str::from_utf8_unchecked;
 
 use crate::expression::{
-    BinaryExpr, BinaryOperation, BindExpr, BlockExpr, ConditionalExpr, Expression,
-    FunctionCallExpr, FunctionExpr, GroupExpr,
+    BinaryExpr, BinaryOperation, BindExpr, BlockExpr, BreakExpr, ConditionalExpr, Expression,
+    FunctionCallExpr, FunctionExpr, GroupExpr, LoopExpr,
 };
 use crate::lexer::Lexer;
 use crate::parse_error::ParseError;
@@ -291,6 +291,10 @@ impl<'a> Parser<'a> {
                 let conditional = self.conditional()?;
                 Ok(Expression::Conditional(Rc::new(conditional)))
             }
+            Some(Token::Loop) => {
+                let loop_expr = self.r#loop()?;
+                Ok(Expression::Loop(Rc::new(loop_expr)))
+            }
             Some(Token::ParenLeft) => {
                 let group = self.group()?;
                 Ok(Expression::Group(Rc::new(group)))
@@ -316,10 +320,33 @@ impl<'a> Parser<'a> {
                 Ok(Expression::Bool(false))
             }
             Some(Token::BraceRight) => Ok(Expression::Void),
-            _ => Err(ParseError::new(format!(
-                "unexpected token {} found, expected sub expression",
+            Some(Token::Break) => {
+                let break_expr = self.r#break()?;
+                Ok(Expression::Break(Rc::new(break_expr)))
+            }
+            Some(Token::Else)
+            | Some(Token::Equal)
+            | Some(Token::EqualEqual)
+            | Some(Token::Greater)
+            | Some(Token::Less)
+            | Some(Token::GreaterEqual)
+            | Some(Token::LessEqual)
+            | Some(Token::Plus)
+            | Some(Token::Minus)
+            | Some(Token::Star)
+            | Some(Token::StarStar)
+            | Some(Token::Slash)
+            | Some(Token::ParenRight)
+            | Some(Token::BracketLeft)
+            | Some(Token::BracketRight)
+            | Some(Token::Colon)
+            | Some(Token::SemiColon)
+            | Some(Token::Comma)
+            | Some(Token::RightArrow) => Err(ParseError::new(format!(
+                "unexpected token: {}",
                 self.sym_as_str()
             ))),
+            None => Err(ParseError::new(format!("unexpected EOF"))),
         }?;
 
         loop {
@@ -329,6 +356,30 @@ impl<'a> Parser<'a> {
             let call = self.function_call(atom)?;
             atom = Expression::FunctionCall(Rc::new(call))
         }
+    }
+
+    fn r#break(&mut self) -> Result<BreakExpr, ParseError> {
+        self.expect(Token::Break)?;
+        let expr = self.expression()?;
+        Ok(BreakExpr { expr })
+    }
+
+    fn r#loop(&mut self) -> Result<LoopExpr, ParseError> {
+        self.expect(Token::Loop)?;
+        self.expect(Token::BraceLeft)?;
+        let mut list: Vec<Expression> = Vec::new();
+        if self.sym != Some(Token::BraceRight) {
+            list.push(self.expression()?);
+            loop {
+                if self.accept(Token::SemiColon) {
+                    list.push(self.expression()?);
+                } else {
+                    break;
+                }
+            }
+        }
+        self.expect(Token::BraceRight)?;
+        Ok(LoopExpr { list })
     }
 
     fn conditional(&mut self) -> Result<ConditionalExpr, ParseError> {

@@ -1,7 +1,8 @@
 use std::error;
 use std::fmt;
+use std::rc::Rc;
 
-use crate::expression::{BinaryOperation, Expression};
+use crate::expression::{BinaryOperation, Expression, LoopExpr};
 use crate::resolvedtype::ResolvedType;
 use crate::symboltable::SymbolTable;
 use crate::typedexpression::{TypedBinaryOperation, TypedExpression};
@@ -53,6 +54,26 @@ impl TypeTable {
     }
 }
 
+struct ResolveContext {
+    loop_expr: Option<Rc<LoopExpr>>,
+    parent: Option<Rc<ResolveContext>>,
+}
+
+impl ResolveContext {
+    fn new() -> ResolveContext {
+        ResolveContext {
+            loop_expr: None,
+            parent: None,
+        }
+    }
+    fn r#loop(ctx: Rc<ResolveContext>, loop_expr: &Rc<LoopExpr>) -> Rc<ResolveContext> {
+        Rc::new(ResolveContext {
+            loop_expr: Some(loop_expr.clone()),
+            parent: Some(ctx.clone()),
+        })
+    }
+}
+
 impl TypeResolver {
     pub fn resolve_in_env(
         expression: &Expression,
@@ -62,12 +83,13 @@ impl TypeResolver {
         for (key, value) in &env.map {
             type_table.bind(key.clone(), value.expr.resolved_type.clone())
         }
-        TypeResolver::resolve(expression, &mut type_table)
+        TypeResolver::resolve(expression, &mut type_table, &Rc::new(ResolveContext::new()))
     }
 
     fn resolve(
         expression: &Expression,
         env: &mut TypeTable,
+        ctx: &Rc<ResolveContext>,
     ) -> Result<TypedExpression, TypeResolverError> {
         match expression {
             Expression::Void => Ok(TypedExpression::void()),
@@ -75,7 +97,7 @@ impl TypeResolver {
             Expression::Bool(b) => Ok(TypedExpression::bool(*b)),
             Expression::String(s) => Ok(TypedExpression::string(s.to_string())),
             Expression::Group(group) => {
-                let typed_group = TypeResolver::resolve(&group.expr, env)?;
+                let typed_group = TypeResolver::resolve(&group.expr, env, ctx)?;
                 Ok(TypedExpression::group(typed_group))
             }
             Expression::Symbol(s) => {
@@ -89,8 +111,8 @@ impl TypeResolver {
                 ))
             }
             Expression::Binary(b) => {
-                let left = TypeResolver::resolve(&b.left, env)?;
-                let right = TypeResolver::resolve(&b.right, env)?;
+                let left = TypeResolver::resolve(&b.left, env, ctx)?;
+                let right = TypeResolver::resolve(&b.right, env, ctx)?;
                 match (
                     b.operation,
                     left.resolved_type.clone(),
@@ -198,10 +220,10 @@ impl TypeResolver {
                 }
             }
             Expression::Conditional(c) => {
-                let condition = TypeResolver::resolve(&c.condition, env)?;
-                let true_branch = TypeResolver::resolve(&c.true_branch, env)?;
+                let condition = TypeResolver::resolve(&c.condition, env, ctx)?;
+                let true_branch = TypeResolver::resolve(&c.true_branch, env, ctx)?;
                 let false_branch = match c.false_branch.clone() {
-                    Some(false_branch) => Some(TypeResolver::resolve(&false_branch, env)?),
+                    Some(false_branch) => Some(TypeResolver::resolve(&false_branch, env, ctx)?),
                     None => None,
                 };
                 let true_branch_resolved_type = true_branch.resolved_type.clone();
@@ -219,25 +241,62 @@ impl TypeResolver {
                         false_branch.clone(),
                     ))
                 } else {
-                    Err(TypeResolverError::new("stuff2".to_string()))
+                    Err(TypeResolverError::new(
+                        "Conditional must operate on boolean and both branches must return the same type".to_string(),
+                    ))
                 }
             }
             Expression::Block(b) => {
                 let mut list = Vec::new();
                 for expr in &b.list {
-                    list.push(TypeResolver::resolve(&expr, env)?);
+                    list.push(TypeResolver::resolve(&expr, env, ctx)?);
                 }
                 Ok(TypedExpression::block(list))
+            }
+            Expression::Break(b) => match &ctx.loop_expr {
+                Some(_) => {
+                    let parent_ctx = ctx
+                        .parent
+                        .clone()
+                        .ok_or(TypeResolverError::new("internal error".to_string()))?;
+                    let typed_break = TypeResolver::resolve(&b.expr, env, &parent_ctx)?;
+                    Ok(TypedExpression::r#break(typed_break))
+                }
+                None => Err(TypeResolverError::new("missing loop context".to_string())),
+            },
+            Expression::Loop(b) => {
+                let resolve_context = ResolveContext::r#loop(ctx.clone(), b);
+
+                let mut loop_break_type = ResolvedType::Never;
+                let mut list = Vec::new();
+                for expr in &b.list {
+                    let expr = TypeResolver::resolve(&expr, env, &resolve_context)?;
+                    match &expr.resolved_type {
+                        ResolvedType::Break(break_type) => {
+                            if loop_break_type == ResolvedType::Never {
+                                loop_break_type = *break_type.clone();
+                                Ok(())
+                            } else {
+                                Err(TypeResolverError::new(
+                                    "mismatched break expression types".to_string(),
+                                ))
+                            }
+                        }
+                        _ => Ok(()),
+                    }?;
+                    list.push(expr);
+                }
+                Ok(TypedExpression::r#loop(list, loop_break_type))
             }
             Expression::Program(program) => {
                 let mut list = Vec::new();
                 for expr in &program.list {
-                    list.push(TypeResolver::resolve(&expr, env)?);
+                    list.push(TypeResolver::resolve(&expr, env, ctx)?);
                 }
                 Ok(TypedExpression::program(list))
             }
             Expression::Bind(bind) => {
-                let expr = TypeResolver::resolve(&bind.expr, env)?;
+                let expr = TypeResolver::resolve(&bind.expr, env, ctx)?;
                 let resolved_sym_type: Option<ResolvedType> = match bind.sym_type.clone() {
                     Some(decl) => ResolvedType::from_decl(&decl),
                     None => Some(expr.resolved_type.clone()),
@@ -271,7 +330,7 @@ impl TypeResolver {
                     types.push(resolved_parameter_type)
                 }
 
-                let expr = TypeResolver::resolve(&f.expr, &mut function_env)?;
+                let expr = TypeResolver::resolve(&f.expr, &mut function_env, ctx)?;
                 let return_type = &expr.resolved_type;
 
                 let specified_return_type: ResolvedType = match f.return_type.as_ref() {
@@ -304,12 +363,12 @@ impl TypeResolver {
             }
 
             Expression::FunctionCall(fc) => {
-                let expr = TypeResolver::resolve(&fc.expr, env)?;
+                let expr = TypeResolver::resolve(&fc.expr, env, ctx)?;
                 let return_type = match &expr.resolved_type {
                     ResolvedType::Function(f) => {
                         let mut typed_arguments = Vec::<TypedExpression>::new();
                         for arg in &fc.arguments {
-                            let typed_arg = TypeResolver::resolve(&arg, env)?;
+                            let typed_arg = TypeResolver::resolve(&arg, env, ctx)?;
                             typed_arguments.push(typed_arg)
                         }
 
@@ -339,7 +398,7 @@ impl TypeResolver {
 
                 let mut arguments: Vec<TypedExpression> = Vec::new();
                 for argument in &fc.arguments {
-                    let expr = TypeResolver::resolve(argument, env)?;
+                    let expr = TypeResolver::resolve(argument, env, ctx)?;
                     arguments.push(expr)
                 }
 

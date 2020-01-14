@@ -97,6 +97,18 @@ impl TypedExpression {
             node: TypedExpressionNode::Block(Rc::new(TypedBlockExpr { list })),
         }
     }
+    pub fn r#break(expr: TypedExpression) -> TypedExpression {
+        TypedExpression {
+            resolved_type: ResolvedType::Break(Box::new(expr.resolved_type.clone())),
+            node: TypedExpressionNode::Break(Rc::new(TypedBreakExpr { expr })),
+        }
+    }
+    pub fn r#loop(list: Vec<TypedExpression>, resolved_type: ResolvedType) -> TypedExpression {
+        TypedExpression {
+            resolved_type,
+            node: TypedExpressionNode::Loop(Rc::new(TypedBlockExpr { list })),
+        }
+    }
     pub fn program(list: Vec<TypedExpression>) -> TypedExpression {
         let block_resolved_type = list
             .last()
@@ -178,6 +190,8 @@ pub enum TypedExpressionNode {
     String(String),
     Symbol(String),
     Conditional(Rc<TypedConditionalExpr>),
+    Break(Rc<TypedBreakExpr>),
+    Loop(Rc<TypedBlockExpr>),
     Void,
 }
 
@@ -202,6 +216,8 @@ impl fmt::Display for TypedExpressionNode {
             TypedExpressionNode::Symbol(symbol) => write!(f, "{}", symbol),
             TypedExpressionNode::Conditional(conditional) => write!(f, "{}", conditional),
             TypedExpressionNode::Void => write!(f, "void"),
+            TypedExpressionNode::Break(b) => write!(f, "{}", b),
+            TypedExpressionNode::Loop(b) => write!(f, "{}", b),
         }
     }
 }
@@ -321,6 +337,17 @@ pub struct TypedBlockExpr {
 impl fmt::Display for TypedBlockExpr {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{{}}")
+    }
+}
+
+#[derive(Debug, PartialEq)]
+pub struct TypedBreakExpr {
+    pub expr: TypedExpression,
+}
+
+impl fmt::Display for TypedBreakExpr {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "break")
     }
 }
 
