@@ -74,7 +74,7 @@ fn root_symboltable() -> SymbolTable {
         Closure::simple(TypedExpression::native_function(
             native_println,
             ResolvedType::None,
-            ResolvedType::String,
+            ResolvedType::Any,
             true,
         )),
     );

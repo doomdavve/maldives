@@ -6,6 +6,10 @@ pub fn native_println(e: &TypedExpression) -> Result<TypedExpression, String> {
             println!("{}", s);
             Ok(TypedExpression::void())
         }
+        TypedExpressionNode::Integer(i) => {
+            println!("{}", i);
+            Ok(TypedExpression::void())
+        }
         _ => Err("Unexpected argument to println".to_string()),
     }
 }
