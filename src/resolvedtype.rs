@@ -31,6 +31,7 @@ pub enum ResolvedType {
     None,
     Never,
     Break(Box<ResolvedType>),
+    Array(Box<ResolvedType>),
 }
 
 impl fmt::Display for ResolvedType {
@@ -44,6 +45,7 @@ impl fmt::Display for ResolvedType {
             ResolvedType::None => write!(f, "none"),
             ResolvedType::Never => write!(f, "never"),
             ResolvedType::Break(break_expression) => write!(f, "break <{}>", break_expression),
+            ResolvedType::Array(_) => write!(f, "array"),
         }
     }
 }

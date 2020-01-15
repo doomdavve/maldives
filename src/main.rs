@@ -27,8 +27,6 @@ mod typeresolver;
 
 use interpreter::Interpreter;
 use lexer::Lexer;
-use native::native_dbg;
-use native::native_println;
 use parser::Parser;
 use resolvedtype::ResolvedType;
 use symboltable::Closure;
@@ -75,7 +73,7 @@ fn root_symboltable() -> SymbolTable {
     root.bind(
         "println".to_string(),
         Closure::simple(TypedExpression::native_function(
-            native_println,
+            native::native_println,
             ResolvedType::None,
             ResolvedType::Any,
             true,
@@ -84,8 +82,17 @@ fn root_symboltable() -> SymbolTable {
     root.bind(
         "dbg".to_string(),
         Closure::simple(TypedExpression::native_function(
-            native_dbg,
+            native::native_dbg,
             ResolvedType::None,
+            ResolvedType::Any,
+            false,
+        )),
+    );
+    root.bind(
+        "iarray".to_string(),
+        Closure::simple(TypedExpression::native_function(
+            native::native_integer_array,
+            ResolvedType::Array(Box::new(ResolvedType::Integer)),
             ResolvedType::Any,
             false,
         )),

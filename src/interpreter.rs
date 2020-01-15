@@ -214,6 +214,7 @@ impl Interpreter {
             TypedExpressionNode::String(s) => {
                 Ok(Closure::simple(TypedExpression::string(s.to_string())))
             }
+            TypedExpressionNode::Array(_) => Ok(Closure::simple(expr.clone())),
             TypedExpressionNode::Symbol(s) => {
                 let value = env
                     .lookup(s)

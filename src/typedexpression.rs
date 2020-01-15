@@ -126,6 +126,13 @@ impl TypedExpression {
         }
     }
 
+    pub fn array(array_type: ResolvedType, v: Vec<TypedExpression>) -> TypedExpression {
+        TypedExpression {
+            resolved_type: ResolvedType::Array(Box::new(array_type)),
+            node: TypedExpressionNode::Array(Rc::new(TypedBlockExpr { list: v })),
+        }
+    }
+
     pub fn function(
         sym: Option<String>,
         return_type: ResolvedType,
@@ -192,6 +199,7 @@ pub enum TypedExpressionNode {
     Conditional(Rc<TypedConditionalExpr>),
     Break(Rc<TypedBreakExpr>),
     Loop(Rc<TypedBlockExpr>),
+    Array(Rc<TypedBlockExpr>),
     Void,
 }
 
@@ -218,6 +226,7 @@ impl fmt::Display for TypedExpressionNode {
             TypedExpressionNode::Void => write!(f, "void"),
             TypedExpressionNode::Break(b) => write!(f, "{}", b),
             TypedExpressionNode::Loop(b) => write!(f, "{}", b),
+            TypedExpressionNode::Array(b) => write!(f, "{}", b),
         }
     }
 }
