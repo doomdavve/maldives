@@ -8,6 +8,9 @@ pub struct Lexer<'a> {
 }
 
 fn eat_digits(s: &[u8], mut i: usize) -> usize {
+    if i < s.len() && b'-' == s[i] {
+        i += 1;
+    }
     while i < s.len() && b'0' <= s[i] && s[i] <= b'9' {
         i += 1;
     }
