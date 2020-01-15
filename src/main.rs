@@ -170,10 +170,10 @@ fn type_check_program(
 }
 
 #[cfg(test)]
-fn eval_program(contents: &str) -> Result<TypedExpression, interpreter::InterpreterError> {
+fn eval_program(contents: &str) -> Result<TypedExpression, ()> {
     let mut root = SymbolTable::new();
-    let expression = type_check_program(contents, &mut root).unwrap();
-    Interpreter::eval_expression(&expression, &mut root)
+    let expression = type_check_program(contents, &mut root).map_err(|_| ())?;
+    Interpreter::eval_expression(&expression, &mut root).map_err(|_| ())
 }
 
 #[test]
@@ -297,8 +297,40 @@ fn test_check_operator_precedence() {
 fn test_check_loop_and_break() {
     assert_eq!(
         Ok(TypedExpression::integer(46368)),
-        eval_program("let a = 1; let b = 1; loop { let c = a; let a = a + b; let b = c; if a > 30000 break a }")
+        eval_program(
+            "let a = 1;
+             let b = 1;
+             loop {
+                 let c = a;
+                 a = a + b;
+                 b = c;
+                 if a > 30000 {
+                     break a
+                 }
+             }"
+        )
     );
+}
+
+#[test]
+fn test_assignment() {
+    assert_eq!(
+        Ok(TypedExpression::integer(2)),
+        eval_program("{ let a = 1; a = 2; a }")
+    );
+}
+
+#[test]
+fn test_assignment_error_type_mismatch() {
+    assert_eq!(
+        Err(()),
+        eval_program("{ let a = 1; a = \"some string\"; a }")
+    );
+}
+
+#[test]
+fn test_assignment_error_unbound() {
+    assert_eq!(Err(()), eval_program("{ a = \"some string\"; a }"));
 }
 
 use crate::native::native_dbg;

@@ -215,7 +215,22 @@ impl TypeResolver {
                             right,
                         ))
                     }
-
+                    (BinaryOperation::Assign, _, _) => {
+                        if left.resolved_type == right.resolved_type
+                            || left.resolved_type == ResolvedType::Any
+                        {
+                            Ok(TypedExpression::binary_operation(
+                                TypedBinaryOperation::Assign,
+                                right.resolved_type.clone(),
+                                left,
+                                right,
+                            ))
+                        } else {
+                            Err(TypeResolverError::new(format!(
+                                "type mismatch in assignment",
+                            )))
+                        }
+                    }
                     _ => Err(TypeResolverError::new(format!("dbg: {:?}", expression))),
                 }
             }

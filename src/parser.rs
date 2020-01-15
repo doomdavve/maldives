@@ -130,6 +130,10 @@ impl<'a> Parser<'a> {
                 self.sym = self.lexer.next();
                 Ok(BinaryOperation::Equal)
             }
+            Some(Token::Equal) => {
+                self.sym = self.lexer.next();
+                Ok(BinaryOperation::Assign)
+            }
             _ => Err(ParseError::new(format!(
                 "unexpected token {} found, expected operation such as '+'",
                 self.sym_as_str()
@@ -229,14 +233,15 @@ impl<'a> Parser<'a> {
 
     fn next_min_prec(&self) -> (Option<i32>, Assoc) {
         match self.sym {
-            Some(Token::Plus) | Some(Token::Minus) => (Some(1), Assoc::Left),
-            Some(Token::Star) | Some(Token::Slash) => (Some(2), Assoc::Left),
-            Some(Token::StarStar) => (Some(3), Assoc::Right),
+            Some(Token::Equal) => (Some(0), Assoc::Right),
             Some(Token::Less)
             | Some(Token::LessEqual)
             | Some(Token::Greater)
             | Some(Token::GreaterEqual)
-            | Some(Token::EqualEqual) => (Some(0), Assoc::Left),
+            | Some(Token::EqualEqual) => (Some(1), Assoc::Left),
+            Some(Token::Plus) | Some(Token::Minus) => (Some(2), Assoc::Left),
+            Some(Token::Star) | Some(Token::Slash) => (Some(3), Assoc::Left),
+            Some(Token::StarStar) => (Some(4), Assoc::Right),
             _ => (None, Assoc::Left),
         }
     }

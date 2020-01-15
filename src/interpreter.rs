@@ -54,7 +54,11 @@ impl Interpreter {
         match &expr.node {
             TypedExpressionNode::Void => Ok(Closure::simple(TypedExpression::void())),
             TypedExpressionNode::BinaryOperation(b) => {
-                let l = Interpreter::eval(&b.left, env)?;
+                let l = if b.operation.left_hand_by_name() {
+                    Closure::simple(b.left.clone())
+                } else {
+                    Interpreter::eval(&b.left, env)?
+                };
                 let r = Interpreter::eval(&b.right, env)?;
                 match b.operation {
                     TypedBinaryOperation::Sum => match (l.expr.node, r.expr.node) {
@@ -160,6 +164,27 @@ impl Interpreter {
                         }
                         _ => Err(InterpreterError::new(
                             format!("One or more non-integer terms to equal operator"),
+                            env,
+                        )),
+                    },
+                    TypedBinaryOperation::Assign => match l.expr.node {
+                        TypedExpressionNode::Symbol(sym) => {
+                            let val = Interpreter::eval(&r.expr, env)?;
+                            env.update(
+                                String::from(&sym),
+                                Closure {
+                                    expr: val.expr.clone(),
+                                    env: val.env.clone(),
+                                },
+                            )
+                            .ok_or(InterpreterError::new(
+                                format!("{} not found in this scope", sym),
+                                env,
+                            ))?;
+                            Ok(val)
+                        }
+                        _ => Err(InterpreterError::new(
+                            format!("unexpected left hand side of assignment"),
                             env,
                         )),
                     },

@@ -212,7 +212,7 @@ impl fmt::Display for TypedExpressionNode {
             TypedExpressionNode::Block(block) => write!(f, "{}", block),
             TypedExpressionNode::Program(program) => write!(f, "{}", program),
             TypedExpressionNode::Group(group) => write!(f, "{}", group),
-            TypedExpressionNode::String(string) => write!(f, "{}", string),
+            TypedExpressionNode::String(string) => write!(f, "\"{}\"", string),
             TypedExpressionNode::Symbol(symbol) => write!(f, "{}", symbol),
             TypedExpressionNode::Conditional(conditional) => write!(f, "{}", conditional),
             TypedExpressionNode::Void => write!(f, "void"),
@@ -235,6 +235,26 @@ pub enum TypedBinaryOperation {
     LessEqualThan,
     GreaterEqualThan,
     Equal,
+    Assign,
+}
+
+impl TypedBinaryOperation {
+    pub fn left_hand_by_name(&self) -> bool {
+        match &self {
+            TypedBinaryOperation::Sum
+            | TypedBinaryOperation::Concat
+            | TypedBinaryOperation::Difference
+            | TypedBinaryOperation::Multiply
+            | TypedBinaryOperation::ToThePowerOf
+            | TypedBinaryOperation::Divide
+            | TypedBinaryOperation::LessThan
+            | TypedBinaryOperation::GreaterThan
+            | TypedBinaryOperation::LessEqualThan
+            | TypedBinaryOperation::GreaterEqualThan
+            | TypedBinaryOperation::Equal => false,
+            TypedBinaryOperation::Assign => true,
+        }
+    }
 }
 
 impl fmt::Display for TypedBinaryOperation {
@@ -251,6 +271,7 @@ impl fmt::Display for TypedBinaryOperation {
             TypedBinaryOperation::LessEqualThan => write!(f, "<="),
             TypedBinaryOperation::GreaterEqualThan => write!(f, ">="),
             TypedBinaryOperation::Equal => write!(f, "=="),
+            TypedBinaryOperation::Assign => write!(f, "="),
         }
     }
 }

@@ -81,6 +81,8 @@ contain break statements.
  - [X] Pretty print expressions
  - [X] Operator precedence
  - [X] Add loop
- - [ ] Differentiate between let and assign
+ - [X] Assignment operator
  - [ ] Add Arrays
  - [ ] Add structures
+ - [ ] Numbers
+ - [ ] Unary operators

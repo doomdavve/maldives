@@ -33,6 +33,14 @@ impl SymbolTable {
         self.map.insert(symbol, closure);
     }
 
+    pub fn update(&mut self, symbol: String, closure: Closure) -> Option<Closure> {
+        if self.map.contains_key(&symbol) {
+            self.map.insert(symbol, closure)
+        } else {
+            None
+        }
+    }
+
     pub fn lookup(&self, symbol: &String) -> Option<&Closure> {
         self.map.get(symbol)
     }
