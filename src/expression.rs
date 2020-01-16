@@ -20,7 +20,7 @@ pub enum Expression {
 }
 
 #[derive(Debug, PartialEq, Copy, Clone)]
-pub enum BinaryOperation {
+pub enum Operator {
     Sum,
     Difference,
     Multiply,
@@ -73,7 +73,7 @@ pub struct ConditionalExpr {
 
 #[derive(Debug, PartialEq)]
 pub struct BinaryExpr {
-    pub operation: BinaryOperation,
+    pub operator: Operator,
     pub left: Expression,
     pub right: Expression,
 }

@@ -5,8 +5,8 @@ use std::rc::Rc;
 use std::str::from_utf8_unchecked;
 
 use crate::expression::{
-    BinaryExpr, BinaryOperation, BindExpr, BlockExpr, BreakExpr, ConditionalExpr, Expression,
-    FunctionCallExpr, FunctionExpr, GroupExpr, LoopExpr,
+    BinaryExpr, BindExpr, BlockExpr, BreakExpr, ConditionalExpr, Expression, FunctionCallExpr,
+    FunctionExpr, GroupExpr, LoopExpr, Operator,
 };
 use crate::lexer::Lexer;
 use crate::parse_error::ParseError;
@@ -88,51 +88,51 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn operation(&mut self) -> Result<BinaryOperation, ParseError> {
+    fn operation(&mut self) -> Result<Operator, ParseError> {
         match self.sym {
             Some(Token::Plus) => {
                 self.sym = self.lexer.next();
-                Ok(BinaryOperation::Sum)
+                Ok(Operator::Sum)
             }
             Some(Token::Minus) => {
                 self.sym = self.lexer.next();
-                Ok(BinaryOperation::Difference)
+                Ok(Operator::Difference)
             }
             Some(Token::Slash) => {
                 self.sym = self.lexer.next();
-                Ok(BinaryOperation::Divide)
+                Ok(Operator::Divide)
             }
             Some(Token::Star) => {
                 self.sym = self.lexer.next();
-                Ok(BinaryOperation::Multiply)
+                Ok(Operator::Multiply)
             }
             Some(Token::StarStar) => {
                 self.sym = self.lexer.next();
-                Ok(BinaryOperation::ToThePowerOf)
+                Ok(Operator::ToThePowerOf)
             }
             Some(Token::Less) => {
                 self.sym = self.lexer.next();
-                Ok(BinaryOperation::LessThan)
+                Ok(Operator::LessThan)
             }
             Some(Token::Greater) => {
                 self.sym = self.lexer.next();
-                Ok(BinaryOperation::GreaterThan)
+                Ok(Operator::GreaterThan)
             }
             Some(Token::GreaterEqual) => {
                 self.sym = self.lexer.next();
-                Ok(BinaryOperation::GreaterEqualThan)
+                Ok(Operator::GreaterEqualThan)
             }
             Some(Token::LessEqual) => {
                 self.sym = self.lexer.next();
-                Ok(BinaryOperation::LessEqualThan)
+                Ok(Operator::LessEqualThan)
             }
             Some(Token::EqualEqual) => {
                 self.sym = self.lexer.next();
-                Ok(BinaryOperation::Equal)
+                Ok(Operator::Equal)
             }
             Some(Token::Equal) => {
                 self.sym = self.lexer.next();
-                Ok(BinaryOperation::Assign)
+                Ok(Operator::Assign)
             }
             _ => Err(ParseError::new(format!(
                 "unexpected token {} found, expected operation such as '+'",
@@ -261,7 +261,7 @@ impl<'a> Parser<'a> {
                     let operation = self.operation()?;
                     let right = self.expression_wrap(next_min_prec)?;
                     expr = Expression::Binary(Rc::new(BinaryExpr {
-                        operation,
+                        operator,
                         left: expr,
                         right,
                     }))
@@ -533,7 +533,7 @@ fn parse_function_declaration() {
         return_type: Some(TypeDeclaration::Symbol("int".to_string())),
         parameters: vec![("x".to_string(), TypeDeclaration::Symbol("int".to_string()))],
         expr: Expression::Binary(Rc::new(BinaryExpr {
-            operation: BinaryOperation::Sum,
+            operator: Operator::Sum,
             left: Expression::Symbol("x".to_string()),
             right: Expression::Symbol("x".to_string()),
         })),
@@ -558,7 +558,7 @@ fn parse_function_declaration_block() {
         parameters: vec![("x".to_string(), TypeDeclaration::Symbol("int".to_string()))],
         expr: Expression::Block(Rc::new(BlockExpr {
             list: vec![Expression::Binary(Rc::new(BinaryExpr {
-                operation: BinaryOperation::Sum,
+                operation: Operator::Sum,
                 left: Expression::Symbol("x".to_string()),
                 right: Expression::Symbol("x".to_string()),
             }))],
@@ -577,7 +577,7 @@ fn parse_function_declaration_block_2() {
         parameters: vec![("x".to_string(), TypeDeclaration::Symbol("int".to_string()))],
         expr: Expression::Block(Rc::new(BlockExpr {
             list: vec![Expression::Binary(Rc::new(BinaryExpr {
-                operation: BinaryOperation::Sum,
+                operation: Operator::Sum,
                 left: Expression::Symbol("x".to_string()),
                 right: Expression::Symbol("x".to_string()),
             }))],
@@ -732,7 +732,7 @@ fn parse_nested_call_expr() {
 fn parse_infix() {
     let mut parser = Parser::new(Lexer::new("1 + 2"));
     let expected = Expression::Binary(Rc::new(BinaryExpr {
-        operation: BinaryOperation::Sum,
+        operator: Operator::Sum,
         left: Expression::Integer(1),
         right: Expression::Integer(2),
     }));
@@ -744,7 +744,7 @@ fn parse_infix() {
 fn parse_string_concatination() {
     let mut parser = Parser::new(Lexer::new("\"apa\" + \"banan\""));
     let expected = Expression::Binary(Rc::new(BinaryExpr {
-        operation: BinaryOperation::Sum,
+        operator: Operator::Sum,
         left: Expression::String("apa".to_string()),
         right: Expression::String("banan".to_string()),
     }));

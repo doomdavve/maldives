@@ -2,7 +2,7 @@ use std::error;
 use std::fmt;
 use std::rc::Rc;
 
-use crate::expression::{BinaryOperation, Expression, LoopExpr};
+use crate::expression::{Expression, LoopExpr, Operator};
 use crate::resolvedtype::ResolvedType;
 use crate::symboltable::SymbolTable;
 use crate::typedexpression::{TypedBinaryOperation, TypedExpression};
@@ -118,7 +118,7 @@ impl TypeResolver {
                     left.resolved_type.clone(),
                     right.resolved_type.clone(),
                 ) {
-                    (BinaryOperation::Sum, ResolvedType::Integer, ResolvedType::Integer) => {
+                    (Operator::Sum, ResolvedType::Integer, ResolvedType::Integer) => {
                         Ok(TypedExpression::binary_operation(
                             TypedBinaryOperation::Sum,
                             ResolvedType::Integer,
@@ -126,7 +126,7 @@ impl TypeResolver {
                             right,
                         ))
                     }
-                    (BinaryOperation::Sum, ResolvedType::String, ResolvedType::String) => {
+                    (Operator::Sum, ResolvedType::String, ResolvedType::String) => {
                         Ok(TypedExpression::binary_operation(
                             TypedBinaryOperation::Concat,
                             ResolvedType::String,
@@ -134,7 +134,7 @@ impl TypeResolver {
                             right,
                         ))
                     }
-                    (BinaryOperation::Difference, ResolvedType::Integer, ResolvedType::Integer) => {
+                    (Operator::Difference, ResolvedType::Integer, ResolvedType::Integer) => {
                         Ok(TypedExpression::binary_operation(
                             TypedBinaryOperation::Difference,
                             ResolvedType::Integer,
@@ -142,7 +142,7 @@ impl TypeResolver {
                             right,
                         ))
                     }
-                    (BinaryOperation::Multiply, ResolvedType::Integer, ResolvedType::Integer) => {
+                    (Operator::Multiply, ResolvedType::Integer, ResolvedType::Integer) => {
                         Ok(TypedExpression::binary_operation(
                             TypedBinaryOperation::Multiply,
                             ResolvedType::Integer,
@@ -150,17 +150,15 @@ impl TypeResolver {
                             right,
                         ))
                     }
-                    (
-                        BinaryOperation::ToThePowerOf,
-                        ResolvedType::Integer,
-                        ResolvedType::Integer,
-                    ) => Ok(TypedExpression::binary_operation(
-                        TypedBinaryOperation::ToThePowerOf,
-                        ResolvedType::Integer,
-                        left,
-                        right,
-                    )),
-                    (BinaryOperation::Divide, ResolvedType::Integer, ResolvedType::Integer) => {
+                    (Operator::ToThePowerOf, ResolvedType::Integer, ResolvedType::Integer) => {
+                        Ok(TypedExpression::binary_operation(
+                            TypedBinaryOperation::ToThePowerOf,
+                            ResolvedType::Integer,
+                            left,
+                            right,
+                        ))
+                    }
+                    (Operator::Divide, ResolvedType::Integer, ResolvedType::Integer) => {
                         Ok(TypedExpression::binary_operation(
                             TypedBinaryOperation::Divide,
                             ResolvedType::Integer,
@@ -169,7 +167,7 @@ impl TypeResolver {
                         ))
                     }
 
-                    (BinaryOperation::LessThan, ResolvedType::Integer, ResolvedType::Integer) => {
+                    (Operator::LessThan, ResolvedType::Integer, ResolvedType::Integer) => {
                         Ok(TypedExpression::binary_operation(
                             TypedBinaryOperation::LessThan,
                             ResolvedType::Bool,
@@ -177,37 +175,31 @@ impl TypeResolver {
                             right,
                         ))
                     }
-                    (
-                        BinaryOperation::LessEqualThan,
-                        ResolvedType::Integer,
-                        ResolvedType::Integer,
-                    ) => Ok(TypedExpression::binary_operation(
-                        TypedBinaryOperation::LessEqualThan,
-                        ResolvedType::Bool,
-                        left,
-                        right,
-                    )),
-                    (
-                        BinaryOperation::GreaterThan,
-                        ResolvedType::Integer,
-                        ResolvedType::Integer,
-                    ) => Ok(TypedExpression::binary_operation(
-                        TypedBinaryOperation::GreaterThan,
-                        ResolvedType::Bool,
-                        left,
-                        right,
-                    )),
-                    (
-                        BinaryOperation::GreaterEqualThan,
-                        ResolvedType::Integer,
-                        ResolvedType::Integer,
-                    ) => Ok(TypedExpression::binary_operation(
-                        TypedBinaryOperation::GreaterEqualThan,
-                        ResolvedType::Bool,
-                        left,
-                        right,
-                    )),
-                    (BinaryOperation::Equal, ResolvedType::Integer, ResolvedType::Integer) => {
+                    (Operator::LessEqualThan, ResolvedType::Integer, ResolvedType::Integer) => {
+                        Ok(TypedExpression::binary_operation(
+                            TypedBinaryOperation::LessEqualThan,
+                            ResolvedType::Bool,
+                            left,
+                            right,
+                        ))
+                    }
+                    (Operator::GreaterThan, ResolvedType::Integer, ResolvedType::Integer) => {
+                        Ok(TypedExpression::binary_operation(
+                            TypedBinaryOperation::GreaterThan,
+                            ResolvedType::Bool,
+                            left,
+                            right,
+                        ))
+                    }
+                    (Operator::GreaterEqualThan, ResolvedType::Integer, ResolvedType::Integer) => {
+                        Ok(TypedExpression::binary_operation(
+                            TypedBinaryOperation::GreaterEqualThan,
+                            ResolvedType::Bool,
+                            left,
+                            right,
+                        ))
+                    }
+                    (Operator::Equal, ResolvedType::Integer, ResolvedType::Integer) => {
                         Ok(TypedExpression::binary_operation(
                             TypedBinaryOperation::Equal,
                             ResolvedType::Bool,
@@ -215,7 +207,7 @@ impl TypeResolver {
                             right,
                         ))
                     }
-                    (BinaryOperation::Assign, _, _) => {
+                    (Operator::Assign, _, _) => {
                         if left.resolved_type == right.resolved_type
                             || left.resolved_type == ResolvedType::Any
                         {
