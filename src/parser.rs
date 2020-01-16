@@ -232,7 +232,7 @@ impl<'a> Parser<'a> {
     }
 
     pub fn expression(&mut self) -> Result<Expression, ParseError> {
-        self.expression_wrap(0)
+        self.expression_from_precedence(0)
     }
 
     fn next_min_prec(&self) -> (Option<i32>, Assoc) {
@@ -251,8 +251,8 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn expression_wrap(&mut self, min_prec: i32) -> Result<Expression, ParseError> {
-        let mut expr = self.expression_sub()?;
+    fn expression_from_precedence(&mut self, min_prec: i32) -> Result<Expression, ParseError> {
+        let mut expr = self.expression_atom()?;
         loop {
             match self.next_min_prec() {
                 (Some(prec), assoc) => {
@@ -270,7 +270,7 @@ impl<'a> Parser<'a> {
                             Expression::FunctionCall(Rc::new(FunctionCallExpr { expr, arguments }))
                         }
                         _ => {
-                            let right = self.expression_wrap(next_min_prec)?;
+                            let right = self.expression_from_precedence(next_min_prec)?;
                             Expression::Binary(Rc::new(BinaryExpr {
                                 operator,
                                 left: expr,
@@ -287,8 +287,7 @@ impl<'a> Parser<'a> {
         Ok(expr)
     }
 
-    // FIXME: rename to expression_atom
-    fn expression_sub(&mut self) -> Result<Expression, ParseError> {
+    fn expression_atom(&mut self) -> Result<Expression, ParseError> {
         match self.sym {
             Some(Token::Symbol(s)) => {
                 let symbol_name = unsafe { from_utf8_unchecked(s) }.to_string();
