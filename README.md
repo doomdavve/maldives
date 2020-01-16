@@ -40,7 +40,7 @@ parser](https://en.wikipedia.org/wiki/Operator-precedence_parser
 #### Loop and break
 
 ```
-> let a = 1; let b = 1; println(loop { let c = a; let a = a + b; let b = c; if a > 30000 {break a; } else println(a) })
+> let a = 1; let b = 1; println(loop { let c = a; a = a + b; b = c; if a > 30000 {break a; } else println(a) })
 2
 3
 5
