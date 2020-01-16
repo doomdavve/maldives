@@ -88,7 +88,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn operation(&mut self) -> Result<Operator, ParseError> {
+    fn operator(&mut self) -> Result<Operator, ParseError> {
         match self.sym {
             Some(Token::Plus) => {
                 self.sym = self.lexer.next();
@@ -135,7 +135,7 @@ impl<'a> Parser<'a> {
                 Ok(Operator::Assign)
             }
             _ => Err(ParseError::new(format!(
-                "unexpected token {} found, expected operation such as '+'",
+                "unexpected token {} found, expected operator",
                 self.sym_as_str()
             ))),
         }
@@ -258,7 +258,7 @@ impl<'a> Parser<'a> {
                         Assoc::Left => prec + 1,
                         Assoc::Right => prec,
                     };
-                    let operator = self.operation()?;
+                    let operator = self.operator()?;
                     let right = self.expression_wrap(next_min_prec)?;
                     expr = Expression::Binary(Rc::new(BinaryExpr {
                         operator,
