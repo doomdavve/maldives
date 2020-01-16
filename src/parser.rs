@@ -6,7 +6,7 @@ use std::str::from_utf8_unchecked;
 
 use crate::expression::{
     BinaryExpr, BindExpr, BlockExpr, BreakExpr, ConditionalExpr, Expression, FunctionCallExpr,
-    FunctionExpr, GroupExpr, LoopExpr, Operator,
+    FunctionExpr, GroupExpr, LoopExpr, Operator, TypeQualifiedExpressionExpr,
 };
 use crate::lexer::Lexer;
 use crate::parse_error::ParseError;
@@ -138,6 +138,10 @@ impl<'a> Parser<'a> {
                 self.sym = self.lexer.next();
                 Ok(Operator::Call)
             }
+            Some(Token::BracketLeft) => {
+                self.sym = self.lexer.next();
+                Ok(Operator::TypeArguments)
+            }
             _ => Err(ParseError::new(format!(
                 "unexpected token {} found, expected operator",
                 self.sym_as_str()
@@ -246,7 +250,7 @@ impl<'a> Parser<'a> {
             Some(Token::Plus) | Some(Token::Minus) => (Some(2), Assoc::Left),
             Some(Token::Star) | Some(Token::Slash) => (Some(3), Assoc::Left),
             Some(Token::StarStar) => (Some(4), Assoc::Right),
-            Some(Token::ParenLeft) => (Some(5), Assoc::Left),
+            Some(Token::ParenLeft) | Some(Token::BracketLeft) => (Some(5), Assoc::Left),
             _ => (None, Assoc::Left),
         }
     }
@@ -268,6 +272,15 @@ impl<'a> Parser<'a> {
                         Operator::Call => {
                             let arguments = self.arguments()?;
                             Expression::FunctionCall(Rc::new(FunctionCallExpr { expr, arguments }))
+                        }
+                        Operator::TypeArguments => {
+                            let type_arguments = self.type_arguments()?;
+                            Expression::TypeQualifiedExpression(Rc::new(
+                                TypeQualifiedExpressionExpr {
+                                    expr,
+                                    type_arguments,
+                                },
+                            ))
                         }
                         _ => {
                             let right = self.expression_from_precedence(next_min_prec)?;
@@ -432,6 +445,24 @@ impl<'a> Parser<'a> {
         Ok(args)
     }
 
+    fn type_arguments(&mut self) -> Result<Vec<TypeDeclaration>, ParseError> {
+        let mut args: Vec<TypeDeclaration> = Vec::new();
+        if self.sym != Some(Token::BracketRight) {
+            let arg = self.type_declaration()?;
+            args.push(arg);
+            loop {
+                if self.accept(Token::Comma) {
+                    let arg = self.type_declaration()?;
+                    args.push(arg);
+                } else {
+                    break;
+                }
+            }
+        }
+        self.expect(Token::BracketRight)?;
+        Ok(args)
+    }
+
     fn block(&mut self) -> Result<BlockExpr, ParseError> {
         self.expect(Token::BraceLeft)?;
         let mut list: Vec<Expression> = Vec::new();
@@ -481,6 +512,23 @@ impl<'a> Parser<'a> {
         self.expect_none()?;
         Ok(Expression::Program(Rc::new(BlockExpr { list })))
     }
+}
+
+#[test]
+fn parse_type_parameter() {
+    let tokens = Lexer::new("array[int]()");
+    let mut parser = Parser::new(tokens);
+    let res = parser.expression().unwrap();
+    assert_eq!(
+        Expression::FunctionCall(Rc::new(FunctionCallExpr {
+            expr: Expression::TypeQualifiedExpression(Rc::new(TypeQualifiedExpressionExpr {
+                expr: Expression::Symbol(String::from("array")),
+                type_arguments: vec![TypeDeclaration::Symbol(String::from("int"))]
+            })),
+            arguments: vec![],
+        })),
+        res
+    );
 }
 
 #[test]

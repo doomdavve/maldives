@@ -16,6 +16,7 @@ pub enum Expression {
     String(String),
     Conditional(Rc<ConditionalExpr>),
     Break(Rc<BreakExpr>),
+    TypeQualifiedExpression(Rc<TypeQualifiedExpressionExpr>),
     Void,
 }
 
@@ -33,6 +34,7 @@ pub enum Operator {
     Equal,
     Assign,
     Call,
+    TypeArguments,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -100,4 +102,10 @@ pub struct LoopExpr {
 #[derive(Debug, PartialEq)]
 pub struct BreakExpr {
     pub expr: Expression,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct TypeQualifiedExpressionExpr {
+    pub expr: Expression,
+    pub type_arguments: Vec<TypeDeclaration>,
 }

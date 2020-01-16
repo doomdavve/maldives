@@ -336,6 +336,10 @@ impl TypeResolver {
                     ))
                 }
             }
+            Expression::TypeQualifiedExpression(qf) => {
+                println!("{:?}", qf);
+                unimplemented!()
+            }
             Expression::Function(f) => {
                 let mut parameters: Vec<(String, ResolvedType)> = Vec::new();
                 let mut types: Vec<ResolvedType> = Vec::new();
