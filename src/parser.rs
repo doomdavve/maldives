@@ -134,6 +134,10 @@ impl<'a> Parser<'a> {
                 self.sym = self.lexer.next();
                 Ok(Operator::Assign)
             }
+            Some(Token::ParenLeft) => {
+                self.sym = self.lexer.next();
+                Ok(Operator::Call)
+            }
             _ => Err(ParseError::new(format!(
                 "unexpected token {} found, expected operator",
                 self.sym_as_str()
@@ -242,6 +246,7 @@ impl<'a> Parser<'a> {
             Some(Token::Plus) | Some(Token::Minus) => (Some(2), Assoc::Left),
             Some(Token::Star) | Some(Token::Slash) => (Some(3), Assoc::Left),
             Some(Token::StarStar) => (Some(4), Assoc::Right),
+            Some(Token::ParenLeft) => (Some(5), Assoc::Left),
             _ => (None, Assoc::Left),
         }
     }
@@ -259,12 +264,20 @@ impl<'a> Parser<'a> {
                         Assoc::Right => prec,
                     };
                     let operator = self.operator()?;
-                    let right = self.expression_wrap(next_min_prec)?;
-                    expr = Expression::Binary(Rc::new(BinaryExpr {
-                        operator,
-                        left: expr,
-                        right,
-                    }))
+                    expr = match &operator {
+                        Operator::Call => {
+                            let arguments = self.arguments()?;
+                            Expression::FunctionCall(Rc::new(FunctionCallExpr { expr, arguments }))
+                        }
+                        _ => {
+                            let right = self.expression_wrap(next_min_prec)?;
+                            Expression::Binary(Rc::new(BinaryExpr {
+                                operator,
+                                left: expr,
+                                right,
+                            }))
+                        }
+                    }
                 }
                 _ => {
                     break;
@@ -276,7 +289,7 @@ impl<'a> Parser<'a> {
 
     // FIXME: rename to expression_atom
     fn expression_sub(&mut self) -> Result<Expression, ParseError> {
-        let mut atom = match self.sym {
+        match self.sym {
             Some(Token::Symbol(s)) => {
                 let symbol_name = unsafe { from_utf8_unchecked(s) }.to_string();
                 self.sym = self.lexer.next();
@@ -352,14 +365,6 @@ impl<'a> Parser<'a> {
                 self.sym_as_str()
             ))),
             None => Err(ParseError::new(format!("unexpected EOF"))),
-        }?;
-
-        loop {
-            if self.sym != Some(Token::ParenLeft) {
-                break Ok(atom);
-            }
-            let call = self.function_call(atom)?;
-            atom = Expression::FunctionCall(Rc::new(call))
         }
     }
 
@@ -410,8 +415,7 @@ impl<'a> Parser<'a> {
         Ok(GroupExpr { expr })
     }
 
-    fn function_call(&mut self, expr: Expression) -> Result<FunctionCallExpr, ParseError> {
-        self.expect(Token::ParenLeft)?;
+    fn arguments(&mut self) -> Result<Vec<Expression>, ParseError> {
         let mut args: Vec<Expression> = Vec::new();
         if self.sym != Some(Token::ParenRight) {
             let arg = self.expression()?;
@@ -426,11 +430,7 @@ impl<'a> Parser<'a> {
             }
         }
         self.expect(Token::ParenRight)?;
-        let fc = FunctionCallExpr {
-            expr,
-            arguments: args,
-        };
-        Ok(fc)
+        Ok(args)
     }
 
     fn block(&mut self) -> Result<BlockExpr, ParseError> {
@@ -515,11 +515,11 @@ fn parse_function_call_no_args() {
 
 #[test]
 fn parse_function_call() {
-    let mut parser = Parser::new(Lexer::new("sqrt(4)"));
+    let mut parser = Parser::new(Lexer::new("test_func(4, 2)"));
     let res = parser.expression();
     let expected = Expression::FunctionCall(Rc::new(FunctionCallExpr {
-        expr: Expression::Symbol(String::from("sqrt")),
-        arguments: vec![Expression::Integer(4)],
+        expr: Expression::Symbol(String::from("test_func")),
+        arguments: vec![Expression::Integer(4), Expression::Integer(2)],
     }));
     assert_eq!(res, Ok(expected));
 }
