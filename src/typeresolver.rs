@@ -114,7 +114,7 @@ impl TypeResolver {
                 let left = TypeResolver::resolve(&b.left, env, ctx)?;
                 let right = TypeResolver::resolve(&b.right, env, ctx)?;
                 match (
-                    b.operation,
+                    b.operator,
                     left.resolved_type.clone(),
                     right.resolved_type.clone(),
                 ) {

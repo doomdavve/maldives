@@ -258,7 +258,7 @@ impl<'a> Parser<'a> {
                         Assoc::Left => prec + 1,
                         Assoc::Right => prec,
                     };
-                    let operation = self.operation()?;
+                    let operator = self.operation()?;
                     let right = self.expression_wrap(next_min_prec)?;
                     expr = Expression::Binary(Rc::new(BinaryExpr {
                         operator,
@@ -558,7 +558,7 @@ fn parse_function_declaration_block() {
         parameters: vec![("x".to_string(), TypeDeclaration::Symbol("int".to_string()))],
         expr: Expression::Block(Rc::new(BlockExpr {
             list: vec![Expression::Binary(Rc::new(BinaryExpr {
-                operation: Operator::Sum,
+                operator: Operator::Sum,
                 left: Expression::Symbol("x".to_string()),
                 right: Expression::Symbol("x".to_string()),
             }))],
@@ -577,7 +577,7 @@ fn parse_function_declaration_block_2() {
         parameters: vec![("x".to_string(), TypeDeclaration::Symbol("int".to_string()))],
         expr: Expression::Block(Rc::new(BlockExpr {
             list: vec![Expression::Binary(Rc::new(BinaryExpr {
-                operation: Operator::Sum,
+                operator: Operator::Sum,
                 left: Expression::Symbol("x".to_string()),
                 right: Expression::Symbol("x".to_string()),
             }))],
