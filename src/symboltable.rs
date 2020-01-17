@@ -21,6 +21,7 @@ impl Closure {
 pub struct SymbolTable {
     pub map: HashMap<String, Closure>,
     next_function_id: u32,
+    function_map: HashMap<u32, Box<SymbolTable>>,
 }
 
 impl SymbolTable {
@@ -28,6 +29,7 @@ impl SymbolTable {
         SymbolTable {
             map: HashMap::new(),
             next_function_id: 0,
+            function_map: HashMap::new(),
         }
     }
 
