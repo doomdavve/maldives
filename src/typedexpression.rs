@@ -135,6 +135,7 @@ impl TypedExpression {
 
     pub fn function(
         sym: Option<String>,
+        id: u32,
         return_type: ResolvedType,
         parameters: Vec<(String, ResolvedType)>,
         expr: TypedExpression,
@@ -143,6 +144,7 @@ impl TypedExpression {
             resolved_type: return_type,
             node: TypedExpressionNode::Function(Rc::new(TypedFunctionExpr {
                 sym,
+                id,
                 parameters,
                 expr,
             })),
@@ -349,13 +351,19 @@ impl fmt::Display for TypedBinaryOperationExpr {
 #[derive(Debug, PartialEq)]
 pub struct TypedFunctionExpr {
     pub sym: Option<String>,
+    pub id: u32,
     pub parameters: Vec<(String, ResolvedType)>,
     pub expr: TypedExpression,
 }
 
 impl fmt::Display for TypedFunctionExpr {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "fn {}()", self.sym.clone().unwrap_or("".to_string()))
+        write!(
+            f,
+            "fn {}() <{}>",
+            self.sym.clone().unwrap_or("".to_string()),
+            self.id
+        )
     }
 }
 

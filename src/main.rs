@@ -53,7 +53,7 @@ fn load_file(filename: &str) -> Result<i32, String> {
     match Parser::new(tokens).program() {
         Ok(program) => {
             debug!("Parsed program: {:?}", program);
-            match TypeResolver::resolve_in_env(&program, &root) {
+            match TypeResolver::resolve_in_env(&program, &mut root) {
                 Ok(resolved) => match Interpreter::eval_expression(&resolved, &mut root) {
                     Ok(a) => match a.node {
                         TypedExpressionNode::Integer(i) => Ok(i),
@@ -118,7 +118,7 @@ fn repl() -> Result<i32, String> {
                     match Parser::new(tokens).program() {
                         Ok(program) => {
                             debug!("Parsed program: {:?}", program);
-                            match TypeResolver::resolve_in_env(&program, &root) {
+                            match TypeResolver::resolve_in_env(&program, &mut root) {
                                 Ok(resolved) => {
                                     match Interpreter::eval_expression(&resolved, &mut root) {
                                         Ok(a) => match a.resolved_type {
@@ -168,7 +168,7 @@ mod tests {
 
     fn type_check_program(
         contents: &str,
-        mut root: &SymbolTable,
+        mut root: &mut SymbolTable,
     ) -> Result<TypedExpression, TypeResolverError> {
         let mut parser = Parser::new(Lexer::new(contents));
         TypeResolver::resolve_in_env(&parser.program().unwrap(), &mut root)
@@ -353,25 +353,25 @@ mod tests {
 
     #[test]
     fn type_check_simple_integer() {
-        let res = type_check_program("10", &SymbolTable::new()).unwrap();
+        let res = type_check_program("10", &mut SymbolTable::new()).unwrap();
         assert_eq!(ResolvedType::Integer, res.resolved_type);
     }
 
     #[test]
     fn type_check_simple_string() {
-        let res = type_check_program("\"apa\"", &SymbolTable::new()).unwrap();
+        let res = type_check_program("\"apa\"", &mut SymbolTable::new()).unwrap();
         assert_eq!(ResolvedType::String, res.resolved_type);
     }
 
     #[test]
     fn type_check_simple_bool() {
-        let res = type_check_program("true", &SymbolTable::new()).unwrap();
+        let res = type_check_program("true", &mut SymbolTable::new()).unwrap();
         assert_eq!(ResolvedType::Bool, res.resolved_type);
     }
 
     #[test]
     fn type_check_function() {
-        let res = type_check_program("let a = fn() -> int = 10", &SymbolTable::new()).unwrap();
+        let res = type_check_program("let a = fn() -> int = 10", &mut SymbolTable::new()).unwrap();
         let expected = ResolvedType::Function(Rc::new(ResolvedFunctionType {
             return_type: ResolvedType::Integer,
             parameters: Vec::new(),
@@ -381,8 +381,8 @@ mod tests {
 
     #[test]
     fn type_check_function_call() {
-        let res =
-            type_check_program("{ let a = fn() -> int = 10; a() }", &SymbolTable::new()).unwrap();
+        let res = type_check_program("{ let a = fn() -> int = 10; a() }", &mut SymbolTable::new())
+            .unwrap();
         assert_eq!(ResolvedType::Integer, res.resolved_type);
     }
 
@@ -390,7 +390,7 @@ mod tests {
     fn type_check_function_call_returning_function() {
         let res = type_check_program(
             "{ fn make_identity_fn() -> (int) -> int = fn(x: int) -> int = x }",
-            &SymbolTable::new(),
+            &mut SymbolTable::new(),
         )
         .unwrap();
         let expected = ResolvedType::Function(Rc::new(ResolvedFunctionType {
@@ -405,7 +405,7 @@ mod tests {
 
     #[test]
     fn test_check_function_call_args() {
-        let res = type_check_program("{ fn f(i:int)=i; f(true) }", &SymbolTable::new());
+        let res = type_check_program("{ fn f(i:int)=i; f(true) }", &mut SymbolTable::new());
         assert!(res.is_err());
     }
 }

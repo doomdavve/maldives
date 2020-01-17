@@ -36,12 +36,14 @@ pub struct TypeResolver;
 #[derive(Debug, Clone, PartialEq)]
 pub struct TypeTable {
     map: HashMap<String, ResolvedType>,
+    next_function_id: u32,
 }
 
 impl TypeTable {
     pub fn new() -> TypeTable {
         TypeTable {
             map: HashMap::new(),
+            next_function_id: 0,
         }
     }
 
@@ -51,6 +53,16 @@ impl TypeTable {
 
     pub fn lookup(&self, symbol: &String) -> Option<&ResolvedType> {
         self.map.get(symbol)
+    }
+
+    pub fn function_id(&mut self) -> u32 {
+        let function_id = self.next_function_id;
+        self.next_function_id += 1;
+        function_id
+    }
+
+    pub fn set_next_function_id(&mut self, function_id: u32) {
+        self.next_function_id += function_id;
     }
 }
 
@@ -77,13 +89,17 @@ impl ResolveContext {
 impl TypeResolver {
     pub fn resolve_in_env(
         expression: &Expression,
-        env: &SymbolTable,
+        env: &mut SymbolTable,
     ) -> Result<TypedExpression, TypeResolverError> {
         let mut type_table = TypeTable::new();
         for (key, value) in &env.map {
             type_table.bind(key.clone(), value.expr.resolved_type.clone())
         }
-        TypeResolver::resolve(expression, &mut type_table, &Rc::new(ResolveContext::new()))
+        type_table.set_next_function_id(env.get_next_function_id());
+        let root =
+            TypeResolver::resolve(expression, &mut type_table, &Rc::new(ResolveContext::new()))?;
+        env.set_function_id(type_table.function_id());
+        Ok(root)
     }
 
     fn resolve(
@@ -352,8 +368,10 @@ impl TypeResolver {
 
                 if type_check {
                     let resolved_type = ResolvedType::function(return_type.clone(), types);
+                    let function_id = env.function_id();
                     let function = TypedExpression::function(
                         f.sym.clone(),
+                        function_id,
                         resolved_type.clone(),
                         parameters,
                         expr.clone(),

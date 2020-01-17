@@ -20,12 +20,14 @@ impl Closure {
 #[derive(Debug, Clone, PartialEq)]
 pub struct SymbolTable {
     pub map: HashMap<String, Closure>,
+    next_function_id: u32,
 }
 
 impl SymbolTable {
     pub fn new() -> SymbolTable {
         SymbolTable {
             map: HashMap::new(),
+            next_function_id: 0,
         }
     }
 
@@ -43,5 +45,13 @@ impl SymbolTable {
 
     pub fn lookup(&self, symbol: &String) -> Option<&Closure> {
         self.map.get(symbol)
+    }
+
+    pub fn set_function_id(&mut self, function_id: u32) {
+        self.next_function_id = function_id
+    }
+
+    pub fn get_next_function_id(&mut self) -> u32 {
+        self.next_function_id
     }
 }
