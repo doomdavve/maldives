@@ -92,8 +92,8 @@ impl TypeResolver {
         env: &mut SymbolTable,
     ) -> Result<TypedExpression, TypeResolverError> {
         let mut type_table = TypeTable::new();
-        for (key, value) in &env.map {
-            type_table.bind(key.clone(), value.expr.resolved_type.clone())
+        for (key, value) in &env.root_scope().map {
+            type_table.bind(key.clone(), value.resolved_type.clone())
         }
         type_table.set_next_function_id(env.get_next_function_id());
         let root =

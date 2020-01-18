@@ -29,7 +29,6 @@ use interpreter::Interpreter;
 use lexer::Lexer;
 use parser::Parser;
 use resolvedtype::ResolvedType;
-use symboltable::Closure;
 use symboltable::SymbolTable;
 use typedexpression::{TypedExpression, TypedExpressionNode};
 use typeresolver::TypeResolver;
@@ -72,30 +71,30 @@ fn root_symboltable() -> SymbolTable {
     let mut root = SymbolTable::new();
     root.bind(
         "println".to_string(),
-        Closure::simple(TypedExpression::native_function(
+        TypedExpression::native_function(
             native::native_println,
             ResolvedType::None,
             ResolvedType::Any,
             true,
-        )),
+        ),
     );
     root.bind(
         "dbg".to_string(),
-        Closure::simple(TypedExpression::native_function(
+        TypedExpression::native_function(
             native::native_dbg,
             ResolvedType::None,
             ResolvedType::Any,
             false,
-        )),
+        ),
     );
     root.bind(
         "iarray".to_string(),
-        Closure::simple(TypedExpression::native_function(
+        TypedExpression::native_function(
             native::native_integer_array,
             ResolvedType::Array(Box::new(ResolvedType::Integer)),
             ResolvedType::Any,
             false,
-        )),
+        ),
     );
     root
 }
@@ -160,7 +159,6 @@ mod tests {
     use crate::parser::Parser;
     use crate::resolvedtype::ResolvedFunctionType;
     use crate::resolvedtype::ResolvedType;
-    use crate::symboltable::Closure;
     use crate::symboltable::SymbolTable;
     use crate::typedexpression::TypedExpression;
     use crate::typeresolver::TypeResolver;
@@ -174,20 +172,17 @@ mod tests {
         TypeResolver::resolve_in_env(&parser.program().unwrap(), &mut root)
     }
 
-    fn eval_program(contents: &str) -> Result<TypedExpression, ()> {
+    fn eval_program(contents: &str) -> Result<TypedExpression, String> {
         let mut root = SymbolTable::new();
-        let expression = type_check_program(contents, &mut root).map_err(|_| ())?;
-        Interpreter::eval_expression(&expression, &mut root).map_err(|_| ())
+        let expression = type_check_program(contents, &mut root).map_err(|e| e.message)?;
+        Interpreter::eval_expression(&expression, &mut root).map_err(|e| e.message)
     }
 
     #[test]
     fn eval_simple() {
         let mut parser = Parser::new(Lexer::new("apa"));
         let mut root = SymbolTable::new();
-        root.bind(
-            "apa".to_string(),
-            Closure::simple(TypedExpression::integer(4)),
-        );
+        root.bind("apa".to_string(), TypedExpression::integer(4));
         let expression =
             TypeResolver::resolve_in_env(&parser.program().unwrap(), &mut root).unwrap();
         let res = Interpreter::eval_expression(&expression, &mut root);
@@ -317,15 +312,15 @@ mod tests {
             Ok(TypedExpression::integer(46368)),
             eval_program(
                 "let a = 1;
-             let b = 1;
-             loop {
-                 let c = a;
-                 a = a + b;
-                 b = c;
-                 if a > 30000 {
-                     break a
-                 }
-             }"
+                 let b = 1;
+                 loop {
+                     let c = a;
+                     a = a + b;
+                     b = c;
+                     if a > 30000 {
+                         break a
+                     }
+                 }"
             )
         );
     }
@@ -341,14 +336,33 @@ mod tests {
     #[test]
     fn test_assignment_error_type_mismatch() {
         assert_eq!(
-            Err(()),
+            Err("type mismatch in assignment".to_string()),
             eval_program("{ let a = 1; a = \"some string\"; a }")
         );
     }
 
     #[test]
     fn test_assignment_error_unbound() {
-        assert_eq!(Err(()), eval_program("{ a = \"some string\"; a }"));
+        assert_eq!(
+            Err("Unable to resolve type of symbol 'a'".to_string()),
+            eval_program("{ a = \"some string\"; a }")
+        );
+    }
+
+    #[test]
+    fn test_scope() {
+        assert_eq!(
+            Ok(TypedExpression::integer(10)),
+            eval_program("let a = 10; { let a = 20; }; a")
+        );
+    }
+
+    #[test]
+    fn test_scope_loop() {
+        assert_eq!(
+            Ok(TypedExpression::integer(10)),
+            eval_program("let a = 10; loop { let a = 20; break }; a")
+        );
     }
 
     #[test]
