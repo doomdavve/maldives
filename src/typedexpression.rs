@@ -2,6 +2,7 @@ use std::fmt;
 use std::rc::Rc;
 
 use crate::resolvedtype::{ResolvedFunctionType, ResolvedType};
+use crate::symboltable::SymbolTable;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct TypedExpression {
@@ -166,7 +167,7 @@ impl TypedExpression {
     }
 
     pub fn native_function(
-        f: fn(e: &TypedExpression) -> Result<TypedExpression, String>,
+        f: fn(env: &SymbolTable, e: &TypedExpression) -> Result<TypedExpression, String>,
         return_type: ResolvedType,
         parameters: Vec<ResolvedType>,
         call_by_value: bool,
@@ -390,7 +391,7 @@ impl fmt::Display for TypedBreakExpr {
 }
 
 pub struct TypedNativeFunctionExpr {
-    pub function: fn(e: &TypedExpression) -> Result<TypedExpression, String>,
+    pub function: fn(env: &SymbolTable, e: &TypedExpression) -> Result<TypedExpression, String>,
     pub call_by_value: bool,
 }
 

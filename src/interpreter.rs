@@ -260,7 +260,7 @@ impl Interpreter {
                                 } else {
                                     only_one.clone()
                                 };
-                                let res = native_function(&arg)
+                                let res = native_function(env, &arg)
                                     .map_err(|message| InterpreterError::new(message))?;
                                 Ok(res)
                             }
