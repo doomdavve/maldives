@@ -78,7 +78,7 @@ fn root_symboltable() -> SymbolTable {
         TypedExpression::native_function(
             native::native_println,
             ResolvedType::None,
-            ResolvedType::Any,
+            vec![ResolvedType::Any],
             true,
         ),
     );
@@ -87,7 +87,7 @@ fn root_symboltable() -> SymbolTable {
         TypedExpression::native_function(
             native::native_dbg,
             ResolvedType::None,
-            ResolvedType::Any,
+            vec![ResolvedType::Any],
             false,
         ),
     );
@@ -96,7 +96,7 @@ fn root_symboltable() -> SymbolTable {
         TypedExpression::native_function(
             native::native_integer_array,
             ResolvedType::Array(Box::new(ResolvedType::Integer)),
-            ResolvedType::Any,
+            vec![ResolvedType::Any],
             false,
         ),
     );
