@@ -33,14 +33,7 @@ impl InterpreterError {
 pub struct Interpreter;
 
 impl Interpreter {
-    pub fn eval_expression(
-        expr: &TypedExpression,
-        env: &mut SymbolTable,
-    ) -> Result<TypedExpression, InterpreterError> {
-        Interpreter::eval(expr, env)
-    }
-
-    fn eval(
+    pub fn eval(
         expr: &TypedExpression,
         mut env: &mut SymbolTable,
     ) -> Result<TypedExpression, InterpreterError> {

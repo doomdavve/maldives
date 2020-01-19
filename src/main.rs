@@ -54,7 +54,7 @@ fn load_file(filename: &str) -> Result<i32, String> {
                 Ok(program) => {
                     debug!("Parsed program: {:?}", program);
                     match TypeResolver::resolve_in_env(&program, &mut root) {
-                        Ok(resolved) => match Interpreter::eval_expression(&resolved, &mut root) {
+                        Ok(resolved) => match Interpreter::eval(&resolved, &mut root) {
                             Ok(a) => match a.node {
                                 TypedExpressionNode::Integer(i) => Ok(i),
                                 _ => Ok(0),
@@ -122,15 +122,13 @@ fn repl() -> Result<i32, String> {
                         Ok(program) => {
                             debug!("Parsed program: {:?}", program);
                             match TypeResolver::resolve_in_env(&program, &mut root) {
-                                Ok(resolved) => {
-                                    match Interpreter::eval_expression(&resolved, &mut root) {
-                                        Ok(a) => match a.resolved_type {
-                                            ResolvedType::None => {}
-                                            _ => println!("{}", a),
-                                        },
-                                        Err(e) => println!("{}", e),
-                                    }
-                                }
+                                Ok(resolved) => match Interpreter::eval(&resolved, &mut root) {
+                                    Ok(a) => match a.resolved_type {
+                                        ResolvedType::None => {}
+                                        _ => println!("{}", a),
+                                    },
+                                    Err(e) => println!("{}", e),
+                                },
                                 Err(e) => println!("{}", e),
                             }
                         }
@@ -179,7 +177,7 @@ mod tests {
     fn eval_program(contents: &str) -> Result<TypedExpression, String> {
         let mut root = SymbolTable::new();
         let expression = type_check_program(contents, &mut root).map_err(|e| e.message)?;
-        Interpreter::eval_expression(&expression, &mut root).map_err(|e| e.message)
+        Interpreter::eval(&expression, &mut root).map_err(|e| e.message)
     }
 
     #[test]
@@ -189,7 +187,7 @@ mod tests {
         root.bind("apa".to_string(), TypedExpression::integer(4));
         let expression =
             TypeResolver::resolve_in_env(&parser.program().unwrap(), &mut root).unwrap();
-        let res = Interpreter::eval_expression(&expression, &mut root);
+        let res = Interpreter::eval(&expression, &mut root);
         assert_eq!(Ok(TypedExpression::integer(4)), res);
     }
 
