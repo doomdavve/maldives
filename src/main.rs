@@ -47,23 +47,27 @@ fn main() -> Result<(), String> {
 
 fn load_file(filename: &str) -> Result<i32, String> {
     let mut root = root_symboltable();
-    let contents = fs::read_to_string(filename).expect("Something went wrong reading the file");
-    let tokens = Lexer::new(&contents);
-    match Parser::new(tokens).program() {
-        Ok(program) => {
-            debug!("Parsed program: {:?}", program);
-            match TypeResolver::resolve_in_env(&program, &mut root) {
-                Ok(resolved) => match Interpreter::eval_expression(&resolved, &mut root) {
-                    Ok(a) => match a.node {
-                        TypedExpressionNode::Integer(i) => Ok(i),
-                        _ => Ok(0),
-                    },
-                    Err(e) => Err(e.message),
-                },
+    match fs::read_to_string(filename) {
+        Ok(contents) => {
+            let tokens = Lexer::new(&contents);
+            match Parser::new(tokens).program() {
+                Ok(program) => {
+                    debug!("Parsed program: {:?}", program);
+                    match TypeResolver::resolve_in_env(&program, &mut root) {
+                        Ok(resolved) => match Interpreter::eval_expression(&resolved, &mut root) {
+                            Ok(a) => match a.node {
+                                TypedExpressionNode::Integer(i) => Ok(i),
+                                _ => Ok(0),
+                            },
+                            Err(e) => Err(e.message),
+                        },
+                        Err(e) => Err(e.message),
+                    }
+                }
                 Err(e) => Err(e.message),
             }
         }
-        Err(e) => Err(e.message),
+        Err(error) => Err(error.to_string()),
     }
 }
 
