@@ -96,9 +96,13 @@ fn root_symboltable() -> SymbolTable {
         TypedExpression::native_function(
             native::native_integer_array,
             ResolvedType::Array(Box::new(ResolvedType::Integer)),
-            vec![ResolvedType::Any],
+            vec![ResolvedType::Integer],
             false,
         ),
+    );
+    root.bind(
+        "env".to_string(),
+        TypedExpression::native_function(native::native_env, ResolvedType::None, vec![], false),
     );
     root
 }

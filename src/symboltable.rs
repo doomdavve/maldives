@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::convert::From;
+use std::fmt;
 
 use crate::typedexpression::{TypedExpression, TypedExpressionNode};
 
@@ -218,5 +219,20 @@ impl SymbolTable {
     pub fn leave_scope(&mut self) {
         let node = self.pool.get_mut(self.scope_id).unwrap();
         self.scope_id = node.parent.unwrap();
+    }
+}
+
+impl fmt::Display for SymbolTable {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        writeln!(f, "SymbolTable")?;
+
+        let node = self.pool.get(self.scope_id).unwrap(); // We might as well panic here
+        let scope = &node.scope;
+
+        for (key, value) in &scope.map {
+            println!("{}: {}", key, value);
+        }
+
+        Ok(())
     }
 }

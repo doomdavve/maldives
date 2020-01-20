@@ -253,20 +253,19 @@ impl Interpreter {
                     }
                     TypedExpressionNode::NativeFunction(f) => {
                         let native_function = f.function;
-                        match fc.arguments.as_slice() {
-                            [only_one] => {
-                                let arg = if f.call_by_value {
-                                    Interpreter::eval(&only_one, env)?
-                                } else {
-                                    only_one.clone()
-                                };
-                                let res = native_function(env, &arg)
-                                    .map_err(|message| InterpreterError::new(message))?;
-                                Ok(res)
+                        if f.call_by_value {
+                            let mut evaluated_arguments: Vec<TypedExpression> =
+                                Vec::with_capacity(fc.arguments.len());
+                            for argument in &fc.arguments {
+                                evaluated_arguments.push(Interpreter::eval(argument, env)?)
                             }
-                            _ => Err(InterpreterError::new(format!(
-                                "unexpected number of arguments to native function"
-                            ))),
+                            let res = native_function(env, &evaluated_arguments)
+                                .map_err(|message| InterpreterError::new(message))?;
+                            Ok(res)
+                        } else {
+                            let res = native_function(env, &fc.arguments)
+                                .map_err(|message| InterpreterError::new(message))?;
+                            Ok(res)
                         }
                     }
                     _ => Err(InterpreterError::new(format!(

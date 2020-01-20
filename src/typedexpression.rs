@@ -11,12 +11,7 @@ pub struct TypedExpression {
 }
 
 impl fmt::Display for TypedExpression {
-    // This trait requires `fmt` with this exact signature.
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        // Write strictly the first element into the supplied output
-        // stream: `f`. Returns `fmt::Result` which indicates whether the
-        // operation succeeded or failed. Note that `write!` uses syntax which
-        // is very similar to `println!`.
         write!(f, "{}: {}", self.node, self.resolved_type)
     }
 }
@@ -130,7 +125,7 @@ impl TypedExpression {
     pub fn array(array_type: ResolvedType, v: Vec<TypedExpression>) -> TypedExpression {
         TypedExpression {
             resolved_type: ResolvedType::Array(Box::new(array_type)),
-            node: TypedExpressionNode::Array(Rc::new(TypedBlockExpr { list: v })),
+            node: TypedExpressionNode::Array(Rc::new(TypedArrayExpr { array: v })),
         }
     }
 
@@ -167,7 +162,10 @@ impl TypedExpression {
     }
 
     pub fn native_function(
-        f: fn(env: &SymbolTable, e: &TypedExpression) -> Result<TypedExpression, String>,
+        f: fn(
+            env: &SymbolTable,
+            arguments: &Vec<TypedExpression>,
+        ) -> Result<TypedExpression, String>,
         return_type: ResolvedType,
         parameters: Vec<ResolvedType>,
         call_by_value: bool,
@@ -202,7 +200,7 @@ pub enum TypedExpressionNode {
     Conditional(Rc<TypedConditionalExpr>),
     Break(Rc<TypedBreakExpr>),
     Loop(Rc<TypedBlockExpr>),
-    Array(Rc<TypedBlockExpr>),
+    Array(Rc<TypedArrayExpr>),
     Void,
 }
 
@@ -380,6 +378,23 @@ impl fmt::Display for TypedBlockExpr {
 }
 
 #[derive(Debug, PartialEq)]
+pub struct TypedArrayExpr {
+    pub array: Vec<TypedExpression>,
+}
+
+impl fmt::Display for TypedArrayExpr {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let strings = self
+            .array
+            .iter()
+            .map(|a| format!("{}", a))
+            .collect::<Vec<_>>()
+            .join(", ");
+        write!(f, "[{:?}]", strings)
+    }
+}
+
+#[derive(Debug, PartialEq)]
 pub struct TypedBreakExpr {
     pub expr: TypedExpression,
 }
@@ -391,7 +406,8 @@ impl fmt::Display for TypedBreakExpr {
 }
 
 pub struct TypedNativeFunctionExpr {
-    pub function: fn(env: &SymbolTable, e: &TypedExpression) -> Result<TypedExpression, String>,
+    pub function:
+        fn(env: &SymbolTable, e: &Vec<TypedExpression>) -> Result<TypedExpression, String>,
     pub call_by_value: bool,
 }
 
