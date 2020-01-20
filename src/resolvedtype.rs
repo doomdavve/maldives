@@ -32,6 +32,7 @@ pub enum ResolvedType {
     Never,
     Break(Box<ResolvedType>),
     Array(Box<ResolvedType>),
+    TypeParameterId(usize),
 }
 
 impl fmt::Display for ResolvedType {
@@ -46,6 +47,7 @@ impl fmt::Display for ResolvedType {
             ResolvedType::Never => write!(f, "never"),
             ResolvedType::Break(break_expression) => write!(f, "break <{}>", break_expression),
             ResolvedType::Array(_) => write!(f, "array"),
+            ResolvedType::TypeParameterId(id) => write!(f, "T[{}]", id),
         }
     }
 }
@@ -81,5 +83,32 @@ impl ResolvedType {
             return_type,
             parameters,
         }))
+    }
+
+    pub fn complete_type(
+        resolved_type: &ResolvedType,
+        type_arguments: &Vec<TypeDeclaration>,
+    ) -> Option<ResolvedType> {
+        match resolved_type {
+            Self::Array(t) => Some(ResolvedType::Array(Box::new(ResolvedType::complete_type(
+                t,
+                type_arguments,
+            )?))),
+            Self::TypeParameterId(id) => Self::from_decl(&type_arguments[*id]),
+            Self::Function(resolved_fn) => {
+                let mut parameters: Vec<ResolvedType> =
+                    Vec::with_capacity(resolved_fn.parameters.len());
+                for parameter in &resolved_fn.parameters {
+                    parameters.push(ResolvedType::complete_type(parameter, type_arguments)?)
+                }
+                let return_type =
+                    ResolvedType::complete_type(&resolved_fn.return_type, type_arguments)?;
+                Some(ResolvedType::Function(Rc::new(ResolvedFunctionType {
+                    return_type,
+                    parameters,
+                })))
+            }
+            _ => Some(resolved_type.clone()),
+        }
     }
 }

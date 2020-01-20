@@ -267,6 +267,9 @@ impl Interpreter {
                     ))),
                 }
             }
+            TypedExpressionNode::TypedTypeQualifiedExpression(_qf) => {
+                unimplemented!();
+            }
         }
     }
 }

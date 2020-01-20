@@ -333,8 +333,33 @@ impl TypeResolver {
                 }
             }
             Expression::TypeQualifiedExpression(qf) => {
-                println!("{:?}", qf);
-                unimplemented!()
+                let expr = TypeResolver::resolve(&qf.expr, env, ctx)?;
+                let type_arguments = &qf.type_arguments;
+
+                let mut typed_type_arguments: Vec<ResolvedType> =
+                    Vec::with_capacity(qf.type_arguments.len());
+                for type_argument in &qf.type_arguments {
+                    let a = ResolvedType::from_decl(type_argument).ok_or(Error::new(format!(
+                        "can't resolve type: {:?}",
+                        type_argument
+                    )))?;
+                    let b = ResolvedType::complete_type(&a, type_arguments)
+                        .ok_or(Error::new(format!("can't resolve type: {:?}", a)))?;
+                    typed_type_arguments.push(b)
+                }
+                let resolved_return_type =
+                    ResolvedType::complete_type(&expr.resolved_type, type_arguments).ok_or(
+                        Error::new(format!(
+                            "can't resolve return type: {:?}",
+                            expr.resolved_type
+                        )),
+                    )?;
+
+                Ok(TypedExpression::type_qualified_expression(
+                    expr,
+                    resolved_return_type,
+                    typed_type_arguments,
+                ))
             }
             Expression::Function(f) => {
                 let mut parameters: Vec<(String, ResolvedType)> = Vec::new();
@@ -414,7 +439,7 @@ impl TypeResolver {
                     }
                     _ => Err(Error::new(format!(
                         "Type mismatch: Attempt to call something not a function: {:?}",
-                        expr.node
+                        expr.resolved_type
                     ))),
                 }?;
 

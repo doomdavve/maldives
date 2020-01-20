@@ -91,11 +91,11 @@ fn root_symboltable() -> SymbolTable {
         ),
     );
     root.bind(
-        "iarray".to_string(),
+        "array".to_string(),
         TypedExpression::native_function(
             native::native_integer_array,
-            ResolvedType::Array(Box::new(ResolvedType::Integer)),
-            vec![ResolvedType::Integer],
+            ResolvedType::Array(Box::new(ResolvedType::TypeParameterId(0))),
+            vec![],
             false,
         ),
     );

@@ -181,6 +181,22 @@ impl TypedExpression {
             })),
         }
     }
+
+    pub fn type_qualified_expression(
+        expr: TypedExpression,
+        resolved_type: ResolvedType,
+        type_arguments: Vec<ResolvedType>,
+    ) -> TypedExpression {
+        TypedExpression {
+            resolved_type,
+            node: TypedExpressionNode::TypedTypeQualifiedExpression(Rc::new(
+                TypedTypeQualifiedExpressionExpr {
+                    expr,
+                    type_arguments,
+                },
+            )),
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -201,6 +217,7 @@ pub enum TypedExpressionNode {
     Break(Rc<TypedBreakExpr>),
     Loop(Rc<TypedBlockExpr>),
     Array(Rc<TypedArrayExpr>),
+    TypedTypeQualifiedExpression(Rc<TypedTypeQualifiedExpressionExpr>),
     Void,
 }
 
@@ -228,6 +245,7 @@ impl fmt::Display for TypedExpressionNode {
             TypedExpressionNode::Break(b) => write!(f, "{}", b),
             TypedExpressionNode::Loop(b) => write!(f, "{}", b),
             TypedExpressionNode::Array(b) => write!(f, "{}", b),
+            TypedExpressionNode::TypedTypeQualifiedExpression(qf) => write!(f, "{}", qf),
         }
     }
 }
@@ -426,5 +444,23 @@ impl PartialEq for TypedNativeFunctionExpr {
 impl fmt::Debug for TypedNativeFunctionExpr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Native function")
+    }
+}
+
+#[derive(Debug, PartialEq)]
+pub struct TypedTypeQualifiedExpressionExpr {
+    pub expr: TypedExpression,
+    pub type_arguments: Vec<ResolvedType>,
+}
+
+impl fmt::Display for TypedTypeQualifiedExpressionExpr {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let strings = self
+            .type_arguments
+            .iter()
+            .map(|a| format!("{}", a))
+            .collect::<Vec<_>>()
+            .join(", ");
+        write!(f, "{}<{}>", self.expr, strings)
     }
 }
