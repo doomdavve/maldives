@@ -41,14 +41,14 @@ impl Interpreter {
         match &expr.node {
             TypedExpressionNode::Void => Ok(TypedExpression::void()),
             TypedExpressionNode::BinaryOperation(b) => {
-                let l = if b.operation.left_hand_by_name() {
+                let lhs = if b.operation.left_hand_by_name() {
                     b.left.clone()
                 } else {
                     Interpreter::eval(&b.left, env)?
                 };
-                let r = Interpreter::eval(&b.right, env)?;
+                let rhs = Interpreter::eval(&b.right, env)?;
                 match b.operation {
-                    TypedBinaryOperation::Sum => match (l.node, r.node) {
+                    TypedBinaryOperation::Sum => match (lhs.node, rhs.node) {
                         (TypedExpressionNode::Integer(li), TypedExpressionNode::Integer(ri)) => {
                             Ok(TypedExpression::integer(li + ri))
                         }
@@ -56,7 +56,7 @@ impl Interpreter {
                             "Unexpected terms in sum operator"
                         ))),
                     },
-                    TypedBinaryOperation::Difference => match (l.node, r.node) {
+                    TypedBinaryOperation::Difference => match (lhs.node, rhs.node) {
                         (TypedExpressionNode::Integer(li), TypedExpressionNode::Integer(ri)) => {
                             Ok(TypedExpression::integer(li - ri))
                         }
@@ -64,7 +64,7 @@ impl Interpreter {
                             "One or more non-integer terms to difference operator"
                         ))),
                     },
-                    TypedBinaryOperation::Multiply => match (l.node, r.node) {
+                    TypedBinaryOperation::Multiply => match (lhs.node, rhs.node) {
                         (TypedExpressionNode::Integer(li), TypedExpressionNode::Integer(ri)) => {
                             Ok(TypedExpression::integer(li * ri))
                         }
@@ -72,7 +72,7 @@ impl Interpreter {
                             "One or more non-integer terms to multiply operator"
                         ))),
                     },
-                    TypedBinaryOperation::ToThePowerOf => match (l.node, r.node) {
+                    TypedBinaryOperation::ToThePowerOf => match (lhs.node, rhs.node) {
                         (TypedExpressionNode::Integer(li), TypedExpressionNode::Integer(ri)) => {
                             Ok(TypedExpression::integer(li.pow(ri.try_into().unwrap())))
                         }
@@ -83,7 +83,7 @@ impl Interpreter {
 
                     TypedBinaryOperation::Divide => {
                         // TODO: handle division by zero.
-                        match (l.node, r.node) {
+                        match (lhs.node, rhs.node) {
                             (
                                 TypedExpressionNode::Integer(li),
                                 TypedExpressionNode::Integer(ri),
@@ -93,7 +93,7 @@ impl Interpreter {
                             ))),
                         }
                     }
-                    TypedBinaryOperation::LessThan => match (l.node, r.node) {
+                    TypedBinaryOperation::LessThan => match (lhs.node, rhs.node) {
                         (TypedExpressionNode::Integer(li), TypedExpressionNode::Integer(ri)) => {
                             Ok(TypedExpression::bool(li < ri))
                         }
@@ -101,7 +101,7 @@ impl Interpreter {
                             "One or more non-boolean terms to divide operator"
                         ))),
                     },
-                    TypedBinaryOperation::GreaterThan => match (l.node, r.node) {
+                    TypedBinaryOperation::GreaterThan => match (lhs.node, rhs.node) {
                         (TypedExpressionNode::Integer(li), TypedExpressionNode::Integer(ri)) => {
                             Ok(TypedExpression::bool(li > ri))
                         }
@@ -109,7 +109,7 @@ impl Interpreter {
                             "One or more non-boolean terms to divide operator"
                         ))),
                     },
-                    TypedBinaryOperation::LessEqualThan => match (l.node, r.node) {
+                    TypedBinaryOperation::LessEqualThan => match (lhs.node, rhs.node) {
                         (TypedExpressionNode::Integer(li), TypedExpressionNode::Integer(ri)) => {
                             Ok(TypedExpression::bool(li <= ri))
                         }
@@ -117,7 +117,7 @@ impl Interpreter {
                             "One or more non-boolean terms to divide operator"
                         ))),
                     },
-                    TypedBinaryOperation::GreaterEqualThan => match (l.node, r.node) {
+                    TypedBinaryOperation::GreaterEqualThan => match (lhs.node, rhs.node) {
                         (TypedExpressionNode::Integer(li), TypedExpressionNode::Integer(ri)) => {
                             Ok(TypedExpression::bool(li >= ri))
                         }
@@ -125,7 +125,7 @@ impl Interpreter {
                             "One or more non-boolean terms to divide operator"
                         ))),
                     },
-                    TypedBinaryOperation::Concat => match (l.node, r.node) {
+                    TypedBinaryOperation::Concat => match (lhs.node, rhs.node) {
                         (TypedExpressionNode::String(li), TypedExpressionNode::String(ri)) => {
                             Ok(TypedExpression::string(li + &ri))
                         }
@@ -133,7 +133,7 @@ impl Interpreter {
                             "One or more non-string terms to concatenation operator"
                         ))),
                     },
-                    TypedBinaryOperation::Equal => match (l.node, r.node) {
+                    TypedBinaryOperation::Equal => match (lhs.node, rhs.node) {
                         (TypedExpressionNode::Integer(li), TypedExpressionNode::Integer(ri)) => {
                             Ok(TypedExpression::bool(li == ri))
                         }
@@ -141,9 +141,9 @@ impl Interpreter {
                             "One or more non-integer terms to equal operator"
                         ))),
                     },
-                    TypedBinaryOperation::Assign => match l.node {
+                    TypedBinaryOperation::Assign => match lhs.node {
                         TypedExpressionNode::Symbol(sym) => {
-                            let expr = Interpreter::eval(&r, env)?;
+                            let expr = Interpreter::eval(&rhs, env)?;
                             env.update(String::from(&sym), expr.clone()).ok_or(
                                 InterpreterError::new(format!("{} not found in this scope", sym)),
                             )?;
