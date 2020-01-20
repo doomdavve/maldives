@@ -37,7 +37,7 @@ impl Interpreter {
         expr: &TypedExpression,
         mut env: &mut SymbolTable,
     ) -> Result<TypedExpression, InterpreterError> {
-        debug!("Evaulating {:?} with vars: {:?}", expr, env);
+        debug!("Evaluating {:?} with vars: {:?}", expr, env);
         match &expr.node {
             TypedExpressionNode::Void => Ok(TypedExpression::void()),
             TypedExpressionNode::BinaryOperation(b) => {
