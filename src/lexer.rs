@@ -43,7 +43,7 @@ fn eat_whitespace_and_comments(s: &[u8], mut i: usize) -> usize {
     }
 }
 
-fn eat_shebang(s: &[u8], i: usize) -> usize {
+fn eat_hashbang(s: &[u8], i: usize) -> usize {
     let at_hashbang = match_character(s, i, b'#') && match_character(s, i + 1, b'!');
     if !at_hashbang {
         return i;
@@ -143,7 +143,7 @@ impl<'a> Lexer<'a> {
         let bytes = buffer.as_bytes();
         Lexer {
             buffer: bytes,
-            start: eat_shebang(bytes, 0),
+            start: eat_hashbang(bytes, 0),
         }
     }
 
