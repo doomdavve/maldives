@@ -1,6 +1,7 @@
 use std::convert::TryInto;
 use std::error;
 use std::fmt;
+use std::rc::Rc;
 
 use crate::symboltable::SymbolTable;
 use crate::typedexpression::TypedBinaryOperation;
@@ -167,7 +168,7 @@ impl Interpreter {
             TypedExpressionNode::Bool(b) => Ok(TypedExpression::bool(*b)),
             TypedExpressionNode::Integer(i) => Ok(TypedExpression::integer(*i)),
             TypedExpressionNode::String(s) => Ok(TypedExpression::string(s.to_string())),
-            TypedExpressionNode::Array(_) => Ok(expr.clone()),
+            TypedExpressionNode::IntArray(_) => Ok(expr.clone()),
             TypedExpressionNode::Symbol(s) => {
                 let value = env
                     .lookup(s)
@@ -252,11 +253,11 @@ impl Interpreter {
                             for argument in &fc.arguments {
                                 evaluated_arguments.push(Interpreter::eval(argument, env)?)
                             }
-                            let res = native_function(env, &evaluated_arguments)
+                            let res = native_function(env, &evaluated_arguments, &f.type_arguments)
                                 .map_err(|message| Error::new(message))?;
                             Ok(res)
                         } else {
-                            let res = native_function(env, &fc.arguments)
+                            let res = native_function(env, &fc.arguments, &f.type_arguments)
                                 .map_err(|message| Error::new(message))?;
                             Ok(res)
                         }
@@ -267,8 +268,21 @@ impl Interpreter {
                     ))),
                 }
             }
-            TypedExpressionNode::TypedTypeQualifiedExpression(_qf) => {
-                unimplemented!();
+            TypedExpressionNode::TypedTypeQualifiedExpression(qf) => {
+                let value = Interpreter::eval(&qf.expr, env)?;
+                let a = match value.node {
+                    TypedExpressionNode::NativeFunction(f) => {
+                        let mut a = (*f).clone();
+                        a.type_arguments = Some(qf.type_arguments.clone());
+                        TypedExpression {
+                            resolved_type: value.resolved_type,
+                            node: TypedExpressionNode::NativeFunction(Rc::new(a)),
+                        }
+                    }
+                    _ => unimplemented!(),
+                };
+
+                Ok(a)
             }
         }
     }

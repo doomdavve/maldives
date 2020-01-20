@@ -93,7 +93,7 @@ fn root_symboltable() -> SymbolTable {
     root.bind(
         "array".to_string(),
         TypedExpression::native_function(
-            native::native_integer_array,
+            native::native_array,
             ResolvedType::Array(Box::new(ResolvedType::TypeParameterId(0))),
             vec![],
             false,

@@ -122,10 +122,10 @@ impl TypedExpression {
         }
     }
 
-    pub fn array(array_type: ResolvedType, v: Vec<TypedExpression>) -> TypedExpression {
+    pub fn array(array_type: ResolvedType, v: Vec<i32>) -> TypedExpression {
         TypedExpression {
             resolved_type: ResolvedType::Array(Box::new(array_type)),
-            node: TypedExpressionNode::Array(Rc::new(TypedArrayExpr { array: v })),
+            node: TypedExpressionNode::IntArray(Rc::new(TypedIntArrayExpr { array: v })),
         }
     }
 
@@ -165,6 +165,7 @@ impl TypedExpression {
         f: fn(
             env: &SymbolTable,
             arguments: &Vec<TypedExpression>,
+            type_arguments: &Option<Vec<ResolvedType>>,
         ) -> Result<TypedExpression, String>,
         return_type: ResolvedType,
         parameters: Vec<ResolvedType>,
@@ -178,6 +179,7 @@ impl TypedExpression {
             node: TypedExpressionNode::NativeFunction(Rc::new(TypedNativeFunctionExpr {
                 function: f,
                 call_by_value,
+                type_arguments: None,
             })),
         }
     }
@@ -216,7 +218,7 @@ pub enum TypedExpressionNode {
     Conditional(Rc<TypedConditionalExpr>),
     Break(Rc<TypedBreakExpr>),
     Loop(Rc<TypedBlockExpr>),
-    Array(Rc<TypedArrayExpr>),
+    IntArray(Rc<TypedIntArrayExpr>),
     TypedTypeQualifiedExpression(Rc<TypedTypeQualifiedExpressionExpr>),
     Void,
 }
@@ -244,7 +246,7 @@ impl fmt::Display for TypedExpressionNode {
             TypedExpressionNode::Void => write!(f, "void"),
             TypedExpressionNode::Break(b) => write!(f, "{}", b),
             TypedExpressionNode::Loop(b) => write!(f, "{}", b),
-            TypedExpressionNode::Array(b) => write!(f, "{}", b),
+            TypedExpressionNode::IntArray(b) => write!(f, "{}", b),
             TypedExpressionNode::TypedTypeQualifiedExpression(qf) => write!(f, "{}", qf),
         }
     }
@@ -396,11 +398,11 @@ impl fmt::Display for TypedBlockExpr {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct TypedArrayExpr {
-    pub array: Vec<TypedExpression>,
+pub struct TypedIntArrayExpr {
+    pub array: Vec<i32>,
 }
 
-impl fmt::Display for TypedArrayExpr {
+impl fmt::Display for TypedIntArrayExpr {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let strings = self
             .array
@@ -423,10 +425,15 @@ impl fmt::Display for TypedBreakExpr {
     }
 }
 
+#[derive(Clone)]
 pub struct TypedNativeFunctionExpr {
-    pub function:
-        fn(env: &SymbolTable, e: &Vec<TypedExpression>) -> Result<TypedExpression, String>,
+    pub function: fn(
+        env: &SymbolTable,
+        e: &Vec<TypedExpression>,
+        t: &Option<Vec<ResolvedType>>,
+    ) -> Result<TypedExpression, String>,
     pub call_by_value: bool,
+    pub type_arguments: Option<Vec<ResolvedType>>,
 }
 
 impl fmt::Display for TypedNativeFunctionExpr {
