@@ -9,25 +9,25 @@ use crate::typedexpression::{TypedBinaryOperation, TypedExpression};
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct TypeResolverError {
+pub struct Error {
     pub message: String,
 }
 
-impl fmt::Display for TypeResolverError {
+impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Type resolve error: {}", self.message)
     }
 }
 
-impl error::Error for TypeResolverError {
+impl error::Error for Error {
     fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         None
     }
 }
 
-impl TypeResolverError {
-    fn new(message: String) -> TypeResolverError {
-        TypeResolverError { message }
+impl Error {
+    fn new(message: String) -> Error {
+        Error { message }
     }
 }
 
@@ -90,7 +90,7 @@ impl TypeResolver {
     pub fn resolve_in_env(
         expression: &Expression,
         env: &mut SymbolTable,
-    ) -> Result<TypedExpression, TypeResolverError> {
+    ) -> Result<TypedExpression, Error> {
         let mut type_table = TypeTable::new();
         for (key, value) in &env.root_scope().map {
             type_table.bind(key.clone(), value.resolved_type.clone())
@@ -106,7 +106,7 @@ impl TypeResolver {
         expression: &Expression,
         env: &mut TypeTable,
         ctx: &Rc<ResolveContext>,
-    ) -> Result<TypedExpression, TypeResolverError> {
+    ) -> Result<TypedExpression, Error> {
         match expression {
             Expression::Void => Ok(TypedExpression::void()),
             Expression::Integer(i) => Ok(TypedExpression::integer(*i)),
@@ -117,7 +117,7 @@ impl TypeResolver {
                 Ok(TypedExpression::group(typed_group))
             }
             Expression::Symbol(s) => {
-                let resolved_type = env.lookup(s).ok_or(TypeResolverError::new(format!(
+                let resolved_type = env.lookup(s).ok_or(Error::new(format!(
                     "Unable to resolve type of symbol '{}'",
                     s
                 )))?;
@@ -234,12 +234,10 @@ impl TypeResolver {
                                 right,
                             ))
                         } else {
-                            Err(TypeResolverError::new(format!(
-                                "type mismatch in assignment",
-                            )))
+                            Err(Error::new(format!("type mismatch in assignment",)))
                         }
                     }
-                    _ => Err(TypeResolverError::new(format!("dbg: {:?}", expression))),
+                    _ => Err(Error::new(format!("dbg: {:?}", expression))),
                 }
             }
             Expression::Conditional(c) => {
@@ -264,7 +262,7 @@ impl TypeResolver {
                         false_branch.clone(),
                     ))
                 } else {
-                    Err(TypeResolverError::new(
+                    Err(Error::new(
                         "Conditional must operate on boolean and both branches must return the same type".to_string(),
                     ))
                 }
@@ -281,11 +279,11 @@ impl TypeResolver {
                     let parent_ctx = ctx
                         .parent
                         .clone()
-                        .ok_or(TypeResolverError::new("internal error".to_string()))?;
+                        .ok_or(Error::new("internal error".to_string()))?;
                     let typed_break = TypeResolver::resolve(&b.expr, env, &parent_ctx)?;
                     Ok(TypedExpression::r#break(typed_break))
                 }
-                None => Err(TypeResolverError::new("missing loop context".to_string())),
+                None => Err(Error::new("missing loop context".to_string())),
             },
             Expression::Loop(b) => {
                 let resolve_context = ResolveContext::r#loop(ctx.clone(), b);
@@ -300,9 +298,7 @@ impl TypeResolver {
                                 loop_break_type = *break_type.clone();
                                 Ok(())
                             } else {
-                                Err(TypeResolverError::new(
-                                    "mismatched break expression types".to_string(),
-                                ))
+                                Err(Error::new("mismatched break expression types".to_string()))
                             }
                         }
                         _ => Ok(()),
@@ -328,7 +324,7 @@ impl TypeResolver {
                     env.bind(String::from(&bind.sym), expr.resolved_type.clone());
                     Ok(TypedExpression::bind(String::from(&bind.sym), expr))
                 } else {
-                    Err(TypeResolverError::new(
+                    Err(Error::new(
                         format!(
                             "Type mismatch: Can't bind symbol '{}' of type '{:?}' to expression of type {:?}",
                             &bind.sym, resolved_sym_type, expr.resolved_type.clone()
@@ -348,9 +344,7 @@ impl TypeResolver {
                 for parameter in &f.parameters {
                     let resolved_parameter_type = ResolvedType::from_decl(&parameter.1)
                         .ok_or_else(|| {
-                            TypeResolverError::new(format!(
-                                "Type mismatch: Can't bind resolve type"
-                            ))
+                            Error::new(format!("Type mismatch: Can't bind resolve type"))
                         })?;
                     parameters.push((parameter.0.clone(), resolved_parameter_type.clone()));
                     function_env.bind(String::from(&parameter.0), resolved_parameter_type.clone());
@@ -361,9 +355,10 @@ impl TypeResolver {
                 let return_type = &expr.resolved_type;
 
                 let specified_return_type: ResolvedType = match f.return_type.as_ref() {
-                    Some(decl) => ResolvedType::from_decl(decl).ok_or(TypeResolverError::new(
-                        format!("Can't resolve specified return type '{:?}'", decl),
-                    )),
+                    Some(decl) => ResolvedType::from_decl(decl).ok_or(Error::new(format!(
+                        "Can't resolve specified return type '{:?}'",
+                        decl
+                    ))),
                     None => Ok(ResolvedType::Any),
                 }?;
 
@@ -385,7 +380,7 @@ impl TypeResolver {
                     }
                     Ok(function)
                 } else {
-                    Err(TypeResolverError::new(format!(
+                    Err(Error::new(format!(
                         "Type mismatch: Return types does not match"
                     )))
                 }
@@ -414,12 +409,10 @@ impl TypeResolver {
                         if !mismatch {
                             Ok(f.return_type.clone())
                         } else {
-                            Err(TypeResolverError::new(format!(
-                                "Type mismatch: argument mismatch"
-                            )))
+                            Err(Error::new(format!("Type mismatch: argument mismatch")))
                         }
                     }
-                    _ => Err(TypeResolverError::new(format!(
+                    _ => Err(Error::new(format!(
                         "Type mismatch: Attempt to call something not a function: {:?}",
                         expr.node
                     ))),

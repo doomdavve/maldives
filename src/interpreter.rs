@@ -8,25 +8,25 @@ use crate::typedexpression::TypedExpression;
 use crate::typedexpression::TypedExpressionNode;
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct InterpreterError {
+pub struct Error {
     pub message: String,
 }
 
-impl fmt::Display for InterpreterError {
+impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Interpreter error: {}", self.message)
     }
 }
 
-impl error::Error for InterpreterError {
+impl error::Error for Error {
     fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         None
     }
 }
 
-impl InterpreterError {
-    fn new(message: String) -> InterpreterError {
-        InterpreterError { message }
+impl Error {
+    fn new(message: String) -> Error {
+        Error { message }
     }
 }
 
@@ -36,7 +36,7 @@ impl Interpreter {
     pub fn eval(
         expr: &TypedExpression,
         mut env: &mut SymbolTable,
-    ) -> Result<TypedExpression, InterpreterError> {
+    ) -> Result<TypedExpression, Error> {
         debug!("Evaluating {:?} with vars: {:?}", expr, env);
         match &expr.node {
             TypedExpressionNode::Void => Ok(TypedExpression::void()),
@@ -52,15 +52,13 @@ impl Interpreter {
                         (TypedExpressionNode::Integer(li), TypedExpressionNode::Integer(ri)) => {
                             Ok(TypedExpression::integer(li + ri))
                         }
-                        _ => Err(InterpreterError::new(format!(
-                            "Unexpected terms in sum operator"
-                        ))),
+                        _ => Err(Error::new(format!("Unexpected terms in sum operator"))),
                     },
                     TypedBinaryOperation::Difference => match (lhs.node, rhs.node) {
                         (TypedExpressionNode::Integer(li), TypedExpressionNode::Integer(ri)) => {
                             Ok(TypedExpression::integer(li - ri))
                         }
-                        _ => Err(InterpreterError::new(format!(
+                        _ => Err(Error::new(format!(
                             "One or more non-integer terms to difference operator"
                         ))),
                     },
@@ -68,7 +66,7 @@ impl Interpreter {
                         (TypedExpressionNode::Integer(li), TypedExpressionNode::Integer(ri)) => {
                             Ok(TypedExpression::integer(li * ri))
                         }
-                        _ => Err(InterpreterError::new(format!(
+                        _ => Err(Error::new(format!(
                             "One or more non-integer terms to multiply operator"
                         ))),
                     },
@@ -76,9 +74,7 @@ impl Interpreter {
                         (TypedExpressionNode::Integer(li), TypedExpressionNode::Integer(ri)) => {
                             Ok(TypedExpression::integer(li.pow(ri.try_into().unwrap())))
                         }
-                        _ => Err(InterpreterError::new(format!(
-                            "Unexpected terms in power operator"
-                        ))),
+                        _ => Err(Error::new(format!("Unexpected terms in power operator"))),
                     },
 
                     TypedBinaryOperation::Divide => {
@@ -88,7 +84,7 @@ impl Interpreter {
                                 TypedExpressionNode::Integer(li),
                                 TypedExpressionNode::Integer(ri),
                             ) => Ok(TypedExpression::integer(li / ri)),
-                            _ => Err(InterpreterError::new(format!(
+                            _ => Err(Error::new(format!(
                                 "One or more non-integer terms to divide operator"
                             ))),
                         }
@@ -97,7 +93,7 @@ impl Interpreter {
                         (TypedExpressionNode::Integer(li), TypedExpressionNode::Integer(ri)) => {
                             Ok(TypedExpression::bool(li < ri))
                         }
-                        _ => Err(InterpreterError::new(format!(
+                        _ => Err(Error::new(format!(
                             "One or more non-boolean terms to divide operator"
                         ))),
                     },
@@ -105,7 +101,7 @@ impl Interpreter {
                         (TypedExpressionNode::Integer(li), TypedExpressionNode::Integer(ri)) => {
                             Ok(TypedExpression::bool(li > ri))
                         }
-                        _ => Err(InterpreterError::new(format!(
+                        _ => Err(Error::new(format!(
                             "One or more non-boolean terms to divide operator"
                         ))),
                     },
@@ -113,7 +109,7 @@ impl Interpreter {
                         (TypedExpressionNode::Integer(li), TypedExpressionNode::Integer(ri)) => {
                             Ok(TypedExpression::bool(li <= ri))
                         }
-                        _ => Err(InterpreterError::new(format!(
+                        _ => Err(Error::new(format!(
                             "One or more non-boolean terms to divide operator"
                         ))),
                     },
@@ -121,7 +117,7 @@ impl Interpreter {
                         (TypedExpressionNode::Integer(li), TypedExpressionNode::Integer(ri)) => {
                             Ok(TypedExpression::bool(li >= ri))
                         }
-                        _ => Err(InterpreterError::new(format!(
+                        _ => Err(Error::new(format!(
                             "One or more non-boolean terms to divide operator"
                         ))),
                     },
@@ -129,7 +125,7 @@ impl Interpreter {
                         (TypedExpressionNode::String(li), TypedExpressionNode::String(ri)) => {
                             Ok(TypedExpression::string(li + &ri))
                         }
-                        _ => Err(InterpreterError::new(format!(
+                        _ => Err(Error::new(format!(
                             "One or more non-string terms to concatenation operator"
                         ))),
                     },
@@ -137,19 +133,18 @@ impl Interpreter {
                         (TypedExpressionNode::Integer(li), TypedExpressionNode::Integer(ri)) => {
                             Ok(TypedExpression::bool(li == ri))
                         }
-                        _ => Err(InterpreterError::new(format!(
+                        _ => Err(Error::new(format!(
                             "One or more non-integer terms to equal operator"
                         ))),
                     },
                     TypedBinaryOperation::Assign => match lhs.node {
                         TypedExpressionNode::Symbol(sym) => {
                             let expr = Interpreter::eval(&rhs, env)?;
-                            env.update(String::from(&sym), expr.clone()).ok_or(
-                                InterpreterError::new(format!("{} not found in this scope", sym)),
-                            )?;
+                            env.update(String::from(&sym), expr.clone())
+                                .ok_or(Error::new(format!("{} not found in this scope", sym)))?;
                             Ok(expr)
                         }
-                        _ => Err(InterpreterError::new(format!(
+                        _ => Err(Error::new(format!(
                             "unexpected left hand side of assignment"
                         ))),
                     },
@@ -165,9 +160,7 @@ impl Interpreter {
                         Ok(Interpreter::eval(&false_branch, env)?)
                     }
                     (TypedExpressionNode::Bool(false), _) => Ok(TypedExpression::void()),
-                    _ => Err(InterpreterError::new(format!(
-                        "Unexpected result of conditional"
-                    ))),
+                    _ => Err(Error::new(format!("Unexpected result of conditional"))),
                 }
             }
             TypedExpressionNode::Group(g) => Interpreter::eval(&g.expr, env),
@@ -178,7 +171,7 @@ impl Interpreter {
             TypedExpressionNode::Symbol(s) => {
                 let value = env
                     .lookup(s)
-                    .ok_or_else(|| InterpreterError::new(format!("unknown symbol '{}'", s)))?;
+                    .ok_or_else(|| Error::new(format!("unknown symbol '{}'", s)))?;
                 Ok(value.clone())
             }
             TypedExpressionNode::Bind(b) => {
@@ -215,7 +208,7 @@ impl Interpreter {
                     }
                 }
                 env.leave_scope();
-                last.ok_or(InterpreterError::new("internal error".to_string()))
+                last.ok_or(Error::new("internal error".to_string()))
             }
             TypedExpressionNode::Break(b) => Ok(TypedExpression::r#break(Interpreter::eval(
                 &b.expr, &mut env,
@@ -260,15 +253,15 @@ impl Interpreter {
                                 evaluated_arguments.push(Interpreter::eval(argument, env)?)
                             }
                             let res = native_function(env, &evaluated_arguments)
-                                .map_err(|message| InterpreterError::new(message))?;
+                                .map_err(|message| Error::new(message))?;
                             Ok(res)
                         } else {
                             let res = native_function(env, &fc.arguments)
-                                .map_err(|message| InterpreterError::new(message))?;
+                                .map_err(|message| Error::new(message))?;
                             Ok(res)
                         }
                     }
-                    _ => Err(InterpreterError::new(format!(
+                    _ => Err(Error::new(format!(
                         "unexpected {:?}, expected function",
                         fc.expr
                     ))),

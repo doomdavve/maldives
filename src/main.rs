@@ -16,7 +16,6 @@ mod expression;
 mod interpreter;
 mod lexer;
 mod native;
-mod parse_error;
 mod parser;
 mod resolvedtype;
 mod string;
@@ -59,12 +58,12 @@ fn load_file(filename: &str) -> Result<i32, String> {
                                 TypedExpressionNode::Integer(i) => Ok(i),
                                 _ => Ok(0),
                             },
-                            Err(e) => Err(e.message),
+                            Err(e) => Err(e.to_string()),
                         },
-                        Err(e) => Err(e.message),
+                        Err(e) => Err(e.to_string()),
                     }
                 }
-                Err(e) => Err(e.message),
+                Err(e) => Err(e.to_string()),
             }
         }
         Err(error) => Err(error.to_string()),
@@ -167,13 +166,13 @@ mod tests {
     use crate::resolvedtype::ResolvedType;
     use crate::symboltable::SymbolTable;
     use crate::typedexpression::TypedExpression;
+    use crate::typeresolver::Error;
     use crate::typeresolver::TypeResolver;
-    use crate::typeresolver::TypeResolverError;
 
     fn type_check_program(
         contents: &str,
         mut root: &mut SymbolTable,
-    ) -> Result<TypedExpression, TypeResolverError> {
+    ) -> Result<TypedExpression, Error> {
         let mut parser = Parser::new(Lexer::new(contents));
         TypeResolver::resolve_in_env(&parser.program().unwrap(), &mut root)
     }

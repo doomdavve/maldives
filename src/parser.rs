@@ -1,6 +1,11 @@
 use crate::expression::FunctionDeclaration;
 use crate::expression::TypeDeclaration;
+use crate::lexer::Lexer;
 use crate::string::interpret_escaped_string;
+use crate::token::Token;
+
+use std::error;
+use std::fmt;
 use std::rc::Rc;
 use std::str::from_utf8_unchecked;
 
@@ -8,9 +13,29 @@ use crate::expression::{
     BinaryExpr, BindExpr, BlockExpr, BreakExpr, ConditionalExpr, Expression, FunctionCallExpr,
     FunctionExpr, GroupExpr, LoopExpr, Operator, TypeQualifiedExpressionExpr,
 };
-use crate::lexer::Lexer;
-use crate::parse_error::ParseError;
-use crate::token::Token;
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Error {
+    pub message: String,
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Parser error: {}", self.message)
+    }
+}
+
+impl error::Error for Error {
+    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
+        None
+    }
+}
+
+impl Error {
+    pub fn new(message: String) -> Error {
+        Error { message }
+    }
+}
 
 pub struct Parser<'a> {
     sym: Option<Token<'a>>,
@@ -52,43 +77,43 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn expect(&mut self, s: Token) -> Result<(), ParseError> {
+    fn expect(&mut self, s: Token) -> Result<(), Error> {
         if self.accept(s) {
             Ok(())
         } else {
-            Err(ParseError::new(format!(
+            Err(Error::new(format!(
                 "unexpected token '{}'",
                 self.sym_as_str()
             )))
         }
     }
 
-    fn expect_none(&mut self) -> Result<(), ParseError> {
+    fn expect_none(&mut self) -> Result<(), Error> {
         if self.sym == None {
             Ok(())
         } else {
-            Err(ParseError::new(format!(
+            Err(Error::new(format!(
                 "unexpected token '{}'",
                 self.sym_as_str()
             )))
         }
     }
 
-    fn symbol(&mut self) -> Result<String, ParseError> {
+    fn symbol(&mut self) -> Result<String, Error> {
         match self.sym {
             Some(Token::Symbol(s)) => {
                 let symbol_name = unsafe { from_utf8_unchecked(s) }.to_string();
                 self.sym = self.lexer.next();
                 Ok(symbol_name)
             }
-            _ => Err(ParseError::new(format!(
+            _ => Err(Error::new(format!(
                 "unexpected token {} found, expected symbol",
                 self.sym_as_str()
             ))),
         }
     }
 
-    fn operator(&mut self) -> Result<Operator, ParseError> {
+    fn operator(&mut self) -> Result<Operator, Error> {
         match self.sym {
             Some(Token::Plus) => {
                 self.sym = self.lexer.next();
@@ -142,14 +167,14 @@ impl<'a> Parser<'a> {
                 self.sym = self.lexer.next();
                 Ok(Operator::TypeArguments)
             }
-            _ => Err(ParseError::new(format!(
+            _ => Err(Error::new(format!(
                 "unexpected token {} found, expected operator",
                 self.sym_as_str()
             ))),
         }
     }
 
-    fn function(&mut self) -> Result<FunctionExpr, ParseError> {
+    fn function(&mut self) -> Result<FunctionExpr, Error> {
         self.expect(Token::Function)?;
         let sym = if self.sym != Some(Token::ParenLeft) {
             Some(self.symbol()?)
@@ -198,7 +223,7 @@ impl<'a> Parser<'a> {
         Ok(function)
     }
 
-    fn type_declaration(&mut self) -> Result<TypeDeclaration, ParseError> {
+    fn type_declaration(&mut self) -> Result<TypeDeclaration, Error> {
         if self.sym == Some(Token::ParenLeft) {
             let function_declaration = self.function_declaration()?;
             Ok(TypeDeclaration::Function(function_declaration))
@@ -208,7 +233,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn function_declaration(&mut self) -> Result<FunctionDeclaration, ParseError> {
+    fn function_declaration(&mut self) -> Result<FunctionDeclaration, Error> {
         self.expect(Token::ParenLeft)?;
 
         let mut parameters: Vec<TypeDeclaration> = Vec::new();
@@ -235,7 +260,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    pub fn expression(&mut self) -> Result<Expression, ParseError> {
+    pub fn expression(&mut self) -> Result<Expression, Error> {
         self.expression_from_precedence(0)
     }
 
@@ -255,7 +280,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn expression_from_precedence(&mut self, min_prec: i32) -> Result<Expression, ParseError> {
+    fn expression_from_precedence(&mut self, min_prec: i32) -> Result<Expression, Error> {
         let mut expr = self.expression_atom()?;
         loop {
             match self.next_min_prec() {
@@ -300,7 +325,7 @@ impl<'a> Parser<'a> {
         Ok(expr)
     }
 
-    fn expression_atom(&mut self) -> Result<Expression, ParseError> {
+    fn expression_atom(&mut self) -> Result<Expression, Error> {
         match self.sym {
             Some(Token::Symbol(s)) => {
                 let symbol_name = unsafe { from_utf8_unchecked(s) }.to_string();
@@ -309,7 +334,7 @@ impl<'a> Parser<'a> {
             }
             Some(Token::String(s)) => {
                 let string = interpret_escaped_string(unsafe { from_utf8_unchecked(s) })
-                    .map_err(|e| ParseError::new(e.to_string()))?;
+                    .map_err(|e| Error::new(e.to_string()))?;
                 self.sym = self.lexer.next();
                 Ok(Expression::String(string))
             }
@@ -372,21 +397,23 @@ impl<'a> Parser<'a> {
             | Some(Token::Colon)
             | Some(Token::SemiColon)
             | Some(Token::Comma)
-            | Some(Token::RightArrow) => Err(ParseError::new(format!(
+            | Some(Token::RightArrow) => Err(Error::new(format!(
                 "unexpected token: {}",
                 self.sym_as_str()
             ))),
-            None => Err(ParseError::new(format!("unexpected EOF; expected part of expression"))),
+            None => Err(Error::new(format!(
+                "unexpected EOF; expected part of expression"
+            ))),
         }
     }
 
-    fn r#break(&mut self) -> Result<BreakExpr, ParseError> {
+    fn r#break(&mut self) -> Result<BreakExpr, Error> {
         self.expect(Token::Break)?;
         let expr = self.expression()?;
         Ok(BreakExpr { expr })
     }
 
-    fn r#loop(&mut self) -> Result<LoopExpr, ParseError> {
+    fn r#loop(&mut self) -> Result<LoopExpr, Error> {
         self.expect(Token::Loop)?;
         self.expect(Token::BraceLeft)?;
         let mut list: Vec<Expression> = Vec::new();
@@ -404,7 +431,7 @@ impl<'a> Parser<'a> {
         Ok(LoopExpr { list })
     }
 
-    fn conditional(&mut self) -> Result<ConditionalExpr, ParseError> {
+    fn conditional(&mut self) -> Result<ConditionalExpr, Error> {
         self.expect(Token::If)?;
         let condition = self.expression()?;
         let true_branch = self.expression()?;
@@ -420,14 +447,14 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn group(&mut self) -> Result<GroupExpr, ParseError> {
+    fn group(&mut self) -> Result<GroupExpr, Error> {
         self.expect(Token::ParenLeft)?;
         let expr = self.expression()?;
         self.expect(Token::ParenRight)?;
         Ok(GroupExpr { expr })
     }
 
-    fn arguments(&mut self) -> Result<Vec<Expression>, ParseError> {
+    fn arguments(&mut self) -> Result<Vec<Expression>, Error> {
         let mut args: Vec<Expression> = Vec::new();
         if self.sym != Some(Token::ParenRight) {
             let arg = self.expression()?;
@@ -445,7 +472,7 @@ impl<'a> Parser<'a> {
         Ok(args)
     }
 
-    fn type_arguments(&mut self) -> Result<Vec<TypeDeclaration>, ParseError> {
+    fn type_arguments(&mut self) -> Result<Vec<TypeDeclaration>, Error> {
         let mut args: Vec<TypeDeclaration> = Vec::new();
         if self.sym != Some(Token::BracketRight) {
             let arg = self.type_declaration()?;
@@ -463,7 +490,7 @@ impl<'a> Parser<'a> {
         Ok(args)
     }
 
-    fn block(&mut self) -> Result<BlockExpr, ParseError> {
+    fn block(&mut self) -> Result<BlockExpr, Error> {
         self.expect(Token::BraceLeft)?;
         let mut list: Vec<Expression> = Vec::new();
         if self.sym != Some(Token::BraceRight) {
@@ -480,7 +507,7 @@ impl<'a> Parser<'a> {
         Ok(BlockExpr { list })
     }
 
-    fn binding(&mut self) -> Result<BindExpr, ParseError> {
+    fn binding(&mut self) -> Result<BindExpr, Error> {
         self.expect(Token::Let)?;
         let sym = self.symbol()?;
         let sym_type = if self.accept(Token::Colon) {
@@ -496,7 +523,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    pub fn program(&mut self) -> Result<Expression, ParseError> {
+    pub fn program(&mut self) -> Result<Expression, Error> {
         let mut list: Vec<Expression> = Vec::new();
         if self.sym != None {
             list.push(self.expression()?);
