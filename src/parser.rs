@@ -376,7 +376,7 @@ impl<'a> Parser<'a> {
                 "unexpected token: {}",
                 self.sym_as_str()
             ))),
-            None => Err(ParseError::new(format!("unexpected EOF"))),
+            None => Err(ParseError::new(format!("unexpected EOF; expected part of expression"))),
         }
     }
 
