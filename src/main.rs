@@ -116,30 +116,14 @@ fn repl() -> Result<i32, String> {
     let mut root = root_symboltable();
     loop {
         match rl.readline("> ") {
-            Ok(line) => {
-                if &line != "" {
-                    rl.add_history_entry(line.as_str());
-                    let tokens = Lexer::new(line.as_str());
-                    match Parser::new(tokens).program() {
-                        Ok(program) => {
-                            debug!("Parsed program: {:?}", program);
-                            match TypeResolver::resolve_in_env(&program, &mut root) {
-                                Ok(resolved) => match Interpreter::eval(&resolved, &mut root) {
-                                    Ok(a) => match a.resolved_type {
-                                        ResolvedType::None => {}
-                                        _ => println!("{}", a),
-                                    },
-                                    Err(e) => println!("{}", e),
-                                },
-                                Err(e) => println!("{}", e),
-                            }
-                        }
-                        Err(e) => {
-                            println!("{}", e.message);
-                        }
-                    }
+            Ok(line) if &line != "" => {
+                rl.add_history_entry(&line);
+                match evaluate_line(&mut root, &line) {
+                    Ok(output) => println!("{}", output),
+                    Err(message) => println!("Error: {}", message),
                 }
             }
+            Ok(_) => (),
             Err(ReadlineError::Interrupted) | Err(ReadlineError::Eof) => {
                 println!("Exit.");
                 break;
@@ -152,6 +136,15 @@ fn repl() -> Result<i32, String> {
     }
     rl.save_history(&history_file_path).unwrap();
     Ok(0)
+}
+
+fn evaluate_line(mut root: &mut SymbolTable, line: &str) -> Result<String, String> {
+    let tokens = Lexer::new(line);
+    let program = Parser::new(tokens).program().map_err(|e| e.to_string())?;
+    debug!("Parsed program: {:?}", program);
+    let resolved = TypeResolver::resolve_in_env(&program, &mut root).map_err(|e| e.to_string())?;
+    let result = Interpreter::eval(&resolved, &mut root).map_err(|e| e.to_string())?;
+    Ok(result.to_string())
 }
 
 #[cfg(test)]
