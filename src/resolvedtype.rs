@@ -34,6 +34,7 @@ pub enum ResolvedType {
     Array(Box<ResolvedType>),
     TypeParameterId(usize),
     VarArgs,
+    Struct(usize),
 }
 
 impl fmt::Display for ResolvedType {
@@ -50,6 +51,7 @@ impl fmt::Display for ResolvedType {
             ResolvedType::Array(_) => write!(f, "array"),
             ResolvedType::TypeParameterId(id) => write!(f, "T[{}]", id),
             ResolvedType::VarArgs => write!(f, "..."),
+            ResolvedType::Struct(id) => write!(f, "struct <{}>", id),
         }
     }
 }

@@ -284,6 +284,7 @@ impl Interpreter {
 
                 Ok(a)
             }
+            TypedExpressionNode::Struct(_s) => Ok(expr.clone()),
         }
     }
 }

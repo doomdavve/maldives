@@ -91,6 +91,7 @@ fn root_symboltable() -> SymbolTable {
         "env".to_string(),
         TypedExpression::native_function(native::native_env, ResolvedType::None, vec![], false),
     );
+    root.bind("Array".to_string(), TypedExpression::r#struct());
     root
 }
 

@@ -12,7 +12,7 @@ pub struct TypedExpression {
 
 impl fmt::Display for TypedExpression {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}: {}", self.node, self.resolved_type)
+        write!(f, "{} (:{})", self.node, self.resolved_type)
     }
 }
 
@@ -199,6 +199,18 @@ impl TypedExpression {
             )),
         }
     }
+
+    pub fn r#struct() -> TypedExpression {
+        TypedExpression {
+            resolved_type: ResolvedType::Struct(0),
+            node: TypedExpressionNode::Struct(Rc::new(StructExpr {
+                list: vec![StructEntry {
+                    sym: "len".to_string(),
+                    expr: TypedExpression::integer(123),
+                }],
+            })),
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -220,6 +232,7 @@ pub enum TypedExpressionNode {
     Loop(Rc<TypedBlockExpr>),
     IntArray(Rc<TypedIntArrayExpr>),
     TypedTypeQualifiedExpression(Rc<TypedTypeQualifiedExpressionExpr>),
+    Struct(Rc<StructExpr>),
     Void,
 }
 
@@ -248,6 +261,7 @@ impl fmt::Display for TypedExpressionNode {
             TypedExpressionNode::Loop(b) => write!(f, "{}", b),
             TypedExpressionNode::IntArray(b) => write!(f, "{}", b),
             TypedExpressionNode::TypedTypeQualifiedExpression(qf) => write!(f, "{}", qf),
+            TypedExpressionNode::Struct(s) => write!(f, "{}", s),
         }
     }
 }
@@ -469,5 +483,34 @@ impl fmt::Display for TypedTypeQualifiedExpressionExpr {
             .collect::<Vec<_>>()
             .join(", ");
         write!(f, "{}<{}>", self.expr, strings)
+    }
+}
+
+#[derive(Debug, PartialEq)]
+pub struct StructEntry {
+    pub sym: String,
+    pub expr: TypedExpression,
+}
+
+impl fmt::Display for StructEntry {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}={}", self.sym, self.expr)
+    }
+}
+
+#[derive(Debug, PartialEq)]
+pub struct StructExpr {
+    pub list: Vec<StructEntry>,
+}
+
+impl fmt::Display for StructExpr {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let strings = self
+            .list
+            .iter()
+            .map(|a| format!("{}", a))
+            .collect::<Vec<_>>()
+            .join(", ");
+        write!(f, "{}", strings)
     }
 }
