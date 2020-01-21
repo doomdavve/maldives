@@ -96,7 +96,7 @@ fn root_symboltable() -> SymbolTable {
             native::native_array,
             ResolvedType::Array(Box::new(ResolvedType::TypeParameterId(0))),
             vec![ResolvedType::VarArgs],
-            false,
+            true,
         ),
     );
     root.bind(
