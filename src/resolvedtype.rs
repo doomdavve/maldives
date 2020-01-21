@@ -33,6 +33,7 @@ pub enum ResolvedType {
     Break(Box<ResolvedType>),
     Array(Box<ResolvedType>),
     TypeParameterId(usize),
+    VarArgs,
 }
 
 impl fmt::Display for ResolvedType {
@@ -48,6 +49,7 @@ impl fmt::Display for ResolvedType {
             ResolvedType::Break(break_expression) => write!(f, "break <{}>", break_expression),
             ResolvedType::Array(_) => write!(f, "array"),
             ResolvedType::TypeParameterId(id) => write!(f, "T[{}]", id),
+            ResolvedType::VarArgs => write!(f, "..."),
         }
     }
 }

@@ -34,13 +34,19 @@ pub fn native_dbg(
 
 pub fn native_array(
     _env: &SymbolTable,
-    _arguments: &Vec<TypedExpression>,
+    arguments: &Vec<TypedExpression>,
     type_arguments: &Option<Vec<ResolvedType>>,
 ) -> Result<TypedExpression, String> {
     match type_arguments {
         Some(types) if types.len() == 1 => {
             let v = match types[0] {
-                ResolvedType::Integer => Vec::<i32>::new(),
+                ResolvedType::Integer => arguments
+                    .iter()
+                    .flat_map(|expr| match expr.node {
+                        TypedExpressionNode::Integer(i) => Some(i),
+                        _ => None,
+                    })
+                    .collect(),
                 _ => unimplemented!(),
             };
             Ok(TypedExpression::array(ResolvedType::Integer, v))

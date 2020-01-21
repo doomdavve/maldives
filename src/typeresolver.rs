@@ -415,15 +415,23 @@ impl TypeResolver {
                 let expr = TypeResolver::resolve(&fc.expr, env, ctx)?;
                 let return_type = match &expr.resolved_type {
                     ResolvedType::Function(f) => {
+                        let is_var_args_function = match f.parameters.last() {
+                            Some(param) => param == &ResolvedType::VarArgs,
+                            _ => false,
+                        };
                         let mut typed_arguments = Vec::<TypedExpression>::new();
                         for arg in &fc.arguments {
                             let typed_arg = TypeResolver::resolve(&arg, env, ctx)?;
                             typed_arguments.push(typed_arg)
                         }
 
-                        let mut mismatch = typed_arguments.len() != f.parameters.len();
+                        let mut mismatch =
+                            !is_var_args_function && typed_arguments.len() != f.parameters.len();
                         if !mismatch {
                             for (arg, param) in typed_arguments.iter().zip(&f.parameters) {
+                                if param == &ResolvedType::VarArgs {
+                                    break;
+                                }
                                 if param != &ResolvedType::Any && &arg.resolved_type != param {
                                     mismatch = true;
                                     break;

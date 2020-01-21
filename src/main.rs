@@ -95,7 +95,7 @@ fn root_symboltable() -> SymbolTable {
         TypedExpression::native_function(
             native::native_array,
             ResolvedType::Array(Box::new(ResolvedType::TypeParameterId(0))),
-            vec![],
+            vec![ResolvedType::VarArgs],
             false,
         ),
     );

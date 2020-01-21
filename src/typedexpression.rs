@@ -410,7 +410,7 @@ impl fmt::Display for TypedIntArrayExpr {
             .map(|a| format!("{}", a))
             .collect::<Vec<_>>()
             .join(", ");
-        write!(f, "[{:?}]", strings)
+        write!(f, "[{}]", strings)
     }
 }
 
