@@ -815,6 +815,18 @@ fn parse_infix() {
 }
 
 #[test]
+fn parse_infix_no_space() {
+    let mut parser = Parser::new(Lexer::new("1+2"));
+    let expected = Expression::Binary(Rc::new(BinaryExpr {
+        operator: Operator::Sum,
+        left: Expression::Integer(1),
+        right: Expression::Integer(2),
+    }));
+    let expression = parser.expression();
+    assert_eq!(expression, Ok(expected));
+}
+
+#[test]
 fn parse_string_concatination() {
     let mut parser = Parser::new(Lexer::new("\"apa\" + \"banan\""));
     let expected = Expression::Binary(Rc::new(BinaryExpr {
