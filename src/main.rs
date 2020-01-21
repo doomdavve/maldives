@@ -46,27 +46,15 @@ fn main() -> Result<(), String> {
 
 fn load_file(filename: &str) -> Result<i32, String> {
     let mut root = root_symboltable();
-    match fs::read_to_string(filename) {
-        Ok(contents) => {
-            let tokens = Lexer::new(&contents);
-            match Parser::new(tokens).program() {
-                Ok(program) => {
-                    debug!("Parsed program: {:?}", program);
-                    match TypeResolver::resolve_in_env(&program, &mut root) {
-                        Ok(resolved) => match Interpreter::eval(&resolved, &mut root) {
-                            Ok(a) => match a.node {
-                                TypedExpressionNode::Integer(i) => Ok(i),
-                                _ => Ok(0),
-                            },
-                            Err(e) => Err(e.to_string()),
-                        },
-                        Err(e) => Err(e.to_string()),
-                    }
-                }
-                Err(e) => Err(e.to_string()),
-            }
-        }
-        Err(error) => Err(error.to_string()),
+    let contents = fs::read_to_string(filename).map_err(|e| e.to_string())?;
+    let tokens = Lexer::new(&contents);
+    let program = Parser::new(tokens).program().map_err(|e| e.to_string())?;
+    debug!("Parsed program: {:?}", program);
+    let typed = TypeResolver::resolve_in_env(&program, &mut root).map_err(|e| e.to_string())?;
+    let res = Interpreter::eval(&typed, &mut root).map_err(|e| e.to_string())?;
+    match res.node {
+        TypedExpressionNode::Integer(i) => Ok(i),
+        _ => Ok(0),
     }
 }
 
