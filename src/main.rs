@@ -115,8 +115,7 @@ fn repl() -> Result<i32, String> {
     }
     let mut root = root_symboltable();
     loop {
-        let readline = rl.readline("> ");
-        match readline {
+        match rl.readline("> ") {
             Ok(line) => {
                 if &line != "" {
                     rl.add_history_entry(line.as_str());
