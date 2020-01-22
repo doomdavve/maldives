@@ -212,7 +212,7 @@ impl<'a> Lexer<'a> {
     }
 
     fn tokenize_structure(&self) -> (Option<Token<'a>>, usize) {
-        // TODO: Rewrite with pattern matching?
+        // TODO: Rewrite with pattern matching.
         return_if_5characters!(self, Token::False, b'f', b'a', b'l', b's', b'e');
         return_if_5characters!(self, Token::Break, b'b', b'r', b'e', b'a', b'k');
         return_if_4characters!(self, Token::Loop, b'l', b'o', b'o', b'p');
@@ -232,6 +232,7 @@ impl<'a> Lexer<'a> {
         return_if_character!(self, Token::ParenRight, b')');
         return_if_character!(self, Token::BracketLeft, b'[');
         return_if_character!(self, Token::BracketRight, b']');
+        return_if_character!(self, Token::Dot, b'.');
         return_if_character!(self, Token::Colon, b':');
         return_if_character!(self, Token::SemiColon, b';');
         return_if_character!(self, Token::Comma, b',');

@@ -397,6 +397,7 @@ impl<'a> Parser<'a> {
             | Some(Token::Colon)
             | Some(Token::SemiColon)
             | Some(Token::Comma)
+            | Some(Token::Dot)
             | Some(Token::RightArrow) => Err(Error::new(format!(
                 "unexpected token: {}",
                 self.sym_as_str()

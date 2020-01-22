@@ -35,6 +35,7 @@ pub enum Token<'a> {
     RightArrow,
     Loop,
     Break,
+    Dot,
 }
 
 impl<'a> fmt::Display for Token<'a> {
@@ -72,6 +73,7 @@ impl<'a> fmt::Display for Token<'a> {
             Token::RightArrow => write!(f, "->"),
             Token::Loop => write!(f, "loop"),
             Token::Break => write!(f, "break"),
+            Token::Dot => write!(f, "."),
         }
     }
 }
