@@ -4,9 +4,9 @@ use std::fmt;
 use std::rc::Rc;
 
 use crate::symboltable::SymbolTable;
-use crate::typedexpression::TypedBinaryOperation;
 use crate::typedexpression::TypedExpression;
-use crate::typedexpression::TypedExpressionNode;
+use crate::typedexpressionnode::TypedBinaryOperation;
+use crate::typedexpressionnode::TypedExpressionNode;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Error {

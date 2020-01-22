@@ -1,6 +1,7 @@
 use crate::resolvedtype::ResolvedType;
 use crate::symboltable::SymbolTable;
-use crate::typedexpression::{TypedExpression, TypedExpressionNode};
+use crate::typedexpression::TypedExpression;
+use crate::typedexpressionnode::TypedExpressionNode;
 
 pub fn native_println(
     _env: &SymbolTable,

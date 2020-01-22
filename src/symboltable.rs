@@ -2,7 +2,8 @@ use std::collections::HashMap;
 use std::convert::From;
 use std::fmt;
 
-use crate::typedexpression::{TypedExpression, TypedExpressionNode};
+use crate::typedexpression::TypedExpression;
+use crate::typedexpressionnode::TypedExpressionNode;
 
 #[derive(Debug)]
 pub struct Scope {

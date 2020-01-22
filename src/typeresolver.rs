@@ -5,7 +5,8 @@ use std::rc::Rc;
 use crate::expression::{Expression, LoopExpr, Operator};
 use crate::resolvedtype::ResolvedType;
 use crate::symboltable::SymbolTable;
-use crate::typedexpression::{TypedBinaryOperation, TypedExpression};
+use crate::typedexpression::TypedExpression;
+use crate::typedexpressionnode::TypedBinaryOperation;
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, PartialEq)]

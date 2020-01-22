@@ -22,6 +22,7 @@ mod string;
 mod symboltable;
 mod token;
 mod typedexpression;
+mod typedexpressionnode;
 mod typeresolver;
 
 use interpreter::Interpreter;
@@ -29,7 +30,8 @@ use lexer::Lexer;
 use parser::Parser;
 use resolvedtype::ResolvedType;
 use symboltable::SymbolTable;
-use typedexpression::{TypedExpression, TypedExpressionNode};
+use typedexpression::TypedExpression;
+use typedexpressionnode::TypedExpressionNode;
 use typeresolver::TypeResolver;
 
 fn main() -> Result<(), String> {
