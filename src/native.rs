@@ -1,3 +1,5 @@
+use std::convert::TryInto;
+
 use crate::resolvedtype::ResolvedType;
 use crate::symboltable::SymbolTable;
 use crate::typedexpression::TypedExpression;
@@ -50,8 +52,24 @@ pub fn native_array(
                     .collect(),
                 _ => unimplemented!(),
             };
-            Ok(TypedExpression::array(ResolvedType::Integer, v))
+            Ok(TypedExpression::array_i32(ResolvedType::Integer, v))
         }
+        _ => Err("Missing or wrong number of type arguments to array constructor".to_string()),
+    }
+}
+
+pub fn native_array_len(
+    _env: &SymbolTable,
+    arguments: &Vec<TypedExpression>,
+    _: &Option<Vec<ResolvedType>>,
+) -> Result<TypedExpression, String> {
+    match &arguments[..] {
+        [first_arg] => match &first_arg.node {
+            TypedExpressionNode::IntArray(array) => Ok(TypedExpression::integer(
+                array.array.len().try_into().unwrap(),
+            )),
+            _ => Err("Missing or wrong number of type arguments to array constructor".to_string()),
+        },
         _ => Err("Missing or wrong number of type arguments to array constructor".to_string()),
     }
 }

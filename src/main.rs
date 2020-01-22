@@ -31,6 +31,7 @@ use parser::Parser;
 use resolvedtype::ResolvedType;
 use symboltable::SymbolTable;
 use typedexpression::TypedExpression;
+use typedexpressionnode::StructEntry;
 use typedexpressionnode::TypedExpressionNode;
 use typeresolver::TypeResolver;
 
@@ -93,7 +94,18 @@ fn root_symboltable() -> SymbolTable {
         "env".to_string(),
         TypedExpression::native_function(native::native_env, ResolvedType::None, vec![], false),
     );
-    root.bind("Array".to_string(), TypedExpression::r#struct());
+    root.bind(
+        "Array".to_string(),
+        TypedExpression::r#struct(vec![StructEntry::new(
+            "len",
+            TypedExpression::native_function(
+                native::native_array_len,
+                ResolvedType::Integer,
+                vec![ResolvedType::Array(Box::new(ResolvedType::Any))],
+                true,
+            ),
+        )]),
+    );
     root
 }
 

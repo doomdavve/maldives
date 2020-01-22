@@ -284,6 +284,15 @@ pub struct StructEntry {
     pub expr: TypedExpression,
 }
 
+impl StructEntry {
+    pub fn new(sym: &str, expr: TypedExpression) -> StructEntry {
+        StructEntry {
+            sym: String::from(sym),
+            expr,
+        }
+    }
+}
+
 impl fmt::Display for StructEntry {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}={}", self.sym, self.expr)

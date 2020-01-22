@@ -123,7 +123,7 @@ impl TypedExpression {
         }
     }
 
-    pub fn array(array_type: ResolvedType, v: Vec<i32>) -> TypedExpression {
+    pub fn array_i32(array_type: ResolvedType, v: Vec<i32>) -> TypedExpression {
         TypedExpression {
             resolved_type: ResolvedType::Array(Box::new(array_type)),
             node: TypedExpressionNode::IntArray(Rc::new(TypedIntArrayExpr { array: v })),
@@ -201,15 +201,10 @@ impl TypedExpression {
         }
     }
 
-    pub fn r#struct() -> TypedExpression {
+    pub fn r#struct(data: Vec<StructEntry>) -> TypedExpression {
         TypedExpression {
             resolved_type: ResolvedType::Struct(0),
-            node: TypedExpressionNode::Struct(Rc::new(StructExpr {
-                list: vec![StructEntry {
-                    sym: "len".to_string(),
-                    expr: TypedExpression::integer(123),
-                }],
-            })),
+            node: TypedExpressionNode::Struct(Rc::new(StructExpr { list: data })),
         }
     }
 }
