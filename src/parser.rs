@@ -9,10 +9,7 @@ use std::fmt;
 use std::rc::Rc;
 use std::str::from_utf8_unchecked;
 
-use crate::expression::{
-    BinaryExpr, BindExpr, BlockExpr, BreakExpr, ConditionalExpr, Expression, FunctionCallExpr,
-    FunctionExpr, GroupExpr, LoopExpr, Operator, TypeQualifiedExpressionExpr,
-};
+use crate::expression::*;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Error {
