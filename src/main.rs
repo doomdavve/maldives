@@ -162,6 +162,7 @@ mod tests {
     use crate::parser::Parser;
     use crate::resolvedtype::ResolvedFunctionType;
     use crate::resolvedtype::ResolvedType;
+    use crate::root_symboltable;
     use crate::symboltable::SymbolTable;
     use crate::typedexpression::TypedExpression;
     use crate::typeresolver::Error;
@@ -177,6 +178,12 @@ mod tests {
 
     fn eval_program(contents: &str) -> Result<TypedExpression, String> {
         let mut root = SymbolTable::new();
+        let expression = type_check_program(contents, &mut root).map_err(|e| e.message)?;
+        Interpreter::eval(&expression, &mut root).map_err(|e| e.message)
+    }
+
+    fn eval_program_with_root(contents: &str) -> Result<TypedExpression, String> {
+        let mut root = root_symboltable();
         let expression = type_check_program(contents, &mut root).map_err(|e| e.message)?;
         Interpreter::eval(&expression, &mut root).map_err(|e| e.message)
     }
@@ -302,7 +309,7 @@ mod tests {
     }
 
     #[test]
-    fn test_check_operator_precedence() {
+    fn eval_check_operator_precedence() {
         assert_eq!(
             Ok(TypedExpression::bool(true)),
             eval_program("77 == 1 + 8**2 + 2 * (3 + 3)")
@@ -310,7 +317,7 @@ mod tests {
     }
 
     #[test]
-    fn test_check_loop_and_break() {
+    fn eval_check_loop_and_break() {
         assert_eq!(
             Ok(TypedExpression::integer(46368)),
             eval_program(
@@ -329,7 +336,7 @@ mod tests {
     }
 
     #[test]
-    fn test_assignment() {
+    fn eval_rebind() {
         assert_eq!(
             Ok(TypedExpression::integer(2)),
             eval_program("{ let a = 1; a = 2; a }")
@@ -337,7 +344,7 @@ mod tests {
     }
 
     #[test]
-    fn test_assignment_error_type_mismatch() {
+    fn eval_assignment_error_type_mismatch() {
         assert_eq!(
             Err("type mismatch in assignment".to_string()),
             eval_program("{ let a = 1; a = \"some string\"; a }")
@@ -345,7 +352,7 @@ mod tests {
     }
 
     #[test]
-    fn test_assignment_error_unbound() {
+    fn eval_assignment_error_unbound() {
         assert_eq!(
             Err("Unable to resolve type of symbol 'a'".to_string()),
             eval_program("{ a = \"some string\"; a }")
@@ -353,7 +360,7 @@ mod tests {
     }
 
     #[test]
-    fn test_scope() {
+    fn eval_scope() {
         assert_eq!(
             Ok(TypedExpression::integer(10)),
             eval_program("let a = 10; { let a = 20; }; a")
@@ -361,10 +368,29 @@ mod tests {
     }
 
     #[test]
-    fn test_scope_loop() {
+    fn eval_scope_loop() {
         assert_eq!(
             Ok(TypedExpression::integer(10)),
             eval_program("let a = 10; loop { let a = 20; break }; a")
+        );
+    }
+
+    #[test]
+    fn eval_array_create() {
+        assert_eq!(
+            Ok(TypedExpression::array_i32(
+                ResolvedType::Integer,
+                vec![1, 3, 4]
+            )),
+            eval_program_with_root("let a = array[int](1, 3, 4)")
+        );
+    }
+
+    #[test]
+    fn eval_array_len() {
+        assert_eq!(
+            Ok(TypedExpression::integer(7)),
+            eval_program_with_root("let a = array[int](1, 3, 4, 2, 4, 12, 32); Array.len(a)")
         );
     }
 
