@@ -7,7 +7,6 @@ use crate::resolvedtype::ResolvedType;
 use crate::symboltable::SymbolTable;
 use crate::typedexpression::TypedExpression;
 use crate::typedexpressionnode::TypedBinaryOperation;
-use std::collections::HashMap;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Error {
@@ -34,39 +33,6 @@ impl Error {
 
 pub struct TypeResolver;
 
-#[derive(Debug, Clone, PartialEq)]
-pub struct TypeTable {
-    map: HashMap<String, ResolvedType>,
-    next_function_id: u32,
-}
-
-impl TypeTable {
-    pub fn new() -> TypeTable {
-        TypeTable {
-            map: HashMap::new(),
-            next_function_id: 0,
-        }
-    }
-
-    pub fn bind(&mut self, symbol: String, resolve_type: ResolvedType) {
-        self.map.insert(symbol, resolve_type);
-    }
-
-    pub fn lookup(&self, symbol: &String) -> Option<&ResolvedType> {
-        self.map.get(symbol)
-    }
-
-    pub fn function_id(&mut self) -> u32 {
-        let function_id = self.next_function_id;
-        self.next_function_id += 1;
-        function_id
-    }
-
-    pub fn set_next_function_id(&mut self, function_id: u32) {
-        self.next_function_id += function_id;
-    }
-}
-
 struct ResolveContext {
     loop_expr: Option<Rc<LoopExpr>>,
     parent: Option<Rc<ResolveContext>>,
@@ -92,20 +58,13 @@ impl TypeResolver {
         expression: &Expression,
         env: &mut SymbolTable,
     ) -> Result<TypedExpression, Error> {
-        let mut type_table = TypeTable::new();
-        for (key, value) in &env.root_scope().map {
-            type_table.bind(key.clone(), value.resolved_type.clone())
-        }
-        type_table.set_next_function_id(env.get_next_function_id());
-        let root =
-            TypeResolver::resolve(expression, &mut type_table, &Rc::new(ResolveContext::new()))?;
-        env.set_function_id(type_table.function_id());
+        let root = TypeResolver::resolve(expression, env, &Rc::new(ResolveContext::new()))?;
         Ok(root)
     }
 
     fn resolve(
         expression: &Expression,
-        env: &mut TypeTable,
+        env: &mut SymbolTable,
         ctx: &Rc<ResolveContext>,
     ) -> Result<TypedExpression, Error> {
         match expression {
@@ -118,13 +77,13 @@ impl TypeResolver {
                 Ok(TypedExpression::group(typed_group))
             }
             Expression::Symbol(s) => {
-                let resolved_type = env.lookup(s).ok_or(Error::new(format!(
+                let expr = env.lookup(s).ok_or(Error::new(format!(
                     "Unable to resolve type of symbol '{}'",
                     s
                 )))?;
                 Ok(TypedExpression::symbol(
                     String::from(s),
-                    resolved_type.clone(),
+                    expr.resolved_type.clone(),
                 ))
             }
             Expression::Binary(b) => {
@@ -322,7 +281,7 @@ impl TypeResolver {
                     None => Some(expr.resolved_type.clone()),
                 };
                 if resolved_sym_type == Some(expr.resolved_type.clone()) {
-                    env.bind(String::from(&bind.sym), expr.resolved_type.clone());
+                    env.bind(String::from(&bind.sym), expr.clone());
                     Ok(TypedExpression::bind(String::from(&bind.sym), expr))
                 } else {
                     Err(Error::new(
@@ -366,18 +325,25 @@ impl TypeResolver {
                 let mut parameters: Vec<(String, ResolvedType)> = Vec::new();
                 let mut types: Vec<ResolvedType> = Vec::new();
 
-                let mut function_env = env.clone();
+                env.enter_scope();
                 for parameter in &f.parameters {
                     let resolved_parameter_type = ResolvedType::from_decl(&parameter.1)
                         .ok_or_else(|| {
                             Error::new(format!("Type mismatch: Can't bind resolve type"))
                         })?;
                     parameters.push((parameter.0.clone(), resolved_parameter_type.clone()));
-                    function_env.bind(String::from(&parameter.0), resolved_parameter_type.clone());
+                    env.bind(
+                        String::from(&parameter.0),
+                        TypedExpression::resolved_type(resolved_parameter_type.clone()),
+                    );
                     types.push(resolved_parameter_type)
                 }
 
-                let expr = TypeResolver::resolve(&f.expr, &mut function_env, ctx)?;
+                let expr = TypeResolver::resolve(&f.expr, env, ctx)?;
+
+                // FIXME: Do this leave through Drop in order to not stay in entered scope.
+                env.leave_scope();
+
                 let return_type = &expr.resolved_type;
 
                 let specified_return_type: ResolvedType = match f.return_type.as_ref() {
@@ -402,7 +368,10 @@ impl TypeResolver {
                         expr.clone(),
                     );
                     if let Some(sym) = &f.sym {
-                        env.bind(String::from(sym), resolved_type.clone());
+                        env.bind(
+                            String::from(sym),
+                            TypedExpression::resolved_type(resolved_type.clone()),
+                        );
                     }
                     Ok(function)
                 } else {

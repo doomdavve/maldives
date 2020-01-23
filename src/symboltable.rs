@@ -128,11 +128,6 @@ impl SymbolTable {
         }
     }
 
-    pub fn root_scope(&mut self) -> &Scope {
-        let node = self.pool.get(NodeId::from(0)).unwrap(); // We might as well panic here
-        &node.scope
-    }
-
     fn current_scope_mut(&mut self) -> &mut Scope {
         let node = self.pool.get_mut(self.scope_id).unwrap(); // We might as well panic here
         &mut node.scope
@@ -201,12 +196,10 @@ impl SymbolTable {
         self.scope_id = scope_id;
     }
 
-    pub fn set_function_id(&mut self, function_id: u32) {
-        self.next_function_id = function_id
-    }
-
-    pub fn get_next_function_id(&mut self) -> u32 {
-        self.next_function_id
+    pub fn function_id(&mut self) -> u32 {
+        let function_id = self.next_function_id;
+        self.next_function_id += 1;
+        function_id
     }
 
     pub fn enter_scope(&mut self) {

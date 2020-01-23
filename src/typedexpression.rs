@@ -18,6 +18,12 @@ impl fmt::Display for TypedExpression {
 }
 
 impl TypedExpression {
+    pub fn resolved_type(resolved_type: ResolvedType) -> TypedExpression {
+        TypedExpression {
+            resolved_type,
+            node: TypedExpressionNode::Void,
+        }
+    }
     pub fn void() -> TypedExpression {
         TypedExpression {
             resolved_type: ResolvedType::None,
