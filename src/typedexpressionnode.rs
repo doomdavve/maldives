@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fmt;
 use std::rc::Rc;
 
@@ -279,37 +280,16 @@ impl fmt::Display for TypedTypeQualifiedExpressionExpr {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct StructEntry {
-    pub sym: String,
-    pub expr: TypedExpression,
-}
-
-impl StructEntry {
-    pub fn new(sym: &str, expr: TypedExpression) -> StructEntry {
-        StructEntry {
-            sym: String::from(sym),
-            expr,
-        }
-    }
-}
-
-impl fmt::Display for StructEntry {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}={}", self.sym, self.expr)
-    }
-}
-
-#[derive(Debug, PartialEq)]
 pub struct StructExpr {
-    pub list: Vec<StructEntry>,
+    pub members: HashMap<String, TypedExpression>,
 }
 
 impl fmt::Display for StructExpr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let strings = self
-            .list
+            .members
             .iter()
-            .map(|a| format!("{}", a))
+            .map(|i| format!("{}: {}", i.0, i.1))
             .collect::<Vec<_>>()
             .join(", ");
         write!(f, "{}", strings)

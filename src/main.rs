@@ -30,8 +30,8 @@ use lexer::Lexer;
 use parser::Parser;
 use resolvedtype::ResolvedType;
 use symboltable::SymbolTable;
+use typedexpression::StructEntry;
 use typedexpression::TypedExpression;
-use typedexpressionnode::StructEntry;
 use typedexpressionnode::TypedExpressionNode;
 use typeresolver::TypeResolver;
 
@@ -96,15 +96,18 @@ fn root_symboltable() -> SymbolTable {
     );
     root.bind(
         "Array".to_string(),
-        TypedExpression::r#struct(vec![StructEntry::new(
-            "len",
-            TypedExpression::native_function(
-                native::native_array_len,
-                ResolvedType::Integer,
-                vec![ResolvedType::Array(Box::new(ResolvedType::Any))],
-                true,
-            ),
-        )]),
+        TypedExpression::r#struct(
+            0, // FIXME: keep count somewhere.
+            vec![StructEntry::new(
+                "len",
+                TypedExpression::native_function(
+                    native::native_array_len,
+                    ResolvedType::Integer,
+                    vec![ResolvedType::Array(Box::new(ResolvedType::Any))],
+                    true,
+                ),
+            )],
+        ),
     );
     root
 }

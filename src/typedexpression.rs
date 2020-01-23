@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fmt;
 use std::rc::Rc;
 
@@ -207,10 +208,35 @@ impl TypedExpression {
         }
     }
 
-    pub fn r#struct(data: Vec<StructEntry>) -> TypedExpression {
-        TypedExpression {
-            resolved_type: ResolvedType::Struct(0),
-            node: TypedExpressionNode::Struct(Rc::new(StructExpr { list: data })),
+    pub fn r#struct(id: u32, data: Vec<StructEntry>) -> TypedExpression {
+        let mut members: HashMap<String, TypedExpression> = HashMap::new();
+        for entry in data {
+            members.insert(entry.sym, entry.expr);
         }
+        TypedExpression {
+            resolved_type: ResolvedType::Struct(id),
+            node: TypedExpressionNode::Struct(Rc::new(StructExpr { members })),
+        }
+    }
+}
+
+#[derive(Debug, PartialEq)]
+pub struct StructEntry {
+    pub sym: String,
+    pub expr: TypedExpression,
+}
+
+impl StructEntry {
+    pub fn new(sym: &str, expr: TypedExpression) -> StructEntry {
+        StructEntry {
+            sym: String::from(sym),
+            expr,
+        }
+    }
+}
+
+impl fmt::Display for StructEntry {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}={}", self.sym, self.expr)
     }
 }

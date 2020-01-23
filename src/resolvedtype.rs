@@ -34,7 +34,7 @@ pub enum ResolvedType {
     Array(Box<ResolvedType>),
     TypeParameterId(usize),
     VarArgs,
-    Struct(usize),
+    Struct(u32),
 }
 
 impl fmt::Display for ResolvedType {

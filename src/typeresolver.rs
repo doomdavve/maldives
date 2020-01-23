@@ -6,7 +6,7 @@ use crate::expression::{Expression, LoopExpr, Operator};
 use crate::resolvedtype::ResolvedType;
 use crate::symboltable::SymbolTable;
 use crate::typedexpression::TypedExpression;
-use crate::typedexpressionnode::TypedBinaryOperation;
+use crate::typedexpressionnode::{TypedBinaryOperation, TypedExpressionNode};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Error {
@@ -85,6 +85,35 @@ impl TypeResolver {
                     String::from(s),
                     expr.resolved_type.clone(),
                 ))
+            }
+            Expression::Access(a) => {
+                let struct_expr = TypeResolver::resolve(&a.expr, env, ctx)?;
+
+                match struct_expr.resolved_type {
+                    ResolvedType::Struct(_) => {
+                        match struct_expr.node {
+                            TypedExpressionNode::Struct(s) => match &s.members.get(&a.sym) {
+                                Some(m) => {
+                                    println!("{:?}", m.resolved_type);
+                                    Ok(())
+                                }
+                                _ => Err(Error::new(format!("unexpected error"))),
+                            },
+                            _ => Err(Error::new(format!(
+                                "internal error: {:?}",
+                                struct_expr.node
+                            ))),
+                        }?;
+
+                        Ok(())
+                    }
+                    _ => Err(Error::new(format!(
+                        "unexpected {}, expected structure",
+                        struct_expr.resolved_type
+                    ))),
+                }?;
+
+                unimplemented!();
             }
             Expression::Binary(b) => {
                 let left = TypeResolver::resolve(&b.left, env, ctx)?;

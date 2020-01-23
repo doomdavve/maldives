@@ -128,6 +128,10 @@ impl<'a> Parser<'a> {
                 self.sym = self.lexer.next();
                 Ok(Operator::Multiply)
             }
+            Some(Token::Dot) => {
+                self.sym = self.lexer.next();
+                Ok(Operator::Member)
+            }
             Some(Token::StarStar) => {
                 self.sym = self.lexer.next();
                 Ok(Operator::ToThePowerOf)
@@ -273,6 +277,7 @@ impl<'a> Parser<'a> {
             Some(Token::Star) | Some(Token::Slash) => (Some(3), Assoc::Left),
             Some(Token::StarStar) => (Some(4), Assoc::Right),
             Some(Token::ParenLeft) | Some(Token::BracketLeft) => (Some(5), Assoc::Left),
+            Some(Token::Dot) => (Some(6), Assoc::Left),
             _ => (None, Assoc::Left),
         }
     }
@@ -291,6 +296,10 @@ impl<'a> Parser<'a> {
                     };
                     let operator = self.operator()?;
                     expr = match &operator {
+                        Operator::Member => {
+                            let sym = self.symbol()?;
+                            Expression::Access(Rc::new(AccessExpr { expr, sym }))
+                        }
                         Operator::Call => {
                             let arguments = self.arguments()?;
                             Expression::FunctionCall(Rc::new(FunctionCallExpr { expr, arguments }))
