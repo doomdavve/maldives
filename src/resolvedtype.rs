@@ -48,7 +48,7 @@ impl fmt::Display for ResolvedType {
             ResolvedType::None => write!(f, "none"),
             ResolvedType::Never => write!(f, "never"),
             ResolvedType::Break(break_expression) => write!(f, "break <{}>", break_expression),
-            ResolvedType::Array(_) => write!(f, "array"),
+            ResolvedType::Array(t) => write!(f, "array[{}]", t),
             ResolvedType::TypeParameterId(id) => write!(f, "T[{}]", id),
             ResolvedType::VarArgs => write!(f, "..."),
             ResolvedType::Struct(id) => write!(f, "struct <{}>", id),

@@ -14,7 +14,7 @@ pub struct TypedExpression {
 
 impl fmt::Display for TypedExpression {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} (:{})", self.node, self.resolved_type)
+        write!(f, "{}", self.node)
     }
 }
 
