@@ -1,8 +1,11 @@
 use std::collections::HashMap;
 use std::convert::From;
 use std::fmt;
+use std::rc::Rc;
 
+use crate::resolvedtype::ResolvedType;
 use crate::typedexpression::TypedExpression;
+use crate::typedexpressionnode::StructExpr;
 use crate::typedexpressionnode::TypedExpressionNode;
 
 #[derive(Debug)]
@@ -112,6 +115,7 @@ pub struct SymbolTable {
     scope_id: NodeId,
     next_function_id: u32,
     function_map: HashMap<u32, NodeId>,
+    struct_map: HashMap<u32, Rc<StructExpr>>,
 }
 
 impl SymbolTable {
@@ -125,6 +129,7 @@ impl SymbolTable {
             scope_id,
             next_function_id: 0,
             function_map: HashMap::new(),
+            struct_map: HashMap::new(),
         }
     }
 
@@ -134,6 +139,13 @@ impl SymbolTable {
     }
 
     pub fn bind(&mut self, symbol: String, expr: TypedExpression) {
+        match (&expr.resolved_type, &expr.node) {
+            (ResolvedType::Struct(i), TypedExpressionNode::Struct(s)) => {
+                self.struct_map.insert(*i, s.clone());
+            }
+            _ => (),
+        }
+
         let scope = self.current_scope_mut();
         scope.map.insert(symbol, expr);
     }
@@ -213,6 +225,10 @@ impl SymbolTable {
     pub fn leave_scope(&mut self) {
         let node = self.pool.get_mut(self.scope_id).unwrap();
         self.scope_id = node.parent.unwrap();
+    }
+
+    pub fn lookup_struct(&self, id: u32) -> Option<&Rc<StructExpr>> {
+        self.struct_map.get(&id)
     }
 }
 

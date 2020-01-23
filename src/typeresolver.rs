@@ -6,7 +6,7 @@ use crate::expression::{Expression, LoopExpr, Operator};
 use crate::resolvedtype::ResolvedType;
 use crate::symboltable::SymbolTable;
 use crate::typedexpression::TypedExpression;
-use crate::typedexpressionnode::{TypedBinaryOperation, TypedExpressionNode};
+use crate::typedexpressionnode::TypedBinaryOperation;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Error {
@@ -88,32 +88,25 @@ impl TypeResolver {
             }
             Expression::Access(a) => {
                 let struct_expr = TypeResolver::resolve(&a.expr, env, ctx)?;
-
-                match struct_expr.resolved_type {
-                    ResolvedType::Struct(_) => {
-                        match struct_expr.node {
-                            TypedExpressionNode::Struct(s) => match &s.members.get(&a.sym) {
-                                Some(m) => {
-                                    println!("{:?}", m.resolved_type);
-                                    Ok(())
-                                }
-                                _ => Err(Error::new(format!("unexpected error"))),
-                            },
-                            _ => Err(Error::new(format!(
-                                "internal error: {:?}",
-                                struct_expr.node
-                            ))),
-                        }?;
-
-                        Ok(())
+                match &struct_expr.resolved_type {
+                    ResolvedType::Struct(id) => {
+                        let s = env
+                            .lookup_struct(*id)
+                            .ok_or(Error::new(format!("unexpected error2")))?;
+                        match &s.members.get(&a.sym) {
+                            Some(m) => Ok(TypedExpression::access(
+                                struct_expr.clone(),
+                                a.sym.clone(),
+                                m.resolved_type.clone(),
+                            )),
+                            _ => Err(Error::new(format!("unexpected error"))),
+                        }
                     }
                     _ => Err(Error::new(format!(
                         "unexpected {}, expected structure",
                         struct_expr.resolved_type
                     ))),
-                }?;
-
-                unimplemented!();
+                }
             }
             Expression::Binary(b) => {
                 let left = TypeResolver::resolve(&b.left, env, ctx)?;
@@ -424,6 +417,7 @@ impl TypeResolver {
                             typed_arguments.push(typed_arg)
                         }
 
+                        let mut message: Option<String> = None;
                         let mut mismatch =
                             !is_var_args_function && typed_arguments.len() != f.parameters.len();
                         if !mismatch {
@@ -431,9 +425,24 @@ impl TypeResolver {
                                 if param == &ResolvedType::VarArgs {
                                     break;
                                 }
-                                if param != &ResolvedType::Any && &arg.resolved_type != param {
-                                    mismatch = true;
-                                    break;
+                                match (&param, &arg.resolved_type) {
+                                    (ResolvedType::Array(t1), ResolvedType::Array(t2)) => {
+                                        if t1.as_ref() != &ResolvedType::Any && t1 != t2 {
+                                            mismatch = true;
+                                            message = Some(format!("Array: {} != {}", t1, t1));
+                                            break;
+                                        }
+                                    }
+                                    _ => {
+                                        if param != &ResolvedType::Any
+                                            && &arg.resolved_type != param
+                                        {
+                                            mismatch = true;
+                                            message =
+                                                Some(format!("{} != {}", param, arg.resolved_type));
+                                            break;
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -441,7 +450,10 @@ impl TypeResolver {
                         if !mismatch {
                             Ok(f.return_type.clone())
                         } else {
-                            Err(Error::new(format!("Type mismatch: argument mismatch")))
+                            Err(Error::new(format!(
+                                "Type mismatch: argument mismatch: {:?}",
+                                message
+                            )))
                         }
                     }
                     _ => Err(Error::new(format!(

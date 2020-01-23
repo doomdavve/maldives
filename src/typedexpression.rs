@@ -218,6 +218,17 @@ impl TypedExpression {
             node: TypedExpressionNode::Struct(Rc::new(StructExpr { members })),
         }
     }
+
+    pub fn access(
+        expr: TypedExpression,
+        sym: String,
+        resolved_type: ResolvedType,
+    ) -> TypedExpression {
+        TypedExpression {
+            resolved_type,
+            node: TypedExpressionNode::Access(Rc::new(TypedAccessExpr { expr, sym })),
+        }
+    }
 }
 
 #[derive(Debug, PartialEq)]

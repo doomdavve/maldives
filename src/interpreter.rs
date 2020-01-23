@@ -175,6 +175,16 @@ impl Interpreter {
                     .ok_or_else(|| Error::new(format!("unknown symbol '{}'", s)))?;
                 Ok(value.clone())
             }
+            TypedExpressionNode::Access(a) => {
+                let val = Interpreter::eval(&a.expr, env)?;
+                match val.node {
+                    TypedExpressionNode::Struct(s) => match s.members.get(&a.sym) {
+                        Some(m) => Ok(m.clone()),
+                        _ => Err(Error::new(format!("stuff3"))),
+                    },
+                    _ => Err(Error::new(format!("stuff2"))),
+                }
+            }
             TypedExpressionNode::Bind(b) => {
                 let val = Interpreter::eval(&b.expr, env)?;
                 env.bind(String::from(&b.sym), val.clone());
