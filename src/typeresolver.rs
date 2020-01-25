@@ -88,20 +88,20 @@ impl TypeResolver {
             }
             Expression::Access(a) => {
                 let struct_expr = TypeResolver::resolve(&a.expr, env, ctx)?;
-                match &struct_expr.resolved_type {
-                    ResolvedType::Struct(id) => {
-                        let s = env
-                            .lookup_struct(*id)
-                            .ok_or(Error::new(format!("unexpected error2")))?;
-                        match &s.members.get(&a.sym) {
-                            Some(m) => Ok(TypedExpression::access(
-                                struct_expr.clone(),
-                                a.sym.clone(),
-                                m.resolved_type.clone(),
-                            )),
-                            _ => Err(Error::new(format!("unexpected error"))),
-                        }
-                    }
+                let struct_id = match &struct_expr.resolved_type {
+                    ResolvedType::Struct(id) => Ok(id),
+                    ResolvedType::Array(_) => Ok(&0),
+                    _ => Err(Error::new(format!("unexpected error2"))),
+                }?;
+                let s = env
+                    .lookup_struct(*struct_id)
+                    .ok_or(Error::new(format!("unexpected error3")))?;
+                match &s.members.get(&a.sym) {
+                    Some(m) => Ok(TypedExpression::access(
+                        struct_expr.clone(),
+                        a.sym.clone(),
+                        m.resolved_type.clone(),
+                    )),
                     _ => Err(Error::new(format!(
                         "unexpected {}, expected structure",
                         struct_expr.resolved_type
@@ -362,7 +362,6 @@ impl TypeResolver {
                 }
 
                 let expr = TypeResolver::resolve(&f.expr, env, ctx)?;
-
                 // FIXME: Do this leave through Drop in order to not stay in entered scope.
                 env.leave_scope();
 
@@ -417,10 +416,15 @@ impl TypeResolver {
                             typed_arguments.push(typed_arg)
                         }
 
-                        let mut message: Option<String> = None;
-                        let mut mismatch =
-                            !is_var_args_function && typed_arguments.len() != f.parameters.len();
-                        if !mismatch {
+                        let mut error_message: Option<String> = None;
+                        if !is_var_args_function && typed_arguments.len() != f.parameters.len() {
+                            error_message = Some(format!(
+                                "expected {} arguments, got {}",
+                                f.parameters.len(),
+                                typed_arguments.len()
+                            ));
+                        }
+                        if error_message.is_none() {
                             for (arg, param) in typed_arguments.iter().zip(&f.parameters) {
                                 if param == &ResolvedType::VarArgs {
                                     break;
@@ -428,8 +432,8 @@ impl TypeResolver {
                                 match (&param, &arg.resolved_type) {
                                     (ResolvedType::Array(t1), ResolvedType::Array(t2)) => {
                                         if t1.as_ref() != &ResolvedType::Any && t1 != t2 {
-                                            mismatch = true;
-                                            message = Some(format!("Array: {} != {}", t1, t1));
+                                            error_message =
+                                                Some(format!("Array: {} != {}", t1, t1));
                                             break;
                                         }
                                     }
@@ -437,8 +441,7 @@ impl TypeResolver {
                                         if param != &ResolvedType::Any
                                             && &arg.resolved_type != param
                                         {
-                                            mismatch = true;
-                                            message =
+                                            error_message =
                                                 Some(format!("{} != {}", param, arg.resolved_type));
                                             break;
                                         }
@@ -446,14 +449,12 @@ impl TypeResolver {
                                 }
                             }
                         }
-
-                        if !mismatch {
-                            Ok(f.return_type.clone())
-                        } else {
-                            Err(Error::new(format!(
+                        match error_message {
+                            None => Ok(f.return_type.clone()),
+                            Some(message) => Err(Error::new(format!(
                                 "Type mismatch: argument mismatch: {:?}",
                                 message
-                            )))
+                            ))),
                         }
                     }
                     _ => Err(Error::new(format!(

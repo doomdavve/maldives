@@ -67,8 +67,8 @@ fn root_symboltable() -> SymbolTable {
         "println".to_string(),
         TypedExpression::native_function(
             native::native_println,
-            ResolvedType::None,
             vec![ResolvedType::Any],
+            ResolvedType::None,
             true,
         ),
     );
@@ -76,8 +76,8 @@ fn root_symboltable() -> SymbolTable {
         "dbg".to_string(),
         TypedExpression::native_function(
             native::native_dbg,
-            ResolvedType::None,
             vec![ResolvedType::Any],
+            ResolvedType::None,
             false,
         ),
     );
@@ -85,25 +85,25 @@ fn root_symboltable() -> SymbolTable {
         "array".to_string(),
         TypedExpression::native_function(
             native::native_array,
-            ResolvedType::Array(Box::new(ResolvedType::TypeParameterId(0))),
             vec![ResolvedType::VarArgs],
+            ResolvedType::Array(Box::new(ResolvedType::TypeParameterId(0))),
             true,
         ),
     );
     root.bind(
         "env".to_string(),
-        TypedExpression::native_function(native::native_env, ResolvedType::None, vec![], false),
+        TypedExpression::native_function(native::native_env, vec![], ResolvedType::None, false),
     );
     root.bind(
         "Array".to_string(),
         TypedExpression::r#struct(
-            0, // FIXME: keep count somewhere.
+            0, // FIXME: keep track somewhere.
             vec![StructEntry::new(
                 "len",
                 TypedExpression::native_function(
                     native::native_array_len,
+                    vec![],
                     ResolvedType::Integer,
-                    vec![ResolvedType::Array(Box::new(ResolvedType::Any))],
                     true,
                 ),
             )],
@@ -390,7 +390,7 @@ mod tests {
     fn eval_array_len() {
         assert_eq!(
             Ok(TypedExpression::integer(7)),
-            eval_program_with_root("let a = array[int](1, 3, 4, 2, 4, 12, 32); Array.len(a)")
+            eval_program_with_root("let a = array[int](1, 3, 4, 2, 4, 12, 32); a.len()")
         );
     }
 

@@ -169,6 +169,7 @@ impl Interpreter {
             TypedExpressionNode::Integer(i) => Ok(TypedExpression::integer(*i)),
             TypedExpressionNode::String(s) => Ok(TypedExpression::string(s.to_string())),
             TypedExpressionNode::IntArray(_) => Ok(expr.clone()),
+            TypedExpressionNode::Binding(_) => Ok(expr.clone()),
             TypedExpressionNode::Symbol(s) => {
                 let value = env
                     .lookup(s)
@@ -177,10 +178,17 @@ impl Interpreter {
             }
             TypedExpressionNode::Access(a) => {
                 let val = Interpreter::eval(&a.expr, env)?;
-                match val.node {
+                match &val.node {
                     TypedExpressionNode::Struct(s) => match s.members.get(&a.sym) {
                         Some(m) => Ok(m.clone()),
                         _ => Err(Error::new(format!("stuff3"))),
+                    },
+                    TypedExpressionNode::IntArray(_) => match env.lookup_struct(0) {
+                        Some(struct_expr) => match struct_expr.members.get(&a.sym) {
+                            Some(member) => Ok(TypedExpression::binding(val, member.clone())),
+                            _ => Err(Error::new(format!("stuff5"))),
+                        },
+                        _ => Err(Error::new(format!("stuff4"))),
                     },
                     _ => Err(Error::new(format!("stuff2"))),
                 }
@@ -242,41 +250,7 @@ impl Interpreter {
             TypedExpressionNode::NativeFunction(_) => Ok(expr.clone()),
             TypedExpressionNode::FunctionCall(fc) => {
                 let value = Interpreter::eval(&fc.expr, env)?;
-                match value.node {
-                    TypedExpressionNode::Function(f) => {
-                        let scope_id = env.enter_function(f.id);
-                        for (idx, parameter) in f.parameters.iter().enumerate() {
-                            let void = TypedExpression::void();
-                            let argument = fc.arguments.get(idx).unwrap_or(&void);
-                            let val = Interpreter::eval(argument, env)?;
-                            env.bind(String::from(&parameter.0), val.clone());
-                        }
-                        let result = Interpreter::eval(&f.expr, env)?;
-                        env.leave_function(scope_id);
-                        Ok(result)
-                    }
-                    TypedExpressionNode::NativeFunction(f) => {
-                        let native_function = f.function;
-                        if f.call_by_value {
-                            let mut evaluated_arguments: Vec<TypedExpression> =
-                                Vec::with_capacity(fc.arguments.len());
-                            for argument in &fc.arguments {
-                                evaluated_arguments.push(Interpreter::eval(argument, env)?)
-                            }
-                            let res = native_function(env, &evaluated_arguments, &f.type_arguments)
-                                .map_err(|message| Error::new(message))?;
-                            Ok(res)
-                        } else {
-                            let res = native_function(env, &fc.arguments, &f.type_arguments)
-                                .map_err(|message| Error::new(message))?;
-                            Ok(res)
-                        }
-                    }
-                    _ => Err(Error::new(format!(
-                        "unexpected {:?}, expected function",
-                        fc.expr
-                    ))),
-                }
+                Interpreter::call(&value, &fc.arguments, env)
             }
             TypedExpressionNode::TypedTypeQualifiedExpression(qf) => {
                 let value = Interpreter::eval(&qf.expr, env)?;
@@ -295,6 +269,53 @@ impl Interpreter {
                 Ok(a)
             }
             TypedExpressionNode::Struct(_s) => Ok(expr.clone()),
+        }
+    }
+
+    fn call(
+        value: &TypedExpression,
+        args: &Vec<TypedExpression>,
+        env: &mut SymbolTable,
+    ) -> Result<TypedExpression, Error> {
+        match &value.node {
+            TypedExpressionNode::Function(f) => {
+                let scope_id = env.enter_function(f.id);
+                for (idx, parameter) in f.parameters.iter().enumerate() {
+                    let void = TypedExpression::void();
+                    let argument = args.get(idx).unwrap_or(&void);
+                    let val = Interpreter::eval(argument, env)?;
+                    env.bind(String::from(&parameter.0), val.clone());
+                }
+                let result = Interpreter::eval(&f.expr, env)?;
+                env.leave_function(scope_id);
+                Ok(result)
+            }
+            TypedExpressionNode::NativeFunction(f) => {
+                let native_function = f.function;
+                if f.call_by_value {
+                    let mut evaluated_arguments: Vec<TypedExpression> =
+                        Vec::with_capacity(args.len());
+                    for argument in args {
+                        evaluated_arguments.push(Interpreter::eval(argument, env)?)
+                    }
+                    let res = native_function(env, &evaluated_arguments, &f.type_arguments)
+                        .map_err(|message| Error::new(message))?;
+                    Ok(res)
+                } else {
+                    let res = native_function(env, args, &f.type_arguments)
+                        .map_err(|message| Error::new(message))?;
+                    Ok(res)
+                }
+            }
+            TypedExpressionNode::Binding(b) => {
+                let mut bound_args = args.clone();
+                bound_args.insert(0, b.instance.clone());
+                Interpreter::call(&b.origin, &bound_args, env)
+            }
+            _ => Err(Error::new(format!(
+                "unexpected {}, expected function",
+                value.node
+            ))),
         }
     }
 }

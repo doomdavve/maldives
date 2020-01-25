@@ -11,6 +11,7 @@ pub enum TypedExpressionNode {
     Integer(i32),
     Bool(bool),
     Function(Rc<TypedFunctionExpr>),
+    Binding(Rc<BindingExpr>),
     NativeFunction(Rc<TypedNativeFunctionExpr>),
     BinaryOperation(Rc<TypedBinaryOperationExpr>),
     FunctionCall(Rc<TypedFunctionCallExpr>),
@@ -57,6 +58,7 @@ impl fmt::Display for TypedExpressionNode {
             TypedExpressionNode::TypedTypeQualifiedExpression(qf) => write!(f, "{}", qf),
             TypedExpressionNode::Struct(s) => write!(f, "{}", s),
             TypedExpressionNode::Access(a) => write!(f, "{}", a),
+            TypedExpressionNode::Binding(b) => write!(f, "{}", b),
         }
     }
 }
@@ -307,5 +309,17 @@ pub struct TypedAccessExpr {
 impl fmt::Display for TypedAccessExpr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}.{}", self.expr, self.sym)
+    }
+}
+
+#[derive(Debug, PartialEq)]
+pub struct BindingExpr {
+    pub instance: TypedExpression,
+    pub origin: TypedExpression,
+}
+
+impl fmt::Display for BindingExpr {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{} <-> {}", self.origin, self.instance)
     }
 }

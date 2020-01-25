@@ -140,18 +140,25 @@ impl TypedExpression {
     pub fn function(
         sym: Option<String>,
         id: u32,
-        return_type: ResolvedType,
+        function_type: ResolvedType,
         parameters: Vec<(String, ResolvedType)>,
         expr: TypedExpression,
     ) -> TypedExpression {
         TypedExpression {
-            resolved_type: return_type,
+            resolved_type: function_type,
             node: TypedExpressionNode::Function(Rc::new(TypedFunctionExpr {
                 sym,
                 id,
                 parameters,
                 expr,
             })),
+        }
+    }
+
+    pub fn binding(instance: TypedExpression, origin: TypedExpression) -> TypedExpression {
+        TypedExpression {
+            resolved_type: origin.resolved_type.clone(),
+            node: TypedExpressionNode::Binding(Rc::new(BindingExpr { instance, origin })),
         }
     }
 
@@ -175,8 +182,8 @@ impl TypedExpression {
             arguments: &Vec<TypedExpression>,
             type_arguments: &Option<Vec<ResolvedType>>,
         ) -> Result<TypedExpression, String>,
-        return_type: ResolvedType,
         parameters: Vec<ResolvedType>,
+        return_type: ResolvedType,
         call_by_value: bool,
     ) -> TypedExpression {
         TypedExpression {

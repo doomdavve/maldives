@@ -68,9 +68,9 @@ pub fn native_array_len(
             TypedExpressionNode::IntArray(array) => Ok(TypedExpression::integer(
                 array.array.len().try_into().unwrap(),
             )),
-            _ => Err("Missing or wrong number of type arguments to array constructor".to_string()),
+            _ => Err("Missing or wrong number of arguments".to_string()),
         },
-        _ => Err("Missing or wrong number of type arguments to array constructor".to_string()),
+        _ => Err("Missing or wrong number of arguments".to_string()),
     }
 }
 
