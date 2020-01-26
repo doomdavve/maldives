@@ -3,6 +3,7 @@ use std::error;
 use std::fmt;
 use std::rc::Rc;
 
+use crate::resolvedtype::AllocatedStructIds;
 use crate::symboltable::SymbolTable;
 use crate::typedexpression::TypedExpression;
 use crate::typedexpressionnode::TypedBinaryOperation;
@@ -169,6 +170,7 @@ impl Interpreter {
             TypedExpressionNode::Integer(i) => Ok(TypedExpression::integer(*i)),
             TypedExpressionNode::String(s) => Ok(TypedExpression::string(s.to_string())),
             TypedExpressionNode::IntArray(_) => Ok(expr.clone()),
+            TypedExpressionNode::Array(_) => Ok(expr.clone()),
             TypedExpressionNode::Binding(_) => Ok(expr.clone()),
             TypedExpressionNode::Symbol(s) => {
                 let value = env
@@ -183,13 +185,15 @@ impl Interpreter {
                         Some(m) => Ok(m.clone()),
                         _ => Err(Error::new(format!("stuff3"))),
                     },
-                    TypedExpressionNode::IntArray(_) => match env.lookup_struct(0) {
-                        Some(struct_expr) => match struct_expr.members.get(&a.sym) {
-                            Some(member) => Ok(TypedExpression::binding(val, member.clone())),
-                            _ => Err(Error::new(format!("stuff5"))),
-                        },
-                        _ => Err(Error::new(format!("stuff4"))),
-                    },
+                    TypedExpressionNode::IntArray(_) | TypedExpressionNode::Array(_) => {
+                        match env.lookup_struct(AllocatedStructIds::Array as u32) {
+                            Some(struct_expr) => match struct_expr.members.get(&a.sym) {
+                                Some(member) => Ok(TypedExpression::binding(val, member.clone())),
+                                _ => Err(Error::new(format!("stuff5"))),
+                            },
+                            _ => Err(Error::new(format!("stuff4"))),
+                        }
+                    }
                     _ => Err(Error::new(format!("stuff2"))),
                 }
             }

@@ -395,6 +395,14 @@ mod tests {
     }
 
     #[test]
+    fn eval_string_array_len() {
+        assert_eq!(
+            Ok(TypedExpression::integer(3)),
+            eval_program_with_root("let a = array[string](\"apa\", \"banan\", \"bepa\"); a.len()")
+        );
+    }
+
+    #[test]
     fn type_check_simple_integer() {
         let res = type_check_program("10", &mut SymbolTable::new()).unwrap();
         assert_eq!(ResolvedType::Integer, res.resolved_type);

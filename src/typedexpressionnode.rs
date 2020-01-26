@@ -25,6 +25,7 @@ pub enum TypedExpressionNode {
     Break(Rc<TypedBreakExpr>),
     Loop(Rc<TypedBlockExpr>),
     IntArray(Rc<TypedIntArrayExpr>),
+    Array(Rc<TypedArrayExpr>),
     Access(Rc<TypedAccessExpr>),
     TypedTypeQualifiedExpression(Rc<TypedTypeQualifiedExpressionExpr>),
     Struct(Rc<StructExpr>),
@@ -54,6 +55,7 @@ impl fmt::Display for TypedExpressionNode {
             TypedExpressionNode::Void => write!(f, "void"),
             TypedExpressionNode::Break(b) => write!(f, "{}", b),
             TypedExpressionNode::Loop(b) => write!(f, "{}", b),
+            TypedExpressionNode::Array(a) => write!(f, "{}", a),
             TypedExpressionNode::IntArray(b) => write!(f, "{}", b),
             TypedExpressionNode::TypedTypeQualifiedExpression(qf) => write!(f, "{}", qf),
             TypedExpressionNode::Struct(s) => write!(f, "{}", s),
@@ -214,6 +216,23 @@ pub struct TypedIntArrayExpr {
 }
 
 impl fmt::Display for TypedIntArrayExpr {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let strings = self
+            .array
+            .iter()
+            .map(|a| format!("{}", a))
+            .collect::<Vec<_>>()
+            .join(", ");
+        write!(f, "[{}]", strings)
+    }
+}
+
+#[derive(Debug, PartialEq)]
+pub struct TypedArrayExpr {
+    pub array: Vec<TypedExpression>,
+}
+
+impl fmt::Display for TypedArrayExpr {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let strings = self
             .array

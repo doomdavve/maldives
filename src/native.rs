@@ -41,19 +41,22 @@ pub fn native_array(
     type_arguments: &Option<Vec<ResolvedType>>,
 ) -> Result<TypedExpression, String> {
     match type_arguments {
-        Some(types) if types.len() == 1 => {
-            let v = match types[0] {
-                ResolvedType::Integer => arguments
+        Some(types) if types.len() == 1 => match types[0] {
+            ResolvedType::Integer => {
+                let v = arguments
                     .iter()
                     .flat_map(|expr| match expr.node {
                         TypedExpressionNode::Integer(i) => Some(i),
                         _ => None,
                     })
-                    .collect(),
-                _ => unimplemented!(),
-            };
-            Ok(TypedExpression::array_i32(ResolvedType::Integer, v))
-        }
+                    .collect();
+                Ok(TypedExpression::array_i32(ResolvedType::Integer, v))
+            }
+            _ => Ok(TypedExpression::array(
+                ResolvedType::Integer,
+                arguments.clone(),
+            )),
+        },
         _ => Err("Missing or wrong number of type arguments to array constructor".to_string()),
     }
 }
@@ -66,6 +69,9 @@ pub fn native_array_len(
     match &arguments[..] {
         [first_arg] => match &first_arg.node {
             TypedExpressionNode::IntArray(array) => Ok(TypedExpression::integer(
+                array.array.len().try_into().unwrap(),
+            )),
+            TypedExpressionNode::Array(array) => Ok(TypedExpression::integer(
                 array.array.len().try_into().unwrap(),
             )),
             _ => Err("Missing or wrong number of arguments".to_string()),

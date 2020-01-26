@@ -137,6 +137,13 @@ impl TypedExpression {
         }
     }
 
+    pub fn array(array_type: ResolvedType, v: Vec<TypedExpression>) -> TypedExpression {
+        TypedExpression {
+            resolved_type: ResolvedType::Array(Box::new(array_type)),
+            node: TypedExpressionNode::Array(Rc::new(TypedArrayExpr { array: v })),
+        }
+    }
+
     pub fn function(
         sym: Option<String>,
         id: u32,
