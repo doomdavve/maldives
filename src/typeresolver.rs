@@ -88,13 +88,12 @@ impl TypeResolver {
             }
             Expression::Access(a) => {
                 let struct_expr = TypeResolver::resolve(&a.expr, env, ctx)?;
-                let struct_id = match &struct_expr.resolved_type {
-                    ResolvedType::Struct(id) => Ok(id),
-                    ResolvedType::Array(_) => Ok(&0),
-                    _ => Err(Error::new(format!("unexpected error2"))),
-                }?;
+                let struct_id = struct_expr
+                    .resolved_type
+                    .struct_id()
+                    .map_err(|e| Error::new(e))?;
                 let s = env
-                    .lookup_struct(*struct_id)
+                    .lookup_struct(struct_id)
                     .ok_or(Error::new(format!("unexpected error3")))?;
                 match &s.members.get(&a.sym) {
                     Some(m) => Ok(TypedExpression::access(

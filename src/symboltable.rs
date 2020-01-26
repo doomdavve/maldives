@@ -116,6 +116,7 @@ pub struct SymbolTable {
     next_function_id: u32,
     function_map: HashMap<u32, NodeId>,
     struct_map: HashMap<u32, Rc<StructExpr>>,
+    next_struct_id: u32,
 }
 
 impl SymbolTable {
@@ -128,6 +129,7 @@ impl SymbolTable {
             pool,
             scope_id,
             next_function_id: 0,
+            next_struct_id: 1024, // The first ones are reserved for native types.
             function_map: HashMap::new(),
             struct_map: HashMap::new(),
         }
@@ -212,6 +214,13 @@ impl SymbolTable {
         let function_id = self.next_function_id;
         self.next_function_id += 1;
         function_id
+    }
+
+    #[allow(dead_code)]
+    pub fn struct_id(&mut self) -> u32 {
+        let struct_id = self.next_struct_id;
+        self.next_struct_id += 1;
+        struct_id
     }
 
     pub fn enter_scope(&mut self) {

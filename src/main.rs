@@ -28,7 +28,7 @@ mod typeresolver;
 use interpreter::Interpreter;
 use lexer::Lexer;
 use parser::Parser;
-use resolvedtype::ResolvedType;
+use resolvedtype::{AllocatedStructIds, ResolvedType};
 use symboltable::SymbolTable;
 use typedexpression::StructEntry;
 use typedexpression::TypedExpression;
@@ -97,7 +97,7 @@ fn root_symboltable() -> SymbolTable {
     root.bind(
         "Array".to_string(),
         TypedExpression::r#struct(
-            0, // FIXME: keep track somewhere.
+            AllocatedStructIds::Array as u32,
             vec![StructEntry::new(
                 "len",
                 TypedExpression::native_function(

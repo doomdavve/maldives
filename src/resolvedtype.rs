@@ -21,6 +21,10 @@ impl fmt::Display for ResolvedFunctionType {
     }
 }
 
+pub enum AllocatedStructIds {
+    Array,
+}
+
 #[derive(Debug, PartialEq, Clone)]
 pub enum ResolvedType {
     Integer,
@@ -113,6 +117,14 @@ impl ResolvedType {
                 })))
             }
             _ => Some(resolved_type.clone()),
+        }
+    }
+
+    pub fn struct_id(&self) -> Result<u32, String> {
+        match self {
+            ResolvedType::Struct(id) => Ok(*id),
+            ResolvedType::Array(_) => Ok(AllocatedStructIds::Array as u32),
+            _ => Err(format!("unexpected error2")),
         }
     }
 }
