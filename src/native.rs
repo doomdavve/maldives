@@ -1,12 +1,13 @@
 use std::convert::TryInto;
 
+use crate::interpreter::Interpreter;
 use crate::resolvedtype::ResolvedType;
 use crate::symboltable::SymbolTable;
 use crate::typedexpression::TypedExpression;
 use crate::typedexpressionnode::TypedExpressionNode;
 
 pub fn native_println(
-    _env: &SymbolTable,
+    _env: &mut SymbolTable,
     arguments: &Vec<TypedExpression>,
     _type_arguments: &Option<Vec<ResolvedType>>,
 ) -> Result<TypedExpression, String> {
@@ -25,7 +26,7 @@ pub fn native_println(
 }
 
 pub fn native_dbg(
-    _env: &SymbolTable,
+    _env: &mut SymbolTable,
     arguments: &Vec<TypedExpression>,
     _type_arguments: &Option<Vec<ResolvedType>>,
 ) -> Result<TypedExpression, String> {
@@ -36,22 +37,12 @@ pub fn native_dbg(
 }
 
 pub fn native_array(
-    _env: &SymbolTable,
+    _env: &mut SymbolTable,
     arguments: &Vec<TypedExpression>,
     type_arguments: &Option<Vec<ResolvedType>>,
 ) -> Result<TypedExpression, String> {
     match type_arguments {
         Some(types) if types.len() == 1 => match types[0] {
-            ResolvedType::Integer => {
-                let v = arguments
-                    .iter()
-                    .flat_map(|expr| match expr.node {
-                        TypedExpressionNode::Integer(i) => Some(i),
-                        _ => None,
-                    })
-                    .collect();
-                Ok(TypedExpression::array_i32(ResolvedType::Integer, v))
-            }
             _ => Ok(TypedExpression::array(
                 ResolvedType::Integer,
                 arguments.clone(),
@@ -62,15 +53,12 @@ pub fn native_array(
 }
 
 pub fn native_array_len(
-    _env: &SymbolTable,
+    _env: &mut SymbolTable,
     arguments: &Vec<TypedExpression>,
     _: &Option<Vec<ResolvedType>>,
 ) -> Result<TypedExpression, String> {
     match &arguments[..] {
         [first_arg] => match &first_arg.node {
-            TypedExpressionNode::IntArray(array) => Ok(TypedExpression::integer(
-                array.array.len().try_into().unwrap(),
-            )),
             TypedExpressionNode::Array(array) => Ok(TypedExpression::integer(
                 array.array.len().try_into().unwrap(),
             )),
@@ -80,8 +68,33 @@ pub fn native_array_len(
     }
 }
 
+pub fn native_array_map(
+    env: &mut SymbolTable,
+    arguments: &Vec<TypedExpression>,
+    _: &Option<Vec<ResolvedType>>,
+) -> Result<TypedExpression, String> {
+    match &arguments[..] {
+        [first_arg, second_arg] => match &first_arg.node {
+            TypedExpressionNode::Array(array) => {
+                let mut new_vec: Vec<TypedExpression> = Vec::new();
+                for expr in &array.array {
+                    let n = Interpreter::call(second_arg, &vec![expr.clone()], env)
+                        .map_err(|e| e.message)?;
+                    new_vec.push(n);
+                }
+                Ok(TypedExpression::array(
+                    second_arg.resolved_type.clone(),
+                    new_vec,
+                ))
+            }
+            _ => Err("expected array".to_string()),
+        },
+        _ => Err("Missing or wrong number of arguments".to_string()),
+    }
+}
+
 pub fn native_env(
-    env: &SymbolTable,
+    env: &mut SymbolTable,
     _: &Vec<TypedExpression>,
     _type_arguments: &Option<Vec<ResolvedType>>,
 ) -> Result<TypedExpression, String> {

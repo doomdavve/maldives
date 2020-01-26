@@ -130,13 +130,6 @@ impl TypedExpression {
         }
     }
 
-    pub fn array_i32(array_type: ResolvedType, v: Vec<i32>) -> TypedExpression {
-        TypedExpression {
-            resolved_type: ResolvedType::Array(Box::new(array_type)),
-            node: TypedExpressionNode::IntArray(Rc::new(TypedIntArrayExpr { array: v })),
-        }
-    }
-
     pub fn array(array_type: ResolvedType, v: Vec<TypedExpression>) -> TypedExpression {
         TypedExpression {
             resolved_type: ResolvedType::Array(Box::new(array_type)),
@@ -185,7 +178,7 @@ impl TypedExpression {
 
     pub fn native_function(
         f: fn(
-            env: &SymbolTable,
+            env: &mut SymbolTable,
             arguments: &Vec<TypedExpression>,
             type_arguments: &Option<Vec<ResolvedType>>,
         ) -> Result<TypedExpression, String>,

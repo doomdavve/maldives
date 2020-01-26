@@ -98,15 +98,26 @@ fn root_symboltable() -> SymbolTable {
         "Array".to_string(),
         TypedExpression::r#struct(
             AllocatedStructIds::Array as u32,
-            vec![StructEntry::new(
-                "len",
-                TypedExpression::native_function(
-                    native::native_array_len,
-                    vec![],
-                    ResolvedType::Integer,
-                    true,
+            vec![
+                StructEntry::new(
+                    "len",
+                    TypedExpression::native_function(
+                        native::native_array_len,
+                        vec![],
+                        ResolvedType::Integer,
+                        true,
+                    ),
                 ),
-            )],
+                StructEntry::new(
+                    "map",
+                    TypedExpression::native_function(
+                        native::native_array_map,
+                        vec![ResolvedType::Any],
+                        ResolvedType::None,
+                        true,
+                    ),
+                ),
+            ],
         ),
     );
     root
@@ -378,9 +389,13 @@ mod tests {
     #[test]
     fn eval_array_create() {
         assert_eq!(
-            Ok(TypedExpression::array_i32(
+            Ok(TypedExpression::array(
                 ResolvedType::Integer,
-                vec![1, 3, 4]
+                vec![
+                    TypedExpression::integer(1),
+                    TypedExpression::integer(3),
+                    TypedExpression::integer(4)
+                ]
             )),
             eval_program_with_root("let a = array[int](1, 3, 4)")
         );

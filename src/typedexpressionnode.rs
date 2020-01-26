@@ -24,7 +24,6 @@ pub enum TypedExpressionNode {
     Conditional(Rc<TypedConditionalExpr>),
     Break(Rc<TypedBreakExpr>),
     Loop(Rc<TypedBlockExpr>),
-    IntArray(Rc<TypedIntArrayExpr>),
     Array(Rc<TypedArrayExpr>),
     Access(Rc<TypedAccessExpr>),
     TypedTypeQualifiedExpression(Rc<TypedTypeQualifiedExpressionExpr>),
@@ -56,7 +55,6 @@ impl fmt::Display for TypedExpressionNode {
             TypedExpressionNode::Break(b) => write!(f, "{}", b),
             TypedExpressionNode::Loop(b) => write!(f, "{}", b),
             TypedExpressionNode::Array(a) => write!(f, "{}", a),
-            TypedExpressionNode::IntArray(b) => write!(f, "{}", b),
             TypedExpressionNode::TypedTypeQualifiedExpression(qf) => write!(f, "{}", qf),
             TypedExpressionNode::Struct(s) => write!(f, "{}", s),
             TypedExpressionNode::Access(a) => write!(f, "{}", a),
@@ -258,7 +256,7 @@ impl fmt::Display for TypedBreakExpr {
 #[derive(Clone)]
 pub struct TypedNativeFunctionExpr {
     pub function: fn(
-        env: &SymbolTable,
+        env: &mut SymbolTable,
         e: &Vec<TypedExpression>,
         t: &Option<Vec<ResolvedType>>,
     ) -> Result<TypedExpression, String>,

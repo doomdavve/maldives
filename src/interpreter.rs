@@ -169,7 +169,6 @@ impl Interpreter {
             TypedExpressionNode::Bool(b) => Ok(TypedExpression::bool(*b)),
             TypedExpressionNode::Integer(i) => Ok(TypedExpression::integer(*i)),
             TypedExpressionNode::String(s) => Ok(TypedExpression::string(s.to_string())),
-            TypedExpressionNode::IntArray(_) => Ok(expr.clone()),
             TypedExpressionNode::Array(_) => Ok(expr.clone()),
             TypedExpressionNode::Binding(_) => Ok(expr.clone()),
             TypedExpressionNode::Symbol(s) => {
@@ -185,7 +184,7 @@ impl Interpreter {
                         Some(m) => Ok(m.clone()),
                         _ => Err(Error::new(format!("stuff3"))),
                     },
-                    TypedExpressionNode::IntArray(_) | TypedExpressionNode::Array(_) => {
+                    TypedExpressionNode::Array(_) => {
                         match env.lookup_struct(AllocatedStructIds::Array as u32) {
                             Some(struct_expr) => match struct_expr.members.get(&a.sym) {
                                 Some(member) => Ok(TypedExpression::binding(val, member.clone())),
@@ -276,7 +275,7 @@ impl Interpreter {
         }
     }
 
-    fn call(
+    pub fn call(
         value: &TypedExpression,
         args: &Vec<TypedExpression>,
         env: &mut SymbolTable,
