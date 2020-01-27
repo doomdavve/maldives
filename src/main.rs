@@ -113,7 +113,16 @@ fn root_symboltable() -> SymbolTable {
                     TypedExpression::native_function(
                         native::native_array_map,
                         vec![ResolvedType::Any],
-                        ResolvedType::None,
+                        ResolvedType::Array(Box::new(ResolvedType::Any)),
+                        true,
+                    ),
+                ),
+                StructEntry::new(
+                    "filter",
+                    TypedExpression::native_function(
+                        native::native_array_filter,
+                        vec![ResolvedType::Any],
+                        ResolvedType::Array(Box::new(ResolvedType::Any)),
                         true,
                     ),
                 ),

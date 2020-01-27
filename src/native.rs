@@ -93,6 +93,39 @@ pub fn native_array_map(
     }
 }
 
+pub fn native_array_filter(
+    env: &mut SymbolTable,
+    arguments: &Vec<TypedExpression>,
+    _: &Option<Vec<ResolvedType>>,
+) -> Result<TypedExpression, String> {
+    match &arguments[..] {
+        [first_arg, second_arg] => match &first_arg.node {
+            TypedExpressionNode::Array(array) => {
+                let mut new_vec: Vec<TypedExpression> = Vec::new();
+                for expr in &array.array {
+                    let n = Interpreter::call(second_arg, &vec![expr.clone()], env)
+                        .map_err(|e| e.message)?;
+                    match &n.node {
+                        TypedExpressionNode::Bool(b) => {
+                            if *b {
+                                new_vec.push(expr.clone())
+                            }
+                            Ok(())
+                        }
+                        _ => Err("expected bool".to_string()),
+                    }?
+                }
+                Ok(TypedExpression::array(
+                    second_arg.resolved_type.clone(),
+                    new_vec,
+                ))
+            }
+            _ => Err("expected array".to_string()),
+        },
+        _ => Err("Missing or wrong number of arguments".to_string()),
+    }
+}
+
 pub fn native_env(
     env: &mut SymbolTable,
     _: &Vec<TypedExpression>,
