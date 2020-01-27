@@ -427,6 +427,16 @@ mod tests {
     }
 
     #[test]
+    fn eval_string_array_map_and_filter() {
+        assert_eq!(
+            Ok(TypedExpression::integer(1)),
+            eval_program_with_root(
+                "let a = array[int](1,2,3); a.map(fn(x:int)=x+10).filter(fn(x:int)=x>12).len()"
+            )
+        );
+    }
+
+    #[test]
     fn type_check_simple_integer() {
         let res = type_check_program("10", &mut SymbolTable::new()).unwrap();
         assert_eq!(ResolvedType::Integer, res.resolved_type);
