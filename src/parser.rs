@@ -548,299 +548,309 @@ impl<'a> Parser<'a> {
     }
 }
 
-#[test]
-fn parse_type_parameter() {
-    let tokens = Lexer::new("array[int]()");
-    let mut parser = Parser::new(tokens);
-    let res = parser.expression().unwrap();
-    assert_eq!(
-        Expression::FunctionCall(Rc::new(FunctionCallExpr {
-            expr: Expression::TypeQualifiedExpression(Rc::new(TypeQualifiedExpressionExpr {
-                expr: Expression::Symbol(String::from("array")),
-                type_arguments: vec![TypeDeclaration::Symbol(String::from("int"))]
+#[cfg(test)]
+mod tests {
+    use std::rc::Rc;
+
+    use crate::expression::*;
+    use crate::lexer::Lexer;
+    use crate::parser::Expression;
+    use crate::parser::Parser;
+
+    #[test]
+    fn parse_type_parameter() {
+        let tokens = Lexer::new("array[int]()");
+        let mut parser = Parser::new(tokens);
+        let res = parser.expression().unwrap();
+        assert_eq!(
+            Expression::FunctionCall(Rc::new(FunctionCallExpr {
+                expr: Expression::TypeQualifiedExpression(Rc::new(TypeQualifiedExpressionExpr {
+                    expr: Expression::Symbol(String::from("array")),
+                    type_arguments: vec![TypeDeclaration::Symbol(String::from("int"))]
+                })),
+                arguments: vec![],
             })),
+            res
+        );
+    }
+
+    #[test]
+    fn parse_symbol() {
+        let contents = String::from("apa");
+        let tokens = Lexer::new(&contents);
+        let mut parser = Parser::new(tokens);
+        let res = parser.symbol();
+        assert_eq!(Ok(contents), res);
+    }
+
+    #[test]
+    fn parse_symbol_as_expression() {
+        let contents = String::from("apa");
+        let tokens = Lexer::new(&contents);
+        let mut parser = Parser::new(tokens);
+        let res = parser.expression();
+        assert_eq!(Ok(Expression::Symbol(contents)), res);
+    }
+
+    #[test]
+    fn parse_function_call_no_args() {
+        let mut parser = Parser::new(Lexer::new("sideeffect()"));
+        let res = parser.expression();
+        let expected = Expression::FunctionCall(Rc::new(FunctionCallExpr {
+            expr: Expression::Symbol(String::from("sideeffect")),
             arguments: vec![],
-        })),
-        res
-    );
-}
+        }));
+        assert_eq!(res, Ok(expected));
+    }
 
-#[test]
-fn parse_symbol() {
-    let contents = String::from("apa");
-    let tokens = Lexer::new(&contents);
-    let mut parser = Parser::new(tokens);
-    let res = parser.symbol();
-    assert_eq!(Ok(contents), res);
-}
+    #[test]
+    fn parse_function_call() {
+        let mut parser = Parser::new(Lexer::new("test_func(4, 2)"));
+        let res = parser.expression();
+        let expected = Expression::FunctionCall(Rc::new(FunctionCallExpr {
+            expr: Expression::Symbol(String::from("test_func")),
+            arguments: vec![Expression::Integer(4), Expression::Integer(2)],
+        }));
+        assert_eq!(res, Ok(expected));
+    }
 
-#[test]
-fn parse_symbol_as_expression() {
-    let contents = String::from("apa");
-    let tokens = Lexer::new(&contents);
-    let mut parser = Parser::new(tokens);
-    let res = parser.expression();
-    assert_eq!(Ok(Expression::Symbol(contents)), res);
-}
-
-#[test]
-fn parse_function_call_no_args() {
-    let mut parser = Parser::new(Lexer::new("sideeffect()"));
-    let res = parser.expression();
-    let expected = Expression::FunctionCall(Rc::new(FunctionCallExpr {
-        expr: Expression::Symbol(String::from("sideeffect")),
-        arguments: vec![],
-    }));
-    assert_eq!(res, Ok(expected));
-}
-
-#[test]
-fn parse_function_call() {
-    let mut parser = Parser::new(Lexer::new("test_func(4, 2)"));
-    let res = parser.expression();
-    let expected = Expression::FunctionCall(Rc::new(FunctionCallExpr {
-        expr: Expression::Symbol(String::from("test_func")),
-        arguments: vec![Expression::Integer(4), Expression::Integer(2)],
-    }));
-    assert_eq!(res, Ok(expected));
-}
-
-#[test]
-fn parse_function_declaration() {
-    let mut parser = Parser::new(Lexer::new("fn double(x: int) -> int = x + x"));
-    let res = parser.expression();
-    let expected = Expression::Function(Rc::new(FunctionExpr {
-        sym: Some("double".to_string()),
-        return_type: Some(TypeDeclaration::Symbol("int".to_string())),
-        parameters: vec![("x".to_string(), TypeDeclaration::Symbol("int".to_string()))],
-        expr: Expression::Binary(Rc::new(BinaryExpr {
-            operator: Operator::Sum,
-            left: Expression::Symbol("x".to_string()),
-            right: Expression::Symbol("x".to_string()),
-        })),
-    }));
-    assert_eq!(res, Ok(expected));
-}
-
-#[test]
-fn parse_function_declaration_no_equal() {
-    let mut parser = Parser::new(Lexer::new("fn double(x: int) -> int x + x"));
-    let res = parser.expression();
-    assert!(res.is_err());
-}
-
-#[test]
-fn parse_function_declaration_block() {
-    let mut parser = Parser::new(Lexer::new("fn double(x: int) -> int { x + x }"));
-    let res = parser.expression();
-    let expected = Expression::Function(Rc::new(FunctionExpr {
-        sym: Some("double".to_string()),
-        return_type: Some(TypeDeclaration::Symbol("int".to_string())),
-        parameters: vec![("x".to_string(), TypeDeclaration::Symbol("int".to_string()))],
-        expr: Expression::Block(Rc::new(BlockExpr {
-            list: vec![Expression::Binary(Rc::new(BinaryExpr {
+    #[test]
+    fn parse_function_declaration() {
+        let mut parser = Parser::new(Lexer::new("fn double(x: int) -> int = x + x"));
+        let res = parser.expression();
+        let expected = Expression::Function(Rc::new(FunctionExpr {
+            sym: Some("double".to_string()),
+            return_type: Some(TypeDeclaration::Symbol("int".to_string())),
+            parameters: vec![("x".to_string(), TypeDeclaration::Symbol("int".to_string()))],
+            expr: Expression::Binary(Rc::new(BinaryExpr {
                 operator: Operator::Sum,
                 left: Expression::Symbol("x".to_string()),
                 right: Expression::Symbol("x".to_string()),
-            }))],
-        })),
-    }));
-    assert_eq!(res, Ok(expected));
-}
+            })),
+        }));
+        assert_eq!(res, Ok(expected));
+    }
 
-#[test]
-fn parse_function_declaration_block_2() {
-    let mut parser = Parser::new(Lexer::new("fn double(x: int) -> int = { x + x }"));
-    let res = parser.expression();
-    let expected = Expression::Function(Rc::new(FunctionExpr {
-        sym: Some("double".to_string()),
-        return_type: Some(TypeDeclaration::Symbol("int".to_string())),
-        parameters: vec![("x".to_string(), TypeDeclaration::Symbol("int".to_string()))],
-        expr: Expression::Block(Rc::new(BlockExpr {
-            list: vec![Expression::Binary(Rc::new(BinaryExpr {
-                operator: Operator::Sum,
-                left: Expression::Symbol("x".to_string()),
-                right: Expression::Symbol("x".to_string()),
-            }))],
-        })),
-    }));
-    assert_eq!(res, Ok(expected));
-}
+    #[test]
+    fn parse_function_declaration_no_equal() {
+        let mut parser = Parser::new(Lexer::new("fn double(x: int) -> int x + x"));
+        let res = parser.expression();
+        assert!(res.is_err());
+    }
 
-#[test]
-fn parse_function_call_multiple_args() {
-    let mut parser = Parser::new(Lexer::new("sum(4, 4)"));
-    let res = parser.expression();
-    let expected = Expression::FunctionCall(Rc::new(FunctionCallExpr {
-        expr: Expression::Symbol(String::from("sum")),
-        arguments: vec![Expression::Integer(4), Expression::Integer(4)],
-    }));
-    assert_eq!(res, Ok(expected));
-}
+    #[test]
+    fn parse_function_declaration_block() {
+        let mut parser = Parser::new(Lexer::new("fn double(x: int) -> int { x + x }"));
+        let res = parser.expression();
+        let expected = Expression::Function(Rc::new(FunctionExpr {
+            sym: Some("double".to_string()),
+            return_type: Some(TypeDeclaration::Symbol("int".to_string())),
+            parameters: vec![("x".to_string(), TypeDeclaration::Symbol("int".to_string()))],
+            expr: Expression::Block(Rc::new(BlockExpr {
+                list: vec![Expression::Binary(Rc::new(BinaryExpr {
+                    operator: Operator::Sum,
+                    left: Expression::Symbol("x".to_string()),
+                    right: Expression::Symbol("x".to_string()),
+                }))],
+            })),
+        }));
+        assert_eq!(res, Ok(expected));
+    }
 
-#[test]
-fn parse_function_call_many_multiple_args() {
-    let mut parser = Parser::new(Lexer::new("sum(4, 1, 2,    4, 5, 223, 23,2)"));
-    let res = parser.expression();
-    let expected = Expression::FunctionCall(Rc::new(FunctionCallExpr {
-        expr: Expression::Symbol(String::from("sum")),
-        arguments: vec![4, 1, 2, 4, 5, 223, 23, 2]
-            .into_iter()
-            .map(|i| Expression::Integer(i))
-            .collect(),
-    }));
-    assert_eq!(res, Ok(expected));
-}
+    #[test]
+    fn parse_function_declaration_block_2() {
+        let mut parser = Parser::new(Lexer::new("fn double(x: int) -> int = { x + x }"));
+        let res = parser.expression();
+        let expected = Expression::Function(Rc::new(FunctionExpr {
+            sym: Some("double".to_string()),
+            return_type: Some(TypeDeclaration::Symbol("int".to_string())),
+            parameters: vec![("x".to_string(), TypeDeclaration::Symbol("int".to_string()))],
+            expr: Expression::Block(Rc::new(BlockExpr {
+                list: vec![Expression::Binary(Rc::new(BinaryExpr {
+                    operator: Operator::Sum,
+                    left: Expression::Symbol("x".to_string()),
+                    right: Expression::Symbol("x".to_string()),
+                }))],
+            })),
+        }));
+        assert_eq!(res, Ok(expected));
+    }
 
-#[test]
-fn parse_function_call_as_expression() {
-    let mut parser = Parser::new(Lexer::new("sqrt(4)"));
-    let res = parser.expression();
-    let expected = Expression::FunctionCall(Rc::new(FunctionCallExpr {
-        expr: Expression::Symbol(String::from("sqrt")),
-        arguments: vec![4]
-            .into_iter()
-            .map(|i| Expression::Integer(i))
-            .collect(),
-    }));
-    assert_eq!(res, Ok(expected));
-}
+    #[test]
+    fn parse_function_call_multiple_args() {
+        let mut parser = Parser::new(Lexer::new("sum(4, 4)"));
+        let res = parser.expression();
+        let expected = Expression::FunctionCall(Rc::new(FunctionCallExpr {
+            expr: Expression::Symbol(String::from("sum")),
+            arguments: vec![Expression::Integer(4), Expression::Integer(4)],
+        }));
+        assert_eq!(res, Ok(expected));
+    }
 
-#[test]
-fn parse_nested_function_call_as_expression() {
-    let mut parser = Parser::new(Lexer::new("sqrt(sqrt(81))"));
-    let res = parser.expression();
-    let expected = Expression::FunctionCall(Rc::new(FunctionCallExpr {
-        expr: Expression::Symbol(String::from("sqrt")),
-        arguments: vec![Expression::FunctionCall(Rc::new(FunctionCallExpr {
-            expr: Expression::Symbol(String::from("sqrt")),
-            arguments: vec![81]
+    #[test]
+    fn parse_function_call_many_multiple_args() {
+        let mut parser = Parser::new(Lexer::new("sum(4, 1, 2,    4, 5, 223, 23,2)"));
+        let res = parser.expression();
+        let expected = Expression::FunctionCall(Rc::new(FunctionCallExpr {
+            expr: Expression::Symbol(String::from("sum")),
+            arguments: vec![4, 1, 2, 4, 5, 223, 23, 2]
                 .into_iter()
                 .map(|i| Expression::Integer(i))
                 .collect(),
-        }))],
-    }));
-    assert_eq!(res, Ok(expected));
-}
+        }));
+        assert_eq!(res, Ok(expected));
+    }
 
-#[test]
-fn parse_define_function() {
-    let mut parser = Parser::new(Lexer::new("fn identity(x: int) -> int = { x }"));
-    let res = parser.expression();
-    let expected = Expression::Function(Rc::new(FunctionExpr {
-        sym: Some(String::from("identity")),
-        return_type: Some(TypeDeclaration::Symbol(String::from("int"))),
-        parameters: vec![(
-            String::from("x"),
-            TypeDeclaration::Symbol(String::from("int")),
-        )],
-        expr: Expression::Block(Rc::new(BlockExpr {
-            list: vec![Expression::Symbol(String::from("x"))],
-        })),
-    }));
-    assert_eq!(res, Ok(expected));
-}
+    #[test]
+    fn parse_function_call_as_expression() {
+        let mut parser = Parser::new(Lexer::new("sqrt(4)"));
+        let res = parser.expression();
+        let expected = Expression::FunctionCall(Rc::new(FunctionCallExpr {
+            expr: Expression::Symbol(String::from("sqrt")),
+            arguments: vec![4]
+                .into_iter()
+                .map(|i| Expression::Integer(i))
+                .collect(),
+        }));
+        assert_eq!(res, Ok(expected));
+    }
 
-#[test]
-fn parse_number_as_expression() {
-    let mut parser = Parser::new(Lexer::new("4"));
-    let res = parser.expression();
-    let expected = Expression::Integer(4);
-    assert_eq!(res, Ok(expected));
-}
+    #[test]
+    fn parse_nested_function_call_as_expression() {
+        let mut parser = Parser::new(Lexer::new("sqrt(sqrt(81))"));
+        let res = parser.expression();
+        let expected = Expression::FunctionCall(Rc::new(FunctionCallExpr {
+            expr: Expression::Symbol(String::from("sqrt")),
+            arguments: vec![Expression::FunctionCall(Rc::new(FunctionCallExpr {
+                expr: Expression::Symbol(String::from("sqrt")),
+                arguments: vec![81]
+                    .into_iter()
+                    .map(|i| Expression::Integer(i))
+                    .collect(),
+            }))],
+        }));
+        assert_eq!(res, Ok(expected));
+    }
 
-#[test]
-fn parse_block() {
-    let lexer = Lexer::new("{ print(9); print(3) }");
-    let mut parser = Parser::new(lexer);
-    let res = parser.block();
-    let expected = || BlockExpr {
-        list: vec![
-            Expression::FunctionCall(Rc::new(FunctionCallExpr {
-                expr: Expression::Symbol(String::from("print")),
-                arguments: vec![Expression::Integer(9)],
+    #[test]
+    fn parse_define_function() {
+        let mut parser = Parser::new(Lexer::new("fn identity(x: int) -> int = { x }"));
+        let res = parser.expression();
+        let expected = Expression::Function(Rc::new(FunctionExpr {
+            sym: Some(String::from("identity")),
+            return_type: Some(TypeDeclaration::Symbol(String::from("int"))),
+            parameters: vec![(
+                String::from("x"),
+                TypeDeclaration::Symbol(String::from("int")),
+            )],
+            expr: Expression::Block(Rc::new(BlockExpr {
+                list: vec![Expression::Symbol(String::from("x"))],
             })),
-            Expression::FunctionCall(Rc::new(FunctionCallExpr {
-                expr: Expression::Symbol(String::from("print")),
-                arguments: vec![Expression::Integer(3)],
-            })),
-        ],
-    };
-    assert_eq!(res, Ok(expected()));
+        }));
+        assert_eq!(res, Ok(expected));
+    }
 
-    parser.rewind();
-    let expected_in_expression = Expression::Block(Rc::new(expected()));
-    let res_in_expr = parser.expression();
-    assert_eq!(res_in_expr, Ok(expected_in_expression));
-}
+    #[test]
+    fn parse_number_as_expression() {
+        let mut parser = Parser::new(Lexer::new("4"));
+        let res = parser.expression();
+        let expected = Expression::Integer(4);
+        assert_eq!(res, Ok(expected));
+    }
 
-#[test]
-fn parse_bind() {
-    let lexer = Lexer::new("let a: int = 4");
-    let mut parser = Parser::new(lexer);
-    let res = parser.binding();
-    let expected = || BindExpr {
-        sym: String::from("a"),
-        sym_type: Some(TypeDeclaration::Symbol(String::from("int"))),
-        expr: Expression::Integer(4),
-    };
-    assert_eq!(res, Ok(expected()));
+    #[test]
+    fn parse_block() {
+        let lexer = Lexer::new("{ print(9); print(3) }");
+        let mut parser = Parser::new(lexer);
+        let res = parser.block();
+        let expected = || BlockExpr {
+            list: vec![
+                Expression::FunctionCall(Rc::new(FunctionCallExpr {
+                    expr: Expression::Symbol(String::from("print")),
+                    arguments: vec![Expression::Integer(9)],
+                })),
+                Expression::FunctionCall(Rc::new(FunctionCallExpr {
+                    expr: Expression::Symbol(String::from("print")),
+                    arguments: vec![Expression::Integer(3)],
+                })),
+            ],
+        };
+        assert_eq!(res, Ok(expected()));
 
-    parser.rewind();
-    let expected_in_expression = Expression::Bind(Rc::new(expected()));
-    let res_in_expr = parser.expression();
-    assert_eq!(res_in_expr, Ok(expected_in_expression));
-}
+        parser.rewind();
+        let expected_in_expression = Expression::Block(Rc::new(expected()));
+        let res_in_expr = parser.expression();
+        assert_eq!(res_in_expr, Ok(expected_in_expression));
+    }
 
-#[test]
-fn parse_nested_call_expr() {
-    let mut parser = Parser::new(Lexer::new("apa()()()"));
-    let res_in_expr = parser.expression();
-    let expected = Expression::FunctionCall(Rc::new(FunctionCallExpr {
-        expr: Expression::FunctionCall(Rc::new(FunctionCallExpr {
+    #[test]
+    fn parse_bind() {
+        let lexer = Lexer::new("let a: int = 4");
+        let mut parser = Parser::new(lexer);
+        let res = parser.binding();
+        let expected = || BindExpr {
+            sym: String::from("a"),
+            sym_type: Some(TypeDeclaration::Symbol(String::from("int"))),
+            expr: Expression::Integer(4),
+        };
+        assert_eq!(res, Ok(expected()));
+
+        parser.rewind();
+        let expected_in_expression = Expression::Bind(Rc::new(expected()));
+        let res_in_expr = parser.expression();
+        assert_eq!(res_in_expr, Ok(expected_in_expression));
+    }
+
+    #[test]
+    fn parse_nested_call_expr() {
+        let mut parser = Parser::new(Lexer::new("apa()()()"));
+        let res_in_expr = parser.expression();
+        let expected = Expression::FunctionCall(Rc::new(FunctionCallExpr {
             expr: Expression::FunctionCall(Rc::new(FunctionCallExpr {
-                expr: Expression::Symbol(String::from("apa")),
+                expr: Expression::FunctionCall(Rc::new(FunctionCallExpr {
+                    expr: Expression::Symbol(String::from("apa")),
+                    arguments: vec![],
+                })),
                 arguments: vec![],
             })),
             arguments: vec![],
-        })),
-        arguments: vec![],
-    }));
-    assert_eq!(res_in_expr, Ok(expected));
-}
+        }));
+        assert_eq!(res_in_expr, Ok(expected));
+    }
 
-#[test]
-fn parse_infix() {
-    let mut parser = Parser::new(Lexer::new("1 + 2"));
-    let expected = Expression::Binary(Rc::new(BinaryExpr {
-        operator: Operator::Sum,
-        left: Expression::Integer(1),
-        right: Expression::Integer(2),
-    }));
-    let expression = parser.expression();
-    assert_eq!(expression, Ok(expected));
-}
+    #[test]
+    fn parse_infix() {
+        let mut parser = Parser::new(Lexer::new("1 + 2"));
+        let expected = Expression::Binary(Rc::new(BinaryExpr {
+            operator: Operator::Sum,
+            left: Expression::Integer(1),
+            right: Expression::Integer(2),
+        }));
+        let expression = parser.expression();
+        assert_eq!(expression, Ok(expected));
+    }
 
-#[test]
-fn parse_infix_no_space() {
-    let mut parser = Parser::new(Lexer::new("1+2"));
-    let expected = Expression::Binary(Rc::new(BinaryExpr {
-        operator: Operator::Sum,
-        left: Expression::Integer(1),
-        right: Expression::Integer(2),
-    }));
-    let expression = parser.expression();
-    assert_eq!(expression, Ok(expected));
-}
+    #[test]
+    fn parse_infix_no_space() {
+        let mut parser = Parser::new(Lexer::new("1+2"));
+        let expected = Expression::Binary(Rc::new(BinaryExpr {
+            operator: Operator::Sum,
+            left: Expression::Integer(1),
+            right: Expression::Integer(2),
+        }));
+        let expression = parser.expression();
+        assert_eq!(expression, Ok(expected));
+    }
 
-#[test]
-fn parse_string_concatination() {
-    let mut parser = Parser::new(Lexer::new("\"apa\" + \"banan\""));
-    let expected = Expression::Binary(Rc::new(BinaryExpr {
-        operator: Operator::Sum,
-        left: Expression::String("apa".to_string()),
-        right: Expression::String("banan".to_string()),
-    }));
-    let expression = parser.expression();
-    assert_eq!(expression, Ok(expected));
+    #[test]
+    fn parse_string_concatination() {
+        let mut parser = Parser::new(Lexer::new("\"apa\" + \"banan\""));
+        let expected = Expression::Binary(Rc::new(BinaryExpr {
+            operator: Operator::Sum,
+            left: Expression::String("apa".to_string()),
+            right: Expression::String("banan".to_string()),
+        }));
+        let expression = parser.expression();
+        assert_eq!(expression, Ok(expected));
+    }
 }
