@@ -40,14 +40,14 @@ fn main() -> Result<(), String> {
 
     let args: Vec<String> = env::args().collect();
     match if args.len() > 1 { Some(&args[1]) } else { None } {
-        Some(filename) => load_file(filename),
+        Some(filename) => load_file(Path::new(filename)),
         None => repl(),
     }?;
 
     Ok(())
 }
 
-fn load_file(filename: &str) -> Result<i32, String> {
+fn load_file(filename: &Path) -> Result<i32, String> {
     let mut root = root_symboltable();
     let contents = fs::read_to_string(filename).map_err(|e| e.to_string())?;
     let tokens = Lexer::new(&contents);
@@ -175,10 +175,12 @@ fn evaluate_line(mut root: &mut SymbolTable, line: &str) -> Result<String, Strin
 
 #[cfg(test)]
 mod tests {
+    use std::path::Path;
     use std::rc::Rc;
 
     use crate::interpreter::Interpreter;
     use crate::lexer::Lexer;
+    use crate::load_file;
     use crate::parser::Parser;
     use crate::resolvedtype::ResolvedFunctionType;
     use crate::resolvedtype::ResolvedType;
@@ -492,5 +494,29 @@ mod tests {
     fn test_check_function_call_args() {
         let res = type_check_program("{ fn f(i:int)=i; f(true) }", &mut SymbolTable::new());
         assert!(res.is_err());
+    }
+
+    use std::fs;
+
+    fn test_operation(op: &str, path1: &str, path2: &str) {
+        let res1 = load_file(&Path::new("raa").join(path1));
+        let res2 = load_file(&Path::new("raa").join(path2));
+
+        match op {
+            "==" => assert_eq!(res1, res2),
+            "=!" => assert_ne!(res1, res2),
+            _ => unreachable!(),
+        }
+    }
+
+    #[test]
+    fn test_suite() {
+        match fs::read_to_string("raa/manifest").map_err(|e| e.to_string()) {
+            Ok(contents) => match &contents.split(",").collect::<Vec<&str>>()[..] {
+                [op, path1, path2] => test_operation(op, path1, path2),
+                _ => println!("Error: Wrong number of fields"),
+            },
+            Err(e) => println!("Error: {}", e),
+        }
     }
 }
