@@ -185,7 +185,7 @@ fn repl() -> Result<i32, String> {
             }
             Ok(_) => (),
             Err(ReadlineError::Interrupted) | Err(ReadlineError::Eof) => {
-                println!("Exit.");
+                println!("Exit");
                 break;
             }
             Err(err) => {
