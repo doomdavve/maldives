@@ -207,7 +207,7 @@ fn sdl() -> Result<i32, String> {
 
 */
 pub fn native_sdl_init(
-    _env: &SymbolTable,
+    _env: &mut SymbolTable,
     _: &Vec<TypedExpression>,
     _type_arguments: &Option<Vec<ResolvedType>>,
 ) -> Result<TypedExpression, String> {
