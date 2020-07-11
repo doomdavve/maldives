@@ -379,10 +379,10 @@ impl TypeResolver {
                     None => Ok(ResolvedType::Any),
                 }?;
 
-                let type_check: bool = specified_return_type == ResolvedType::Any
+                let type_match: bool = specified_return_type == ResolvedType::Any
                     || &specified_return_type == return_type;
 
-                if type_check {
+                if type_match {
                     let resolved_type = ResolvedType::function(return_type.clone(), types);
                     let function_id = env.function_id();
                     let function = TypedExpression::function(
