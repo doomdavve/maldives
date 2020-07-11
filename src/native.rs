@@ -135,6 +135,77 @@ pub fn native_env(
     Ok(TypedExpression::void())
 }
 
+/*
+fn sdl() -> Result<i32, String> {
+    let mut rl = Editor::<()>::new();
+    let homedir = dirs::home_dir().unwrap();
+    let history_file_path = Path::new(&homedir).join(".maldives_history");
+    if rl.load_history(&history_file_path).is_err() {
+        println!("No previous history.");
+    }
+
+    /* SDL; move to "module" */
+    let sdl_context = sdl2::init().unwrap();
+    let video_subsystem = sdl_context.video().unwrap();
+
+    let window = video_subsystem
+        .window("rust-sdl2 demo", 800, 600)
+        .position_centered()
+        .build()
+        .unwrap();
+
+    let mut canvas = window.into_canvas().present_vsync().build().unwrap();
+    let mut event_pump = sdl_context.event_pump().unwrap();
+
+    canvas.set_draw_color(Color::RGB(0, 255, 255));
+    canvas.clear();
+    canvas.present();
+
+    let mut i = 0;
+    'running: loop {
+        i = (i + 1) % 255;
+        canvas.set_draw_color(Color::RGB(i, 64, 255 - i));
+        canvas.clear();
+
+        for event in event_pump.poll_iter() {
+            match event {
+                Event::Quit { .. }
+                | Event::KeyDown {
+                    keycode: Some(Keycode::Escape),
+                    ..
+                } => break 'running,
+                _ => {}
+            }
+        }
+
+        canvas.present();
+    }
+
+    //    loop {
+    //        match rl.readline("> ") {
+    //            Ok(line) if &line != "" => {
+    //                rl.add_history_entry(&line);
+    //                match evaluate_line(&mut root, &line) {
+    //                    Ok(output) => println!("{}", output),
+    //                    Err(message) => println!("{}", message),
+    //                }
+    //            }
+    //            Ok(_) => (),
+    //            Err(ReadlineError::Interrupted) | Err(ReadlineError::Eof) => {
+    //                println!("Exit");
+    //                break;
+    //            }
+    //            Err(err) => {
+    //                println!("Error: {:?}", err);
+    //                break;
+    //            }
+    //        }
+    //    }
+    rl.save_history(&history_file_path).unwrap();
+    Ok(0)
+}
+
+*/
 pub fn native_sdl_init(
     _env: &SymbolTable,
     _: &Vec<TypedExpression>,
