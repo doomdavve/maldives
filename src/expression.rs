@@ -1,3 +1,4 @@
+use std::fmt;
 use std::rc::Rc;
 
 #[derive(Debug, PartialEq, Clone)]
@@ -37,6 +38,12 @@ pub enum Operator {
     Call,
     TypeArguments,
     Member,
+}
+
+impl fmt::Display for Operator {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
 }
 
 #[derive(Debug, PartialEq, Clone)]
