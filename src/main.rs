@@ -50,6 +50,27 @@ fn main() -> Result<(), String> {
     Ok(())
 }
 
+/** Loads and evaluates a program from a file.
+
+# Return value
+
+For a sucessfully evaluated program, if the program evaluates to an
+integer, that value is returned. Otherwise, zero is returned.
+
+If the program can't be evaluated, a message is returned with the
+error.
+
+# Examples
+
+```
+    let args: Vec<String> = env::args().collect();
+    match if args.len() > 1 { Some(&args[1]) } else { None } {
+        Some(filename) => load_file(filename),
+        None => repl(),
+    }?;
+```
+
+*/
 fn load_file(filename: &Path) -> Result<i32, String> {
     let mut root = root_symboltable();
     let contents = fs::read_to_string(filename).map_err(|e| e.to_string())?;
