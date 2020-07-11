@@ -74,8 +74,9 @@ error.
 fn load_file(filename: &Path) -> Result<i32, String> {
     let mut root = root_symboltable();
     let contents = fs::read_to_string(filename).map_err(|e| e.to_string())?;
-    let tokens = Lexer::new(&contents);
-    let program = Parser::new(tokens).program().map_err(|e| e.to_string())?;
+    let program = Parser::new(Lexer::new(&contents))
+        .program()
+        .map_err(|e| e.to_string())?;
     debug!("Parsed program: {:?}", program);
     let typed = TypeResolver::resolve_in_env(&program, &mut root).map_err(|e| e.to_string())?;
     let res = Interpreter::eval(&typed, &mut root).map_err(|e| e.to_string())?;
