@@ -218,7 +218,12 @@ impl TypeResolver {
                             Err(Error::new(format!("type mismatch in assignment",)))
                         }
                     }
-                    _ => Err(Error::new(format!("dbg: {:?}", expression))),
+                    _ => Err(Error::new(format!(
+                        "operator {} can't be applied to type '{}' and type '{}'",
+                        b.operator,
+                        left.resolved_type.clone(),
+                        right.resolved_type.clone()
+                    ))),
                 }
             }
             Expression::Conditional(c) => {
