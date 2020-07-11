@@ -180,7 +180,7 @@ fn repl() -> Result<i32, String> {
                 rl.add_history_entry(&line);
                 match evaluate_line(&mut root, &line) {
                     Ok(output) => println!("{}", output),
-                    Err(message) => println!("Error: {}", message),
+                    Err(message) => println!("{}", message),
                 }
             }
             Ok(_) => (),
