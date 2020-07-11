@@ -5,6 +5,7 @@ use std::rc::Rc;
 use crate::resolvedtype::{ResolvedFunctionType, ResolvedType};
 use crate::symboltable::SymbolTable;
 use crate::typedexpressionnode::*;
+use sdl2::Sdl;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct TypedExpression {
@@ -234,6 +235,13 @@ impl TypedExpression {
         TypedExpression {
             resolved_type,
             node: TypedExpressionNode::Access(Rc::new(TypedAccessExpr { expr, sym })),
+        }
+    }
+
+    pub fn sdl(sdl_context: Sdl) -> TypedExpression {
+        TypedExpression {
+            resolved_type: ResolvedType::Sdl,
+            node: TypedExpressionNode::Sdl(Rc::new(SdlWrapper { sdl: sdl_context })),
         }
     }
 }

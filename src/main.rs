@@ -9,6 +9,8 @@ use std::env;
 use std::fs;
 use std::path::Path;
 
+use sdl2::event::Event;
+
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 
@@ -29,6 +31,7 @@ use interpreter::Interpreter;
 use lexer::Lexer;
 use parser::Parser;
 use resolvedtype::{AllocatedStructIds, ResolvedType};
+use sdl2::{keyboard::Keycode, pixels::Color};
 use symboltable::SymbolTable;
 use typedexpression::StructEntry;
 use typedexpression::TypedExpression;
@@ -127,6 +130,15 @@ fn root_symboltable() -> SymbolTable {
                     ),
                 ),
             ],
+        ),
+    );
+    root.bind(
+        "sdl_init".to_string(),
+        TypedExpression::native_function(
+            native::native_sdl_init,
+            ResolvedType::None,
+            vec![],
+            false,
         ),
     );
     root

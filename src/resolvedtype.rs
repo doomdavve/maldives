@@ -39,6 +39,7 @@ pub enum ResolvedType {
     TypeParameterId(usize),
     VarArgs,
     Struct(u32),
+    Sdl,
 }
 
 impl fmt::Display for ResolvedType {
@@ -56,6 +57,7 @@ impl fmt::Display for ResolvedType {
             ResolvedType::TypeParameterId(id) => write!(f, "T[{}]", id),
             ResolvedType::VarArgs => write!(f, "..."),
             ResolvedType::Struct(id) => write!(f, "struct <{}>", id),
+            ResolvedType::Sdl => write!(f, "sdl"),
         }
     }
 }

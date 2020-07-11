@@ -272,6 +272,7 @@ impl Interpreter {
                 Ok(a)
             }
             TypedExpressionNode::Struct(_s) => Ok(expr.clone()),
+            TypedExpressionNode::Sdl(_s) => Ok(expr.clone()),
         }
     }
 

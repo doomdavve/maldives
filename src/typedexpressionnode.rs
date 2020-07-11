@@ -5,6 +5,8 @@ use std::rc::Rc;
 use crate::resolvedtype::ResolvedType;
 use crate::symboltable::SymbolTable;
 use crate::typedexpression::TypedExpression;
+use fmt::Debug;
+use sdl2::Sdl;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum TypedExpressionNode {
@@ -28,6 +30,7 @@ pub enum TypedExpressionNode {
     Access(Rc<TypedAccessExpr>),
     TypedTypeQualifiedExpression(Rc<TypedTypeQualifiedExpressionExpr>),
     Struct(Rc<StructExpr>),
+    Sdl(Rc<SdlWrapper>),
     Void,
 }
 
@@ -59,6 +62,7 @@ impl fmt::Display for TypedExpressionNode {
             TypedExpressionNode::Struct(s) => write!(f, "{}", s),
             TypedExpressionNode::Access(a) => write!(f, "{}", a),
             TypedExpressionNode::Binding(b) => write!(f, "{}", b),
+            TypedExpressionNode::Sdl(_sdl) => write!(f, "sdl"),
         }
     }
 }
@@ -338,5 +342,27 @@ pub struct BindingExpr {
 impl fmt::Display for BindingExpr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{} <-> {}", self.origin, self.instance)
+    }
+}
+
+pub struct SdlWrapper {
+    pub sdl: Sdl,
+}
+
+impl PartialEq for SdlWrapper {
+    fn eq(&self, _other: &Self) -> bool {
+        false
+    }
+}
+
+impl Debug for SdlWrapper {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Sdl")
+    }
+}
+
+impl fmt::Display for SdlWrapper {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Sdl")
     }
 }

@@ -134,3 +134,11 @@ pub fn native_env(
     print!("{}", env);
     Ok(TypedExpression::void())
 }
+
+pub fn native_sdl_init(
+    _env: &SymbolTable,
+    _: &Vec<TypedExpression>,
+    _type_arguments: &Option<Vec<ResolvedType>>,
+) -> Result<TypedExpression, String> {
+    Ok(TypedExpression::sdl(sdl2::init().unwrap()))
+}
