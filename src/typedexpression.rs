@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::fmt;
-use std::rc::Rc;
+use std::{cell::RefCell, rc::Rc};
 
 use crate::resolvedtype::{ResolvedFunctionType, ResolvedType};
 use crate::symboltable::SymbolTable;
@@ -246,12 +246,12 @@ impl TypedExpression {
     ) -> TypedExpression {
         TypedExpression {
             resolved_type: ResolvedType::Sdl,
-            node: TypedExpressionNode::Sdl(Rc::new(SdlWrapper {
+            node: TypedExpressionNode::Sdl(Rc::new(RefCell::new(SdlWrapper {
                 sdl_context,
                 video_subsystem,
                 canvas,
                 event_pump,
-            })),
+            }))),
         }
     }
 }

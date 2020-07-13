@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::fmt;
-use std::rc::Rc;
+use std::{cell::RefCell, rc::Rc};
 
 use crate::resolvedtype::ResolvedType;
 use crate::symboltable::SymbolTable;
@@ -30,7 +30,7 @@ pub enum TypedExpressionNode {
     Access(Rc<TypedAccessExpr>),
     TypedTypeQualifiedExpression(Rc<TypedTypeQualifiedExpressionExpr>),
     Struct(Rc<StructExpr>),
-    Sdl(Rc<SdlWrapper>),
+    Sdl(Rc<RefCell<SdlWrapper>>),
     Void,
 }
 

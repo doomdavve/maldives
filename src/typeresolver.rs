@@ -445,8 +445,10 @@ impl TypeResolver {
                                         if param != &ResolvedType::Any
                                             && &arg.resolved_type != param
                                         {
-                                            error_message =
-                                                Some(format!("{} != {}", param, arg.resolved_type));
+                                            error_message = Some(format!(
+                                                "expected {}, got {}",
+                                                param, arg.resolved_type
+                                            ));
                                             break;
                                         }
                                     }

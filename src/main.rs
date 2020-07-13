@@ -152,12 +152,21 @@ fn root_symboltable() -> SymbolTable {
         ),
     );
     root.bind(
-        "sdl_init".to_string(),
+        "window_open".to_string(),
         TypedExpression::native_function(
-            native::native_sdl_init,
+            native::native_open_window,
             vec![],
-            ResolvedType::None,
+            ResolvedType::Sdl,
             false,
+        ),
+    );
+    root.bind(
+        "main_loop".to_string(),
+        TypedExpression::native_function(
+            native::native_main_loop,
+            vec![ResolvedType::Sdl],
+            ResolvedType::None,
+            true,
         ),
     );
     root

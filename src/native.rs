@@ -5,6 +5,7 @@ use crate::resolvedtype::ResolvedType;
 use crate::symboltable::SymbolTable;
 use crate::typedexpression::TypedExpression;
 use crate::typedexpressionnode::TypedExpressionNode;
+use sdl2::{event::Event, keyboard::Keycode, pixels::Color};
 
 pub fn native_println(
     _env: &mut SymbolTable,
@@ -206,20 +207,26 @@ fn sdl() -> Result<i32, String> {
 }
 
 */
-pub fn native_sdl_init(
+pub fn native_open_window(
     _env: &mut SymbolTable,
     _: &Vec<TypedExpression>,
     _type_arguments: &Option<Vec<ResolvedType>>,
 ) -> Result<TypedExpression, String> {
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
+
+    // FIXME: Add some parameters for title, size and position:
     let window = video_subsystem
         .window("rust-sdl2 demo", 800, 600)
         .position_centered()
         .build()
         .unwrap();
-    let canvas = window.into_canvas().present_vsync().build().unwrap();
+    let mut canvas = window.into_canvas().present_vsync().build().unwrap();
     let event_pump = sdl_context.event_pump().unwrap();
+
+    canvas.set_draw_color(Color::RGB(0, 255, 255));
+    canvas.clear();
+    canvas.present();
 
     Ok(TypedExpression::sdl(
         sdl_context,
@@ -227,4 +234,44 @@ pub fn native_sdl_init(
         canvas,
         event_pump,
     ))
+}
+
+pub fn native_main_loop(
+    _env: &mut SymbolTable,
+    arguments: &Vec<TypedExpression>,
+    _type_arguments: &Option<Vec<ResolvedType>>,
+) -> Result<TypedExpression, String> {
+    match &arguments[..] {
+        [first_arg] => match &first_arg.node {
+            TypedExpressionNode::Sdl(sdl_cell) => {
+                let mut i = 0;
+                'running: loop {
+                    i = (i + 1) % 255;
+                    let mut sdl = sdl_cell.borrow_mut();
+
+                    sdl.canvas.set_draw_color(Color::RGB(i, 64, 255 - i));
+                    sdl.canvas.clear();
+                    for event in sdl.event_pump.poll_iter() {
+                        match event {
+                            Event::Quit { .. }
+                            | Event::KeyDown {
+                                keycode: Some(Keycode::Escape),
+                                ..
+                            } => break 'running,
+                            _ => {}
+                        }
+                    }
+
+                    sdl.canvas.present();
+                }
+
+                Ok(TypedExpression::integer(3))
+            }
+            _ => {
+                println!("{:?}", arguments);
+                Ok(TypedExpression::integer(2))
+            }
+        },
+        _ => Ok(TypedExpression::integer(1)),
+    }
 }
