@@ -209,31 +209,39 @@ fn sdl() -> Result<i32, String> {
 */
 pub fn native_open_window(
     _env: &mut SymbolTable,
-    _: &Vec<TypedExpression>,
+    arguments: &Vec<TypedExpression>,
     _type_arguments: &Option<Vec<ResolvedType>>,
 ) -> Result<TypedExpression, String> {
-    let sdl_context = sdl2::init().unwrap();
-    let video_subsystem = sdl_context.video().unwrap();
+    match &arguments[..] {
+        [first_arg] => match &first_arg.node {
+            TypedExpressionNode::String(title) => {
+                let sdl_context = sdl2::init().unwrap();
+                let video_subsystem = sdl_context.video().unwrap();
 
-    // FIXME: Add some parameters for title, size and position:
-    let window = video_subsystem
-        .window("rust-sdl2 demo", 800, 600)
-        .position_centered()
-        .build()
-        .unwrap();
-    let mut canvas = window.into_canvas().present_vsync().build().unwrap();
-    let event_pump = sdl_context.event_pump().unwrap();
+                // FIXME: Add some parameters for title, size and position:
+                let window = video_subsystem
+                    .window(title, 800, 600)
+                    .position_centered()
+                    .build()
+                    .unwrap();
+                let mut canvas = window.into_canvas().present_vsync().build().unwrap();
+                let event_pump = sdl_context.event_pump().unwrap();
 
-    canvas.set_draw_color(Color::RGB(0, 255, 255));
-    canvas.clear();
-    canvas.present();
+                canvas.set_draw_color(Color::RGB(0, 255, 255));
+                canvas.clear();
+                canvas.present();
 
-    Ok(TypedExpression::sdl(
-        sdl_context,
-        video_subsystem,
-        canvas,
-        event_pump,
-    ))
+                Ok(TypedExpression::sdl(
+                    sdl_context,
+                    video_subsystem,
+                    canvas,
+                    event_pump,
+                ))
+            }
+            _ => Ok(TypedExpression::void()), // breaks signature, throw error instead
+        },
+        _ => Ok(TypedExpression::void()), // breaks signature, throw error instead
+    }
 }
 
 pub fn native_main_loop(
@@ -265,13 +273,10 @@ pub fn native_main_loop(
                     sdl.canvas.present();
                 }
 
-                Ok(TypedExpression::integer(3))
+                Ok(TypedExpression::integer(0))
             }
-            _ => {
-                println!("{:?}", arguments);
-                Ok(TypedExpression::integer(2))
-            }
+            _ => Ok(TypedExpression::integer(0)),
         },
-        _ => Ok(TypedExpression::integer(1)),
+        _ => Ok(TypedExpression::integer(0)),
     }
 }

@@ -155,7 +155,7 @@ fn root_symboltable() -> SymbolTable {
         "window_open".to_string(),
         TypedExpression::native_function(
             native::native_open_window,
-            vec![],
+            vec![ResolvedType::String],
             ResolvedType::Sdl,
             false,
         ),
