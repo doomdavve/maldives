@@ -6,7 +6,7 @@ use crate::resolvedtype::ResolvedType;
 use crate::symboltable::SymbolTable;
 use crate::typedexpression::TypedExpression;
 use fmt::Debug;
-use sdl2::Sdl;
+use sdl2::{render::Canvas, video::Window, EventPump, Sdl, VideoSubsystem};
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum TypedExpressionNode {
@@ -346,7 +346,10 @@ impl fmt::Display for BindingExpr {
 }
 
 pub struct SdlWrapper {
-    pub sdl: Sdl,
+    pub sdl_context: Sdl,
+    pub video_subsystem: VideoSubsystem,
+    pub canvas: Canvas<Window>,
+    pub event_pump: EventPump,
 }
 
 impl PartialEq for SdlWrapper {

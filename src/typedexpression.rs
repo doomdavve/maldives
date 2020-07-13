@@ -5,7 +5,7 @@ use std::rc::Rc;
 use crate::resolvedtype::{ResolvedFunctionType, ResolvedType};
 use crate::symboltable::SymbolTable;
 use crate::typedexpressionnode::*;
-use sdl2::Sdl;
+use sdl2::{render::Canvas, video::Window, EventPump, Sdl, VideoSubsystem};
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct TypedExpression {
@@ -238,10 +238,20 @@ impl TypedExpression {
         }
     }
 
-    pub fn sdl(sdl_context: Sdl) -> TypedExpression {
+    pub fn sdl(
+        sdl_context: Sdl,
+        video_subsystem: VideoSubsystem,
+        canvas: Canvas<Window>,
+        event_pump: EventPump,
+    ) -> TypedExpression {
         TypedExpression {
             resolved_type: ResolvedType::Sdl,
-            node: TypedExpressionNode::Sdl(Rc::new(SdlWrapper { sdl: sdl_context })),
+            node: TypedExpressionNode::Sdl(Rc::new(SdlWrapper {
+                sdl_context,
+                video_subsystem,
+                canvas,
+                event_pump,
+            })),
         }
     }
 }

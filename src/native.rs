@@ -211,5 +211,20 @@ pub fn native_sdl_init(
     _: &Vec<TypedExpression>,
     _type_arguments: &Option<Vec<ResolvedType>>,
 ) -> Result<TypedExpression, String> {
-    Ok(TypedExpression::sdl(sdl2::init().unwrap()))
+    let sdl_context = sdl2::init().unwrap();
+    let video_subsystem = sdl_context.video().unwrap();
+    let window = video_subsystem
+        .window("rust-sdl2 demo", 800, 600)
+        .position_centered()
+        .build()
+        .unwrap();
+    let canvas = window.into_canvas().present_vsync().build().unwrap();
+    let event_pump = sdl_context.event_pump().unwrap();
+
+    Ok(TypedExpression::sdl(
+        sdl_context,
+        video_subsystem,
+        canvas,
+        event_pump,
+    ))
 }
