@@ -180,7 +180,7 @@ impl TypedExpression {
     pub fn native_function(
         f: fn(
             env: &mut SymbolTable,
-            arguments: &Vec<TypedExpression>,
+            arguments: &[TypedExpression],
             type_arguments: &Option<Vec<ResolvedType>>,
         ) -> Result<TypedExpression, String>,
         parameters: Vec<ResolvedType>,

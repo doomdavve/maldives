@@ -284,50 +284,42 @@ impl<'a> Parser<'a> {
 
     fn expression_from_precedence(&mut self, min_prec: i32) -> Result<Expression, Error> {
         let mut expr = self.expression_atom()?;
-        loop {
-            match self.next_min_prec() {
-                (Some(prec), assoc) => {
-                    if prec < min_prec {
-                        break;
-                    }
-                    let next_min_prec = match assoc {
-                        Assoc::Left => prec + 1,
-                        Assoc::Right => prec,
-                    };
-                    let operator = self.operator()?;
-                    expr = match &operator {
-                        Operator::Member => {
-                            let sym = self.symbol()?;
-                            Expression::Access(Rc::new(AccessExpr { expr, sym }))
-                        }
-                        Operator::Call => {
-                            let arguments = self.arguments()?;
-                            Expression::FunctionCall(Rc::new(FunctionCallExpr { expr, arguments }))
-                        }
-                        Operator::TypeArguments => {
-                            let type_arguments = self.type_arguments()?;
-                            Expression::TypeQualifiedExpression(Rc::new(
-                                TypeQualifiedExpressionExpr {
-                                    expr,
-                                    type_arguments,
-                                },
-                            ))
-                        }
-                        _ => {
-                            let right = self.expression_from_precedence(next_min_prec)?;
-                            Expression::Binary(Rc::new(BinaryExpr {
-                                operator,
-                                left: expr,
-                                right,
-                            }))
-                        }
-                    }
+        while let (Some(prec), assoc) = self.next_min_prec() {
+            if prec < min_prec {
+                break;
+            }
+            let next_min_prec = match assoc {
+                Assoc::Left => prec + 1,
+                Assoc::Right => prec,
+            };
+            let operator = self.operator()?;
+            expr = match &operator {
+                Operator::Member => {
+                    let sym = self.symbol()?;
+                    Expression::Access(Rc::new(AccessExpr { expr, sym }))
+                }
+                Operator::Call => {
+                    let arguments = self.arguments()?;
+                    Expression::FunctionCall(Rc::new(FunctionCallExpr { expr, arguments }))
+                }
+                Operator::TypeArguments => {
+                    let type_arguments = self.type_arguments()?;
+                    Expression::TypeQualifiedExpression(Rc::new(TypeQualifiedExpressionExpr {
+                        expr,
+                        type_arguments,
+                    }))
                 }
                 _ => {
-                    break;
+                    let right = self.expression_from_precedence(next_min_prec)?;
+                    Expression::Binary(Rc::new(BinaryExpr {
+                        operator,
+                        left: expr,
+                        right,
+                    }))
                 }
             }
         }
+
         Ok(expr)
     }
 

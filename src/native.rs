@@ -9,7 +9,7 @@ use sdl2::{event::Event, keyboard::Keycode, pixels::Color};
 
 pub fn native_println(
     _env: &mut SymbolTable,
-    arguments: &Vec<TypedExpression>,
+    arguments: &[TypedExpression],
     _type_arguments: &Option<Vec<ResolvedType>>,
 ) -> Result<TypedExpression, String> {
     for argument in arguments {
@@ -28,7 +28,7 @@ pub fn native_println(
 
 pub fn native_dbg(
     _env: &mut SymbolTable,
-    arguments: &Vec<TypedExpression>,
+    arguments: &[TypedExpression],
     _type_arguments: &Option<Vec<ResolvedType>>,
 ) -> Result<TypedExpression, String> {
     for argument in arguments {
@@ -39,14 +39,14 @@ pub fn native_dbg(
 
 pub fn native_array(
     _env: &mut SymbolTable,
-    arguments: &Vec<TypedExpression>,
+    arguments: &[TypedExpression],
     type_arguments: &Option<Vec<ResolvedType>>,
 ) -> Result<TypedExpression, String> {
     match type_arguments {
         Some(types) if types.len() == 1 => match types[0] {
             _ => Ok(TypedExpression::array(
                 ResolvedType::Integer,
-                arguments.clone(),
+                arguments.to_vec(),
             )),
         },
         _ => Err("Missing or wrong number of type arguments to array constructor".to_string()),
@@ -55,7 +55,7 @@ pub fn native_array(
 
 pub fn native_array_len(
     _env: &mut SymbolTable,
-    arguments: &Vec<TypedExpression>,
+    arguments: &[TypedExpression],
     _: &Option<Vec<ResolvedType>>,
 ) -> Result<TypedExpression, String> {
     match &arguments[..] {
@@ -71,7 +71,7 @@ pub fn native_array_len(
 
 pub fn native_array_map(
     env: &mut SymbolTable,
-    arguments: &Vec<TypedExpression>,
+    arguments: &[TypedExpression],
     _: &Option<Vec<ResolvedType>>,
 ) -> Result<TypedExpression, String> {
     match &arguments[..] {
@@ -96,7 +96,7 @@ pub fn native_array_map(
 
 pub fn native_array_filter(
     env: &mut SymbolTable,
-    arguments: &Vec<TypedExpression>,
+    arguments: &[TypedExpression],
     _: &Option<Vec<ResolvedType>>,
 ) -> Result<TypedExpression, String> {
     match &arguments[..] {
@@ -129,7 +129,7 @@ pub fn native_array_filter(
 
 pub fn native_env(
     env: &mut SymbolTable,
-    _: &Vec<TypedExpression>,
+    _: &[TypedExpression],
     _type_arguments: &Option<Vec<ResolvedType>>,
 ) -> Result<TypedExpression, String> {
     print!("{}", env);
@@ -209,7 +209,7 @@ fn sdl() -> Result<i32, String> {
 */
 pub fn native_open_window(
     _env: &mut SymbolTable,
-    arguments: &Vec<TypedExpression>,
+    arguments: &[TypedExpression],
     _type_arguments: &Option<Vec<ResolvedType>>,
 ) -> Result<TypedExpression, String> {
     match &arguments[..] {
@@ -246,7 +246,7 @@ pub fn native_open_window(
 
 pub fn native_main_loop(
     _env: &mut SymbolTable,
-    arguments: &Vec<TypedExpression>,
+    arguments: &[TypedExpression],
     _type_arguments: &Option<Vec<ResolvedType>>,
 ) -> Result<TypedExpression, String> {
     match &arguments[..] {

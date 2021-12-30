@@ -261,7 +261,7 @@ impl fmt::Display for TypedBreakExpr {
 pub struct TypedNativeFunctionExpr {
     pub function: fn(
         env: &mut SymbolTable,
-        e: &Vec<TypedExpression>,
+        e: &[TypedExpression],
         t: &Option<Vec<ResolvedType>>,
     ) -> Result<TypedExpression, String>,
     pub call_by_value: bool,

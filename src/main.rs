@@ -182,7 +182,7 @@ fn repl() -> Result<i32, String> {
     let mut root = root_symboltable();
     loop {
         match rl.readline("> ") {
-            Ok(line) if &line != "" => {
+            Ok(line) if !&line.is_empty() => {
                 rl.add_history_entry(&line);
                 match evaluate_line(&mut root, &line) {
                     Ok(output) => println!("{}", output),
@@ -204,12 +204,12 @@ fn repl() -> Result<i32, String> {
     Ok(0)
 }
 
-fn evaluate_line(mut root: &mut SymbolTable, line: &str) -> Result<String, String> {
+fn evaluate_line(root: &mut SymbolTable, line: &str) -> Result<String, String> {
     let tokens = Lexer::new(line);
     let program = Parser::new(tokens).program().map_err(|e| e.to_string())?;
     debug!("Parsed program: {:?}", program);
-    let resolved = TypeResolver::resolve_in_env(&program, &mut root).map_err(|e| e.to_string())?;
-    let result = Interpreter::eval(&resolved, &mut root).map_err(|e| e.to_string())?;
+    let resolved = TypeResolver::resolve_in_env(&program, root).map_err(|e| e.to_string())?;
+    let result = Interpreter::eval(&resolved, root).map_err(|e| e.to_string())?;
     Ok(result.to_string())
 }
 
@@ -232,10 +232,10 @@ mod tests {
 
     fn type_check_program(
         contents: &str,
-        mut root: &mut SymbolTable,
+        root: &mut SymbolTable,
     ) -> Result<TypedExpression, Error> {
         let mut parser = Parser::new(Lexer::new(contents));
-        TypeResolver::resolve_in_env(&parser.program().unwrap(), &mut root)
+        TypeResolver::resolve_in_env(&parser.program().unwrap(), root)
     }
 
     fn eval_program(contents: &str) -> Result<TypedExpression, String> {
