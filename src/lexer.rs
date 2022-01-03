@@ -49,11 +49,11 @@ fn eat_hashbang(s: &[u8], i: usize) -> usize {
 }
 
 fn is_alphabetic(c: u8) -> bool {
-    (b'a' <= c && c <= b'z') || (b'A' <= c && c <= b'Z') || b'_' == c || b'-' == c
+    (b'a'..=b'z').contains(&c) || (b'A'..=b'Z').contains(&c) || b'_' == c || b'-' == c
 }
 
 fn is_numeric(c: u8) -> bool {
-    b'0' <= c && c <= b'9'
+    (b'0'..=b'9').contains(&c)
 }
 
 fn eat_symbol(s: &[u8], mut i: usize) -> (&[u8], usize) {
