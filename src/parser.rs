@@ -400,9 +400,10 @@ impl<'a> Parser<'a> {
                 "unexpected token: {}",
                 self.sym_as_str()
             ))),
-            None => Err(Error::new(format!(
-                "unexpected EOF; expected part of expression"
-            ))),
+            None => Err({
+                let message = "unexpected EOF; expected part of expression".to_string();
+                Error { message }
+            }),
         }
     }
 
@@ -687,7 +688,7 @@ mod tests {
             expr: Expression::Symbol(String::from("sum")),
             arguments: vec![4, 1, 2, 4, 5, 223, 23, 2]
                 .into_iter()
-                .map(|i| Expression::Integer(i))
+                .map(Expression::Integer)
                 .collect(),
         }));
         assert_eq!(res, Ok(expected));
@@ -699,10 +700,7 @@ mod tests {
         let res = parser.expression();
         let expected = Expression::FunctionCall(Rc::new(FunctionCallExpr {
             expr: Expression::Symbol(String::from("sqrt")),
-            arguments: vec![4]
-                .into_iter()
-                .map(|i| Expression::Integer(i))
-                .collect(),
+            arguments: vec![4].into_iter().map(Expression::Integer).collect(),
         }));
         assert_eq!(res, Ok(expected));
     }
@@ -715,10 +713,7 @@ mod tests {
             expr: Expression::Symbol(String::from("sqrt")),
             arguments: vec![Expression::FunctionCall(Rc::new(FunctionCallExpr {
                 expr: Expression::Symbol(String::from("sqrt")),
-                arguments: vec![81]
-                    .into_iter()
-                    .map(|i| Expression::Integer(i))
-                    .collect(),
+                arguments: vec![81].into_iter().map(Expression::Integer).collect(),
             }))],
         }));
         assert_eq!(res, Ok(expected));
