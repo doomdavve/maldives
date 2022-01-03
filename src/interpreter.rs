@@ -139,10 +139,9 @@ impl Interpreter {
                     TypedBinaryOperation::Assign => match lhs.node {
                         TypedExpressionNode::Symbol(sym) => {
                             let expr = Interpreter::eval(&rhs, env)?;
-                            env.update(String::from(&sym), expr.clone())
-                                .ok_or_else(|| {
-                                    Error::new(format!("{} not found in this scope", sym))
-                                })?;
+                            env.update(String::from(&sym), expr.clone()).map_err(|_| {
+                                Error::new(format!("{} not found in this scope", sym))
+                            })?;
                             Ok(expr)
                         }
                         _ => Err(Error::new(

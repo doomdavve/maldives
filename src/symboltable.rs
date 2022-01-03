@@ -1,3 +1,4 @@
+use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::convert::From;
 use std::fmt;
@@ -69,9 +70,8 @@ impl Node {
         {
             let child = pool.get_mut(child_node_id).unwrap();
             child.parent = Some(node_id);
-            match old_last_child {
-                Some(id) => child.prev = Some(id),
-                None => (),
+            if let Some(id) = old_last_child {
+                child.prev = Some(id)
             }
         }
 
@@ -119,6 +119,8 @@ pub struct SymbolTable {
     next_struct_id: u32,
 }
 
+pub struct NotFound;
+
 impl SymbolTable {
     pub fn new() -> SymbolTable {
         let mut pool: Pool = Pool::new();
@@ -141,11 +143,10 @@ impl SymbolTable {
     }
 
     pub fn bind(&mut self, symbol: String, expr: TypedExpression) {
-        match (&expr.resolved_type, &expr.node) {
-            (ResolvedType::Struct(i), TypedExpressionNode::Struct(s)) => {
-                self.struct_map.insert(*i, s.clone());
-            }
-            _ => (),
+        if let (ResolvedType::Struct(i), TypedExpressionNode::Struct(s)) =
+            (&expr.resolved_type, &expr.node)
+        {
+            self.struct_map.insert(*i, s.clone());
         }
 
         let scope = self.current_scope_mut();
@@ -166,24 +167,28 @@ impl SymbolTable {
         symbol: String,
         expr: TypedExpression,
         scope_id: NodeId,
-    ) -> Option<TypedExpression> {
+    ) -> Result<(), NotFound> {
         let node = self.pool.get_mut(scope_id).unwrap(); // We might as well panic here
         let scope = &mut node.scope;
-        if scope.map.contains_key(&symbol) {
-            scope.map.insert(symbol, expr)
-        } else {
-            match node.parent {
-                Some(parent_scope_id) => self.update_recursive(symbol, expr, parent_scope_id),
-                None => None,
+
+        match scope.map.entry(symbol.clone()) {
+            Entry::Occupied(mut v) => {
+                v.insert(expr);
+                Ok(())
             }
+            Entry::Vacant(_) => match node.parent {
+                Some(parent_scope_id) => self.update_recursive(symbol, expr, parent_scope_id),
+
+                None => Err(NotFound),
+            },
         }
     }
 
-    pub fn update(&mut self, symbol: String, expr: TypedExpression) -> Option<TypedExpression> {
+    pub fn update(&mut self, symbol: String, expr: TypedExpression) -> Result<(), NotFound> {
         self.update_recursive(symbol, expr, self.scope_id)
     }
 
-    fn lookup_recursive(&self, symbol: &String, scope_id: NodeId) -> Option<&TypedExpression> {
+    fn lookup_recursive(&self, symbol: &str, scope_id: NodeId) -> Option<&TypedExpression> {
         let node = self.pool.get(scope_id).unwrap(); // We might as well panic here
         let scope = &node.scope;
         if scope.map.contains_key(symbol) {
