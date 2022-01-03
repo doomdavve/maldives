@@ -77,7 +77,7 @@ pub fn native_array_map(
             TypedExpressionNode::Array(array) => {
                 let mut new_vec: Vec<TypedExpression> = Vec::new();
                 for expr in &array.array {
-                    let n = Interpreter::call(second_arg, &vec![expr.clone()], env)
+                    let n = Interpreter::call(second_arg, &[expr.clone()], env)
                         .map_err(|e| e.message)?;
                     new_vec.push(n);
                 }
@@ -102,7 +102,7 @@ pub fn native_array_filter(
             TypedExpressionNode::Array(array) => {
                 let mut new_vec: Vec<TypedExpression> = Vec::new();
                 for expr in &array.array {
-                    let n = Interpreter::call(second_arg, &vec![expr.clone()], env)
+                    let n = Interpreter::call(second_arg, &[expr.clone()], env)
                         .map_err(|e| e.message)?;
                     match &n.node {
                         TypedExpressionNode::Bool(b) => {
