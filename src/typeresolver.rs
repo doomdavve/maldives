@@ -77,10 +77,9 @@ impl TypeResolver {
                 Ok(TypedExpression::group(typed_group))
             }
             Expression::Symbol(s) => {
-                let expr = env.lookup(s).ok_or(Error::new(format!(
-                    "Unable to resolve type of symbol '{}'",
-                    s
-                )))?;
+                let expr = env.lookup(s).ok_or_else(|| {
+                    Error::new(format!("Unable to resolve type of symbol '{}'", s))
+                })?;
                 Ok(TypedExpression::symbol(
                     String::from(s),
                     expr.resolved_type.clone(),
@@ -88,16 +87,13 @@ impl TypeResolver {
             }
             Expression::Access(a) => {
                 let struct_expr = TypeResolver::resolve(&a.expr, env, ctx)?;
-                let struct_id = struct_expr
-                    .resolved_type
-                    .struct_id()
-                    .map_err(|e| Error::new(e))?;
+                let struct_id = struct_expr.resolved_type.struct_id().map_err(Error::new)?;
                 let s = env
                     .lookup_struct(struct_id)
-                    .ok_or(Error::new(format!("unexpected error3")))?;
+                    .ok_or_else(|| Error::new("unexpected error3".to_string()))?;
                 match &s.members.get(&a.sym) {
                     Some(m) => Ok(TypedExpression::access(
-                        struct_expr.clone(),
+                        struct_expr,
                         a.sym.clone(),
                         m.resolved_type.clone(),
                     )),
@@ -215,14 +211,12 @@ impl TypeResolver {
                                 right,
                             ))
                         } else {
-                            Err(Error::new(format!("type mismatch in assignment",)))
+                            Err(Error::new("type mismatch in assignment".to_string()))
                         }
                     }
                     _ => Err(Error::new(format!(
                         "operator {} can't be applied to type '{}' and type '{}'",
-                        b.operator,
-                        left.resolved_type.clone(),
-                        right.resolved_type.clone()
+                        b.operator, left.resolved_type, right.resolved_type
                     ))),
                 }
             }
@@ -236,16 +230,16 @@ impl TypeResolver {
                 let true_branch_resolved_type = true_branch.resolved_type.clone();
                 let false_branch_resolved_type = false_branch
                     .clone()
-                    .and_then(|expr| Some(expr.resolved_type))
-                    .unwrap_or(true_branch.resolved_type.clone());
+                    .map(|expr| expr.resolved_type)
+                    .unwrap_or_else(|| true_branch.resolved_type.clone());
                 if condition.resolved_type == ResolvedType::Bool
                     && true_branch_resolved_type == false_branch_resolved_type
                 {
                     Ok(TypedExpression::conditional(
                         condition,
                         true_branch_resolved_type,
-                        true_branch.clone(),
-                        false_branch.clone(),
+                        true_branch,
+                        false_branch,
                     ))
                 } else {
                     Err(Error::new(
@@ -256,7 +250,7 @@ impl TypeResolver {
             Expression::Block(b) => {
                 let mut list = Vec::new();
                 for expr in &b.list {
-                    list.push(TypeResolver::resolve(&expr, env, ctx)?);
+                    list.push(TypeResolver::resolve(expr, env, ctx)?);
                 }
                 Ok(TypedExpression::block(list))
             }
@@ -265,7 +259,7 @@ impl TypeResolver {
                     let parent_ctx = ctx
                         .parent
                         .clone()
-                        .ok_or(Error::new("internal error".to_string()))?;
+                        .ok_or_else(|| Error::new("internal error".to_string()))?;
                     let typed_break = TypeResolver::resolve(&b.expr, env, &parent_ctx)?;
                     Ok(TypedExpression::r#break(typed_break))
                 }
@@ -277,7 +271,7 @@ impl TypeResolver {
                 let mut loop_break_type = ResolvedType::Never;
                 let mut list = Vec::new();
                 for expr in &b.list {
-                    let expr = TypeResolver::resolve(&expr, env, &resolve_context)?;
+                    let expr = TypeResolver::resolve(expr, env, &resolve_context)?;
                     match &expr.resolved_type {
                         ResolvedType::Break(break_type) => {
                             if loop_break_type == ResolvedType::Never {
@@ -296,7 +290,7 @@ impl TypeResolver {
             Expression::Program(program) => {
                 let mut list = Vec::new();
                 for expr in &program.list {
-                    list.push(TypeResolver::resolve(&expr, env, ctx)?);
+                    list.push(TypeResolver::resolve(expr, env, ctx)?);
                 }
                 Ok(TypedExpression::program(list))
             }
@@ -313,7 +307,7 @@ impl TypeResolver {
                     Err(Error::new(
                         format!(
                             "Type mismatch: Can't bind symbol '{}' of type '{:?}' to expression of type {:?}",
-                            &bind.sym, resolved_sym_type, expr.resolved_type.clone()
+                            &bind.sym, resolved_sym_type, expr.resolved_type
                         ),
                     ))
                 }
@@ -325,20 +319,21 @@ impl TypeResolver {
                 let mut typed_type_arguments: Vec<ResolvedType> =
                     Vec::with_capacity(qf.type_arguments.len());
                 for type_argument in &qf.type_arguments {
-                    let a = ResolvedType::from_decl(type_argument).ok_or(Error::new(format!(
-                        "can't resolve type: {:?}",
-                        type_argument
-                    )))?;
+                    let a = ResolvedType::from_decl(type_argument).ok_or_else(|| {
+                        Error::new(format!("can't resolve type: {:?}", type_argument))
+                    })?;
                     let b = ResolvedType::complete_type(&a, type_arguments)
-                        .ok_or(Error::new(format!("can't resolve type: {:?}", a)))?;
+                        .ok_or_else(|| Error::new(format!("can't resolve type: {:?}", a)))?;
                     typed_type_arguments.push(b)
                 }
                 let resolved_return_type =
-                    ResolvedType::complete_type(&expr.resolved_type, type_arguments).ok_or(
-                        Error::new(format!(
-                            "can't resolve return type: {:?}",
-                            expr.resolved_type
-                        )),
+                    ResolvedType::complete_type(&expr.resolved_type, type_arguments).ok_or_else(
+                        || {
+                            Error::new(format!(
+                                "can't resolve return type: {:?}",
+                                expr.resolved_type
+                            ))
+                        },
                     )?;
 
                 Ok(TypedExpression::type_qualified_expression(
@@ -355,7 +350,7 @@ impl TypeResolver {
                 for parameter in &f.parameters {
                     let resolved_parameter_type = ResolvedType::from_decl(&parameter.1)
                         .ok_or_else(|| {
-                            Error::new(format!("Type mismatch: Can't bind resolve type"))
+                            Error::new("Type mismatch: Can't bind resolve type".to_string())
                         })?;
                     parameters.push((parameter.0.clone(), resolved_parameter_type.clone()));
                     env.bind(
@@ -372,10 +367,9 @@ impl TypeResolver {
                 let return_type = &expr.resolved_type;
 
                 let specified_return_type: ResolvedType = match f.return_type.as_ref() {
-                    Some(decl) => ResolvedType::from_decl(decl).ok_or(Error::new(format!(
-                        "Can't resolve specified return type '{:?}'",
-                        decl
-                    ))),
+                    Some(decl) => ResolvedType::from_decl(decl).ok_or_else(|| {
+                        Error::new(format!("Can't resolve specified return type '{:?}'", decl))
+                    }),
                     None => Ok(ResolvedType::Any),
                 }?;
 
@@ -395,14 +389,14 @@ impl TypeResolver {
                     if let Some(sym) = &f.sym {
                         env.bind(
                             String::from(sym),
-                            TypedExpression::resolved_type(resolved_type.clone()),
+                            TypedExpression::resolved_type(resolved_type),
                         );
                     }
                     Ok(function)
                 } else {
-                    Err(Error::new(format!(
-                        "Type mismatch: Return types does not match"
-                    )))
+                    Err(Error::new(
+                        "Type mismatch: Return types does not match".to_string(),
+                    ))
                 }
             }
 
@@ -416,7 +410,7 @@ impl TypeResolver {
                         };
                         let mut typed_arguments = Vec::<TypedExpression>::new();
                         for arg in &fc.arguments {
-                            let typed_arg = TypeResolver::resolve(&arg, env, ctx)?;
+                            let typed_arg = TypeResolver::resolve(arg, env, ctx)?;
                             typed_arguments.push(typed_arg)
                         }
 
@@ -475,11 +469,7 @@ impl TypeResolver {
                     arguments.push(expr)
                 }
 
-                Ok(TypedExpression::call(
-                    expr.clone(),
-                    return_type.clone(),
-                    arguments,
-                ))
+                Ok(TypedExpression::call(expr, return_type, arguments))
             }
         }
     }
