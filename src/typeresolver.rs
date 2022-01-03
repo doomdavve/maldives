@@ -48,7 +48,7 @@ impl ResolveContext {
     fn r#loop(ctx: Rc<ResolveContext>, loop_expr: &Rc<LoopExpr>) -> Rc<ResolveContext> {
         Rc::new(ResolveContext {
             loop_expr: Some(loop_expr.clone()),
-            parent: Some(ctx.clone()),
+            parent: Some(ctx),
         })
     }
 }
