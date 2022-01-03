@@ -43,12 +43,10 @@ pub fn native_array(
     type_arguments: &Option<Vec<ResolvedType>>,
 ) -> Result<TypedExpression, String> {
     match type_arguments {
-        Some(types) if types.len() == 1 => match types[0] {
-            _ => Ok(TypedExpression::array(
-                ResolvedType::Integer,
-                arguments.to_vec(),
-            )),
-        },
+        Some(types) if types.len() == 1 => Ok(TypedExpression::array(
+            ResolvedType::Integer,
+            arguments.to_vec(),
+        )),
         _ => Err("Missing or wrong number of type arguments to array constructor".to_string()),
     }
 }
@@ -58,7 +56,7 @@ pub fn native_array_len(
     arguments: &[TypedExpression],
     _: &Option<Vec<ResolvedType>>,
 ) -> Result<TypedExpression, String> {
-    match &arguments[..] {
+    match arguments {
         [first_arg] => match &first_arg.node {
             TypedExpressionNode::Array(array) => Ok(TypedExpression::integer(
                 array.array.len().try_into().unwrap(),
@@ -74,7 +72,7 @@ pub fn native_array_map(
     arguments: &[TypedExpression],
     _: &Option<Vec<ResolvedType>>,
 ) -> Result<TypedExpression, String> {
-    match &arguments[..] {
+    match arguments {
         [first_arg, second_arg] => match &first_arg.node {
             TypedExpressionNode::Array(array) => {
                 let mut new_vec: Vec<TypedExpression> = Vec::new();
@@ -99,7 +97,7 @@ pub fn native_array_filter(
     arguments: &[TypedExpression],
     _: &Option<Vec<ResolvedType>>,
 ) -> Result<TypedExpression, String> {
-    match &arguments[..] {
+    match arguments {
         [first_arg, second_arg] => match &first_arg.node {
             TypedExpressionNode::Array(array) => {
                 let mut new_vec: Vec<TypedExpression> = Vec::new();
@@ -212,7 +210,7 @@ pub fn native_open_window(
     arguments: &[TypedExpression],
     _type_arguments: &Option<Vec<ResolvedType>>,
 ) -> Result<TypedExpression, String> {
-    match &arguments[..] {
+    match arguments {
         [first_arg] => match &first_arg.node {
             TypedExpressionNode::String(title) => {
                 let sdl_context = sdl2::init().unwrap();
@@ -249,7 +247,7 @@ pub fn native_main_loop(
     arguments: &[TypedExpression],
     _type_arguments: &Option<Vec<ResolvedType>>,
 ) -> Result<TypedExpression, String> {
-    match &arguments[..] {
+    match arguments {
         [first_arg] => match &first_arg.node {
             TypedExpressionNode::Sdl(sdl_cell) => {
                 let mut i = 0;
