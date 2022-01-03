@@ -78,7 +78,7 @@ impl ResolvedType {
                 let return_type = ResolvedType::from_decl(&f.return_type)?;
                 let mut parameters: Vec<ResolvedType> = Vec::new();
                 for parameter in &f.parameters {
-                    parameters.push(ResolvedType::from_decl(&parameter)?)
+                    parameters.push(ResolvedType::from_decl(parameter)?)
                 }
                 Some(ResolvedType::Function(Rc::new(ResolvedFunctionType {
                     return_type,
@@ -97,7 +97,7 @@ impl ResolvedType {
 
     pub fn complete_type(
         resolved_type: &ResolvedType,
-        type_arguments: &Vec<TypeDeclaration>,
+        type_arguments: &[TypeDeclaration],
     ) -> Option<ResolvedType> {
         match resolved_type {
             Self::Array(t) => Some(ResolvedType::Array(Box::new(ResolvedType::complete_type(
@@ -126,7 +126,7 @@ impl ResolvedType {
         match self {
             ResolvedType::Struct(id) => Ok(*id),
             ResolvedType::Array(_) => Ok(AllocatedStructIds::Array as u32),
-            _ => Err(format!("unexpected error2")),
+            _ => Err("unexpected error2".to_string()),
         }
     }
 }
