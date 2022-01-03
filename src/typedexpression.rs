@@ -3,7 +3,6 @@ use std::fmt;
 use std::{cell::RefCell, rc::Rc};
 
 use crate::resolvedtype::{ResolvedFunctionType, ResolvedType};
-use crate::symboltable::SymbolTable;
 use crate::typedexpressionnode::*;
 use sdl2::{render::Canvas, video::Window, EventPump, Sdl, VideoSubsystem};
 
@@ -178,11 +177,7 @@ impl TypedExpression {
     }
 
     pub fn native_function(
-        f: fn(
-            env: &mut SymbolTable,
-            arguments: &[TypedExpression],
-            type_arguments: &Option<Vec<ResolvedType>>,
-        ) -> Result<TypedExpression, String>,
+        f: NativeFunction,
         parameters: Vec<ResolvedType>,
         return_type: ResolvedType,
         call_by_value: bool,

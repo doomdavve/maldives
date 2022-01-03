@@ -1,4 +1,4 @@
-use std::error;
+pub(crate) use std::error;
 use std::fmt;
 use std::rc::Rc;
 
@@ -312,7 +312,7 @@ impl TypeResolver {
                     ))
                 }
             }
-            Expression::TypeQualifiedExpression(qf) => {
+            Expression::TypeQualified(qf) => {
                 let expr = TypeResolver::resolve(&qf.expr, env, ctx)?;
                 let type_arguments = &qf.type_arguments;
 

@@ -17,7 +17,7 @@ pub enum Expression {
     String(String),
     Conditional(Rc<ConditionalExpr>),
     Break(Rc<BreakExpr>),
-    TypeQualifiedExpression(Rc<TypeQualifiedExpressionExpr>),
+    TypeQualified(Rc<TypeQualifiedExpressionExpr>),
     Access(Rc<AccessExpr>),
     Void,
 }

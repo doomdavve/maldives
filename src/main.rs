@@ -552,7 +552,7 @@ mod tests {
     #[test]
     fn test_suite() {
         match fs::read_to_string("raa/manifest").map_err(|e| e.to_string()) {
-            Ok(contents) => match &contents.split(",").collect::<Vec<&str>>()[..] {
+            Ok(contents) => match &contents.split(',').collect::<Vec<&str>>()[..] {
                 [op, path1, path2] => test_operation(op, path1, path2),
                 _ => println!("Error: Wrong number of fields"),
             },

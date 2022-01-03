@@ -8,6 +8,12 @@ use crate::typedexpression::TypedExpression;
 use fmt::Debug;
 use sdl2::{render::Canvas, video::Window, EventPump, Sdl, VideoSubsystem};
 
+pub type NativeFunction = fn(
+    env: &mut SymbolTable,
+    e: &[TypedExpression],
+    t: &Option<Vec<ResolvedType>>,
+) -> Result<TypedExpression, String>;
+
 #[derive(Debug, PartialEq, Clone)]
 pub enum TypedExpressionNode {
     Integer(i32),
@@ -195,7 +201,7 @@ impl fmt::Display for TypedFunctionExpr {
         write!(
             f,
             "fn {}() <{}>",
-            self.sym.clone().unwrap_or("".to_string()),
+            self.sym.clone().unwrap_or_else(|| "".to_string()),
             self.id
         )
     }
@@ -259,11 +265,7 @@ impl fmt::Display for TypedBreakExpr {
 
 #[derive(Clone)]
 pub struct TypedNativeFunctionExpr {
-    pub function: fn(
-        env: &mut SymbolTable,
-        e: &[TypedExpression],
-        t: &Option<Vec<ResolvedType>>,
-    ) -> Result<TypedExpression, String>,
+    pub function: NativeFunction,
     pub call_by_value: bool,
     pub type_arguments: Option<Vec<ResolvedType>>,
 }

@@ -304,7 +304,7 @@ impl<'a> Parser<'a> {
                 }
                 Operator::TypeArguments => {
                     let type_arguments = self.type_arguments()?;
-                    Expression::TypeQualifiedExpression(Rc::new(TypeQualifiedExpressionExpr {
+                    Expression::TypeQualified(Rc::new(TypeQualifiedExpressionExpr {
                         expr,
                         type_arguments,
                     }))
@@ -557,7 +557,7 @@ mod tests {
         let res = parser.expression().unwrap();
         assert_eq!(
             Expression::FunctionCall(Rc::new(FunctionCallExpr {
-                expr: Expression::TypeQualifiedExpression(Rc::new(TypeQualifiedExpressionExpr {
+                expr: Expression::TypeQualified(Rc::new(TypeQualifiedExpressionExpr {
                     expr: Expression::Symbol(String::from("array")),
                     type_arguments: vec![TypeDeclaration::Symbol(String::from("int"))]
                 })),

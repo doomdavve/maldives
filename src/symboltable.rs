@@ -154,11 +154,8 @@ impl SymbolTable {
     }
 
     pub fn bind_function(&mut self, expr: TypedExpression) {
-        match &expr.node {
-            TypedExpressionNode::Function(f) => {
-                self.function_map.insert(f.id, self.scope_id);
-            }
-            _ => (),
+        if let TypedExpressionNode::Function(f) = &expr.node {
+            self.function_map.insert(f.id, self.scope_id);
         }
     }
 
@@ -201,7 +198,7 @@ impl SymbolTable {
         }
     }
 
-    pub fn lookup(&self, symbol: &String) -> Option<&TypedExpression> {
+    pub fn lookup(&self, symbol: &str) -> Option<&TypedExpression> {
         self.lookup_recursive(symbol, self.scope_id)
     }
 
